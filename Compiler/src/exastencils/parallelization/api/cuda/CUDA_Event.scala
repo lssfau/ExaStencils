@@ -19,7 +19,7 @@ abstract class CUDA_Event(
     canBePerNeighbor : Boolean
 ) extends IR_InternalVariable(canBePerFragment, canBePerDomain, canBePerField, canBePerLevel, canBePerNeighbor) {
 
-  def synchronizationNecessary = Knowledge.cuda_useStreams
+  def synchronizationNecessary = Knowledge.experimental_cuda_useStreams
 
   override def getCtor() : Option[IR_Statement] = {
     Some(wrapInLoops(

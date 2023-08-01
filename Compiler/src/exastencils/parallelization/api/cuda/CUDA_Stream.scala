@@ -55,14 +55,14 @@ object CUDA_Stream {
       val flag = stream match {
         case _ : CUDA_ComputeStream     =>
           if (before)
-            Knowledge.cuda_syncStreamsBeforeComputeKernelCalls
+            Knowledge.experimental_cuda_syncStreamsBeforeComputeKernelCalls
           else
-            Knowledge.cuda_syncStreamsAfterComputeKernelCalls
+            Knowledge.experimental_cuda_syncStreamsAfterComputeKernelCalls
         case _ : CUDA_CommunicateStream =>
           if (before)
-            Knowledge.cuda_syncStreamsBeforeCommunicateKernelCalls
+            Knowledge.experimental_cuda_syncStreamsBeforeCommunicateKernelCalls
           else
-            Knowledge.cuda_syncStreamsAfterCommunicateKernelCalls
+            Knowledge.experimental_cuda_syncStreamsAfterCommunicateKernelCalls
         case _                          =>
           Logger.error("Unknown CUDA stream instance passed to CUDA_StreamSynchronize")
       }
@@ -170,7 +170,7 @@ case class CUDA_ComputeStream(fragmentIdx : IR_Expression = IR_LoopOverFragments
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   // use streams for fragment loops
-  override def useNonDefaultStreams : Boolean = Knowledge.cuda_useStreams
+  override def useNonDefaultStreams : Boolean = Knowledge.experimental_cuda_useStreams
 
   override def resolveName() = s"cudaComputeStream" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
 }
@@ -181,7 +181,7 @@ case class CUDA_CommunicateStream(neighborIdx : IR_Expression, fragmentIdx : IR_
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighborIdx)
 
   // use streams for comm/boundary handling
-  override def useNonDefaultStreams : Boolean = Knowledge.cuda_useStreams
+  override def useNonDefaultStreams : Boolean = Knowledge.experimental_cuda_useStreams
 
   override def resolveName() = s"cudaCommStream" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighborIdx.prettyprint)
 }
@@ -196,7 +196,7 @@ case class CUDA_TransferStream(field: IR_Field, fragmentIdx : IR_Expression = IR
     if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   // use streams for asynchronous memory transfers
-  override def useNonDefaultStreams : Boolean = Knowledge.cuda_useStreams
+  override def useNonDefaultStreams : Boolean = Knowledge.experimental_cuda_useStreams
 
   override def resolveName() = s"transferStream" + resolvePostfix(fragmentIdx.prettyprint, "",
     if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, "", "")

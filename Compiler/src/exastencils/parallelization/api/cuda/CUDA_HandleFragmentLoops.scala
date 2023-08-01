@@ -180,7 +180,7 @@ case class CUDA_HandleFragmentLoops(
     var (hostSyncFragLoopBefore, hostSyncFragLoopAfter) = (ListBuffer[IR_Statement](syncBeforeFragLoop : _*), ListBuffer[IR_Statement](syncAfterFragLoop : _*))
     var (deviceSyncFragLoopBefore, deviceSyncFragLoopAfter) = (ListBuffer[IR_Statement](syncBeforeFragLoop : _*), ListBuffer[IR_Statement](syncAfterFragLoop : _*))
 
-    if (Knowledge.cuda_useStreams) {
+    if (Knowledge.experimental_cuda_useStreams) {
       /* - host stream sync - */
 
       // cpu execution: set stream mode to dummy value
