@@ -119,11 +119,19 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
     field.localization match {
       case IR_AtCellCenter =>
-        BasePositions(
-          0, // set origin to current cell
-          getCellCenter(dir, origin, IR_ExpressionIndex(offsets(1))) - getCellCenter(dir, origin, IR_ExpressionIndex(offsets(0))),
-          getCellCenter(dir, origin, IR_ExpressionIndex(offsets(2))) - getCellCenter(dir, origin, IR_ExpressionIndex(offsets(0)))
-        )
+        if (Knowledge.grid_isUniform) {
+          BasePositions(
+            0, // set origin to current cell
+            getCellWidth(dir, origin),
+            2 * getCellWidth(dir, origin)
+          )
+        } else {
+          BasePositions(
+            0, // set origin to current cell
+            getCellCenter(dir, origin, IR_ExpressionIndex(offsets(1))) - getCellCenter(dir, origin, IR_ExpressionIndex(offsets(0))),
+            getCellCenter(dir, origin, IR_ExpressionIndex(offsets(2))) - getCellCenter(dir, origin, IR_ExpressionIndex(offsets(0)))
+          )
+        }
       case _               =>
         Logger.error("Unsupported localization for quadratic interp in comm for mesh refinement.")
     }
@@ -149,7 +157,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
   }
 
   def extrapVariableNeighbor(dir : Array[Int]) =
-    IR_VariableAccess(s"f_neighbor_${dirToString(dir)}_ext", IR_RealDatatype)
+    IR_VariableAccess(s"f_neighbor_${ dirToString(dir) }_ext", IR_RealDatatype)
 
   def isSameCondition(condA : IR_Expression, condB : IR_Expression) : Boolean = (condA, condB) match {
     case (c1 : IR_AndAnd, c2 : IR_AndAnd) if c1.left == c2.right && c1.right == c2.left => true
@@ -180,19 +188,21 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
     var ret = ListBuffer[IR_Statement]()
 
+    def it = IR_IV_CommBufferIterator(field, s"${ itName }_${ concurrencyId }", neighborIdx)
+
     def itName = if (send) "Send" else "Recv"
 
     def commBuffer = IR_IV_CommBuffer(field, s"${ itName }_${ concurrencyId }", indices.getTotalSize, neighborIdx)
 
-    val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), defIt)
-
     val tmpBufAccess = IR_TempBufferAccess(commBuffer,
-      IR_ExpressionIndex(defIt, indices.begin, _ - _),
-      IR_ExpressionIndex(indices.end, indices.begin, _ - _))
+      IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
 
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
     if (send) {
-      // TODO: add pack loop with interp kernel
+      // quadratic lagrange extra-/interpolation
+
+      // init temp buf idx counter
+      ret += IR_Assignment(it, 0)
 
       // Step 1 (1D interp): get value on neighboring fine ghost layer by extrapolating coarse cells in inverse comm direction
       val basePosCommDir = getBasePositionsForExtrapolation(commDir, defIt)
@@ -208,6 +218,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
       var extrapResults : HashMap[Array[Int], ListBuffer[(IR_Expression, IR_Expression)]] = HashMap()
 
       val orthogonalNeighDirs = getOrthogonalNeighborDirs()
+      var stencilAdaptedForCase : HashMap[(Array[Int], IR_Expression), Boolean] = HashMap()
       for (orthoDir <- orthogonalNeighDirs) {
         val remappedOrthoBaseVals = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir.map(_ * -2)), RemappedBasesShifts)
         val remappedOrthoBasePosCommDir = getBasePositionsForExtrapolation(commDir, defIt + IR_ExpressionIndex(orthoDir.map(_ * -2)))
@@ -219,6 +230,8 @@ case class IR_QuadraticInterpPackingC2FRemote(
             val isCorner = isAtBlockCornerForDir2D(orthoDir)
 
             casesForOrthoDir += (isCorner -> interpolate(x0, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+
+            stencilAdaptedForCase += ((orthoDir, isCorner) -> true)
           case 3 =>
             val isMinCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = true)
             val isMaxCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = false)
@@ -226,14 +239,21 @@ case class IR_QuadraticInterpPackingC2FRemote(
             casesForOrthoDir += (isMinCorner -> interpolate(x0, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
             casesForOrthoDir += (isMaxCorner -> interpolate(x0, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
 
+            stencilAdaptedForCase += ((orthoDir, isMinCorner) -> true)
+            stencilAdaptedForCase += ((orthoDir, isMaxCorner) -> true)
+
             val isEdge = isAtBlockCornerForDir2D(orthoDir)
 
             casesForOrthoDir += (isEdge -> interpolate(x0, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+
+            stencilAdaptedForCase += ((orthoDir, isEdge) -> true)
         }
 
         // regular case without remap
         val orthoBaseVals = getBaseValues(commDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
         casesForOrthoDir += (isRegularCase() -> interpolate(x0, basePosCommDir, orthoBaseVals))
+
+        stencilAdaptedForCase += ((orthoDir, isRegularCase()) -> false)
 
         extrapResults += (orthoDir -> casesForOrthoDir)
       }
@@ -256,6 +276,61 @@ case class IR_QuadraticInterpPackingC2FRemote(
         }
       }
 
+      Knowledge.dimensionality match {
+        case 2 =>
+          // extrap bases already built -> final extrap-/interpolation
+          for ((cond, interps) <- cases) {
+            for ((orthoDir, interp) <- interps if isUpwindDir(orthoDir)) {
+              // stencil adapted for upwind ortho dir -> first value interp, second extrap
+              // stencil adapted for downwind ortho dir -> first value extrap, second interp
+
+              // target location at +0.25h for interp, -0.25h for extrap
+              val x1_int = getCellWidth(orthoDir, defIt) / IR_RealConstant(4)
+              val x1_ext = -1 * getCellWidth(orthoDir, defIt) / IR_RealConstant(4)
+
+              val basePosOrthoDir = getBasePositions(orthoDir, defIt, RemappedBasesShifts)
+
+              val invOrthoDir = orthoDir.map(_ * -1)
+
+              val orthoDirVal = interp
+              val invOrthoDirVal = interps.find(_._1 sameElements invOrthoDir).get._2
+
+              val baseValsExtrap = BaseValues(orthoDirVal, extrapVariableCenter, invOrthoDirVal)
+              val baseValsExtrapRemap = BaseValues(extrapVariableCenter, orthoDirVal, invOrthoDirVal)
+
+              val interpStmts : ListBuffer[IR_Statement] = ListBuffer()
+              if (stencilAdaptedForCase.contains((orthoDir, cond))) {
+                // upwind remap
+                interpStmts += IR_Assignment(tmpBufAccess, interpolate(x1_int, basePosOrthoDir, baseValsExtrapRemap))
+                interpStmts += IR_PreIncrement(it)
+
+                interpStmts += IR_Assignment(tmpBufAccess, interpolate(x1_ext, basePosOrthoDir, baseValsExtrapRemap))
+                interpStmts += IR_PreIncrement(it)
+              } else if (stencilAdaptedForCase.contains((invOrthoDir, cond))) {
+                // downwind remap
+                interpStmts += IR_Assignment(tmpBufAccess, interpolate(x1_ext, basePosOrthoDir, baseValsExtrapRemap))
+                interpStmts += IR_PreIncrement(it)
+
+                interpStmts += IR_Assignment(tmpBufAccess, interpolate(x1_int, basePosOrthoDir, baseValsExtrapRemap))
+                interpStmts += IR_PreIncrement(it)
+              } else {
+                // no remap
+                interpStmts += IR_Assignment(tmpBufAccess, interpolate(x1_ext, basePosOrthoDir, baseValsExtrap))
+                interpStmts += IR_PreIncrement(it)
+
+                interpStmts += IR_Assignment(tmpBufAccess, interpolate(x1_int, basePosOrthoDir, baseValsExtrap))
+                interpStmts += IR_PreIncrement(it)
+              }
+
+              innerStmts += IR_IfCondition(cond, interpStmts)
+            }
+          }
+
+        case 3 =>
+
+      }
+
+      /*
       // debug output
       for ((cond, interps) <- cases) {
         innerStmts += IR_IfCondition(cond,
@@ -266,6 +341,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
                 IR_VariableDeclaration(extrapVariableNeighbor(orthoDir), interp))
           }))
       }
+      */
 
     } else {
       // TODO: add unpack loop
