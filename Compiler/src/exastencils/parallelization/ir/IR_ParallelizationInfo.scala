@@ -25,13 +25,13 @@ import exastencils.base.ir._
 /// IR_ParallelizationInfo
 
 /**
-  * @param potentiallyParallel specifies if the loop attached can be executed in parallel
-  * @param isInnermost         specifies if the loop attached is the innermost in a loop nest AND it should be optimized as such
-  * @param isVectorizable      specifies if the loop attached can safely vectorized, even if it is not parallel
-  * @param noVect              specifies if the vectorization of the loop is skipped
-  * @param collapseDepth       specifies how many nested loops can be parallelized
-  * @param privateVars         variables for which each thread should have a private storage
-  * @param reduction           identifies a reduction, if some
+  * @param potentiallyParallel        specifies if the loop attached can be executed in parallel
+  * @param isInnermost                specifies if the loop attached is the innermost in a loop nest AND it should be optimized as such
+  * @param isVectorizable             specifies if the loop attached can safely vectorized, even if it is not parallel
+  * @param noVect                     specifies if the vectorization of the loop is skipped
+  * @param collapseDepth              specifies how many nested loops can be parallelized
+  * @param privateVars                variables for which each thread should have a private storage
+  * @param reduction                  identifies a reduction, if some
   */
 case class IR_ParallelizationInfo(
     var potentiallyParallel : Boolean = false,

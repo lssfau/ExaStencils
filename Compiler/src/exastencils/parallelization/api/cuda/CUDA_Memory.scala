@@ -29,6 +29,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir._
+import exastencils.prettyprinting.PpStream
 
 /// CUDA_Allocate
 
@@ -89,10 +90,16 @@ case class CUDA_Memcpy(var dest : IR_Expression, var src : IR_Expression, var si
   override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaMemcpy"), dest, src, sizeInBytes, direction))
 }
 
+/// CUDA_MemcpyAsync
+
+case class CUDA_MemcpyAsync(var dest : IR_Expression, var src : IR_Expression, var sizeInBytes : IR_Expression, var direction : String, var stream : Option[CUDA_Stream] = None) extends CUDA_HostStatement with IR_Expandable {
+  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaMemcpyAsync"), ListBuffer[IR_Expression](dest, src, sizeInBytes, direction) ++ stream))
+}
+
 /// CUDA_MemPrefetch
 
-case class CUDA_MemPrefetch(var pointer : IR_Expression, var sizeInBytes : IR_Expression, var target : String) extends CUDA_HostStatement with IR_Expandable {
-  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaMemPrefetchAsync "), pointer, sizeInBytes, target))
+case class CUDA_MemPrefetch(var pointer : IR_Expression, var sizeInBytes : IR_Expression, var target : String, var stream : Option[CUDA_Stream] = None) extends CUDA_HostStatement with IR_Expandable {
+  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaMemPrefetchAsync"), ListBuffer[IR_Expression](pointer, sizeInBytes, target) ++ stream))
 }
 
 /// CUDA_Memset
@@ -119,7 +126,7 @@ case class CUDA_FieldDeviceData(override var field : IR_Field, override var slot
   override def getDtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
+    def access = this
 
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,
@@ -137,7 +144,7 @@ case class CUDA_BufferDeviceData(override var field : IR_Field, override var dir
   override def resolveName() = s"bufferDevice_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[IR_Statement] = {
-    def access = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
+    def access = this
 
     Some(wrapInLoops(
       IR_IfCondition(access,
@@ -145,6 +152,53 @@ case class CUDA_BufferDeviceData(override var field : IR_Field, override var dir
           CUDA_Free(access),
           IR_Assignment(access, 0)))))
   }
+}
+
+/// CUDA_MatrixDeviceCopy
+
+case class CUDA_MatrixDeviceCopy(
+    var name : String,
+    var baseDt : IR_Datatype,
+    var size : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+) extends IR_InternalVariable(true, false, false, false, false) {
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
+  def asFuncArg() = IR_FunctionArgument(resolveName(), resolveDatatype())
+  def resolveAccess() = super.resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+  override def resolveName() : String = name + resolvePostfix("", "", "", "", "")
+  override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
+
+  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(
+    if (Knowledge.cuda_useManagedMemory)
+      IR_ArrayAllocation(resolveAccess(), baseDt, size)
+    else
+      CUDA_Allocate(resolveAccess(), size, baseDt)))
+
+  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(resolveAccess(),
+    if (Knowledge.cuda_useManagedMemory)
+      IR_ArrayFree(resolveAccess())
+    else
+      CUDA_Free(resolveAccess()))))
+}
+
+/// CUDA_BufferMatrixReductionResult
+
+// TODO: temporary solution until the reductions are optimized
+case class CUDA_ReductionResultBuffer(
+    var name : String,
+    var baseDt : IR_Datatype,
+    var size : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+) extends IR_InternalVariable(true, false, false, false, false) {
+
+  override def prettyprint(out : PpStream) : Unit = out << getAccess()
+  def getAccess() = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+  override def resolveName() : String = name + resolvePostfix("", "", "", "", "")
+  override def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
+
+  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(IR_ArrayAllocation(getAccess(), baseDt, size)))
+  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(getAccess(), IR_ArrayFree(getAccess()))))
 }
 
 /// CUDA_AdaptDeviceAccessesForMM
@@ -175,7 +229,7 @@ object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-a
       fieldHostAllocations += pointer.field
       alloc
     case alloc @ IR_ArrayAllocation(pointer : IR_IV_CommBuffer, _, _) =>
-      fieldHostAllocations += pointer.field
+      bufferHostAllocations += pointer.field
       alloc
   })
 

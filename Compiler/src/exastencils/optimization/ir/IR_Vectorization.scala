@@ -38,6 +38,17 @@ object IR_Vectorization extends DefaultStrategy("Vectorization") {
   final val COND_VECTABLE : String = "VECT_C"
   final val COND_IGN_INCR : String = "VECT_ign++"
 
+  this += new Transformation("resolve compound assignments first", {
+    case IR_Assignment(dest, src, "+=") =>
+      IR_Assignment(Duplicate(dest), IR_Addition(dest, src))
+    case IR_Assignment(dest, src, "*=") =>
+      IR_Assignment(Duplicate(dest), IR_Multiplication(ListBuffer[IR_Expression](dest, src)))
+    case IR_Assignment(dest, src, "-=") =>
+      IR_Assignment(Duplicate(dest), IR_Subtraction(dest, src))
+    case IR_Assignment(dest, src, "/=") =>
+      IR_Assignment(Duplicate(dest), IR_Division(dest, src))
+  }, false)
+
   this += new Transformation("optimize", VectorizeInnermost, recursive = false, isParallel = true)
 }
 
