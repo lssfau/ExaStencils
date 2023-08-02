@@ -20,7 +20,10 @@ package exastencils.knowledge.l1
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.knowledge.l1.L1_KnowledgeContainer.L1_ProcessDeclarations
+import exastencils.knowledge.l1.L1_KnowledgeContainer.L1_ResolveAccesses
 import exastencils.logger.Logger
+import exastencils.scheduling.NoStrategyWrapper
 import exastencils.util.StrategyContainer
 
 /// L1_KnowledgeContainer
@@ -46,4 +49,19 @@ object L1_KnowledgeContainer {
   }
 
   def clear() = collections.foreach(_.clear())
+}
+
+/// L1_ProcessDeclarationsAndResolveAccessesWrapper
+
+object L1_ProcessDeclarationsAndResolveAccessesWrapper extends NoStrategyWrapper {
+
+  def callback : () => Unit = () => {
+    var matches = 0
+    do {
+      matches = 0
+      matches += L1_ProcessDeclarations.applyAndCountMatches()
+      matches += L1_ResolveAccesses.applyAndCountMatches()
+
+    } while (matches > 0)
+  }
 }

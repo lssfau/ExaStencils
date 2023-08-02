@@ -18,6 +18,8 @@
 
 package exastencils.performance.ir
 
+import exastencils.config.Knowledge
+import exastencils.scheduling.NoStrategyWrapper
 import exastencils.util.ir.IR_CollectFunctionStatements
 
 /// IR_PerformanceEstimate
@@ -33,5 +35,14 @@ object IR_AddPerformanceEstimates {
   def apply() = {
     IR_CollectFunctionStatements.apply()
     IR_EvaluatePerformanceEstimates.doUntilDone()
+  }
+}
+
+/// IR_AddPerformanceEstimatesWrapper
+
+object IR_AddPerformanceEstimatesWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.performance_addEstimation)
+      IR_AddPerformanceEstimates.apply()
   }
 }

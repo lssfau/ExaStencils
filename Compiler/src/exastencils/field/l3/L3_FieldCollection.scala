@@ -28,6 +28,7 @@ import exastencils.field.l4._
 import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
+import exastencils.scheduling.NoStrategyWrapper
 
 /// L3_FieldCollection
 
@@ -82,4 +83,10 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
     val fct = L3_PlainFunction("InitFields", L3_UnitDatatype, ListBuffer(), initStmts)
     ExaRootNode.l3_root.nodes += fct
   }
+}
+
+/// L3_AddInitFieldsFunctionWrapper
+
+object L3_AddInitFieldsFunctionWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => L3_FieldCollection.addInitFieldsFunction()
 }

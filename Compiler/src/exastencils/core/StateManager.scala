@@ -41,7 +41,9 @@ object StateManager {
   var strategies_ = Stack[Strategy]()
 
   /** Dummy strategy that is used internally to encapsulate finds. */
-  protected final case object FindStrategy extends Strategy("Statemanager::internal::FindStrategy")
+  protected final case object FindStrategy extends Strategy("Statemanager::internal::FindStrategy") {
+    def apply(applyAtNode : Option[Node] = None) : Unit = {}
+  }
 
   /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
   protected final case object NoMatch extends Node

@@ -28,6 +28,7 @@ import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.prettyprinting._
+import exastencils.scheduling.NoStrategyWrapper
 
 /// CUDA_KernelFunctions
 
@@ -232,5 +233,14 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
 
       functions += fct
     }
+  }
+}
+
+/// CUDA_FunctionConversionWrapper
+
+object CUDA_FunctionConversionWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.cuda_enabled)
+      CUDA_KernelFunctions.get.convertToFunctions()
   }
 }
