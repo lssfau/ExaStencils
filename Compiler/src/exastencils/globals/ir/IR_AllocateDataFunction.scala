@@ -22,17 +22,15 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.communication.DefaultNeighbors
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.ir._
+import exastencils.scheduling.NoStrategyWrapper
 
-/// IR_AllocateDataFunction
-
-object IR_AllocateDataFunction {
-  val fctName = "setupBuffers"
-}
+/// IR_AdaptAllocateDataFunction
 
 object IR_AdaptAllocateDataFunction extends DefaultStrategy("Enable closely spaced allocations") {
   this += Transformation("Add workaround", {
@@ -53,6 +51,17 @@ object IR_AdaptAllocateDataFunction extends DefaultStrategy("Enable closely spac
   })
 }
 
+/// IR_SetupAllocateDataFunctionWrapper
+
+object IR_SetupAllocateDataFunctionWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
+}
+
+/// IR_AllocateDataFunction
+
+object IR_AllocateDataFunction {
+  val fctName = "setupBuffers"
+}
 
 // TODO: split to separate functions for (host) fields, communication buffers and device data
 case class IR_AllocateDataFunction(

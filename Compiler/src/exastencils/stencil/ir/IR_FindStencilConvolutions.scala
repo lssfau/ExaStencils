@@ -23,13 +23,14 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FieldIteratorAccess
-import exastencils.baseExt.ir.{IR_FieldIteratorAccess, IR_MatrixAccess, IR_MatrixDatatype}
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.operator.ir._
+import exastencils.scheduling.NoStrategyWrapper
 
 /// IR_FindStencilConvolutions
 
@@ -168,4 +169,24 @@ object IR_WrapStencilConvolutions extends DefaultStrategy("Wrap stencil-field co
       Logger.warn(s"Found stencil convolution outside of an assignment: ${ conv.left.target.name } times ${ conv.right.field.name }")
       conv
   }, false)
+}
+
+/// IR_StencilConvolutionWrapper
+
+object IR_StencilConvolutionWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    var convChanged = false
+    do {
+      IR_FindStencilConvolutions.changed = false
+      IR_FindStencilConvolutions.apply()
+      convChanged = IR_FindStencilConvolutions.changed
+
+      IR_WrapStencilConvolutions.apply()
+
+      if (Knowledge.useFasterExpand)
+        IR_ExpandInOnePass.apply()
+      else
+        IR_Expand.doUntilDone()
+    } while (convChanged)
+  }
 }

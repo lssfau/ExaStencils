@@ -32,11 +32,8 @@ import exastencils.io.ir.IR_IV_FragmentOffset
 import exastencils.io.ir.IR_IV_NumValidFrags
 import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
 import exastencils.io.ir.IR_IV_TotalNumFrags
-import exastencils.io.ir.IR_IV_FragmentOffset
-import exastencils.io.ir.IR_IV_NumValidFrags
-import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
-import exastencils.io.ir.IR_IV_TotalNumFrags
 import exastencils.logger.Logger
+import exastencils.scheduling.SingleSchedulable
 import exastencils.util.ir.IR_MathFunctionReference
 import exastencils.util.ir.IR_MathFunctions
 import exastencils.util.ir.IR_ResultingDatatype
@@ -572,5 +569,13 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       base *= base
     }
     res
+  }
+}
+
+/// IR_GeneralSimplifyUntilDoneWrapper
+
+object IR_GeneralSimplifyUntilDoneWrapper extends SingleSchedulable {
+  override def apply(applyAtNode : Option[Node]) : Unit = {
+    IR_GeneralSimplify.doUntilDone(applyAtNode)
   }
 }
