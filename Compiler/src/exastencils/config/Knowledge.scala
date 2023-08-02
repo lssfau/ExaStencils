@@ -303,6 +303,12 @@ object Knowledge {
   // add benchmarking markers for each timer
   var timer_addBenchmarkMarkers : Boolean = false
 
+  // [true|false]: enables automated timing of specific function categories
+  var timer_automaticTiming : Boolean = false
+  var timer_automaticBCsTiming : Boolean = false
+  var timer_automaticCommTiming : Boolean = false
+  var timer_automaticIOTiming : Boolean = false
+
   // library/tool to use for benchmarking
   // may be one of the following: 'None', 'likwid'
   var benchmark_backend = "None"
@@ -944,6 +950,10 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
     Constraints.condEnsureValue(timer_syncDevice, false, !cuda_enabled, "Disabling flag \"timer_syncDevice\". Requires \"cuda_enabled\" to be enabled.")
+
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticBCsTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticBCsTiming = true'")
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticCommTiming = true'")
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticIOTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticIOTiming = true'")
 
     // benchmarking and performance estimation
 

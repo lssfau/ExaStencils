@@ -22,6 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.timing.l4.L4_TimerFunctions
@@ -68,4 +69,6 @@ case class IR_TimerFunctions() extends IR_FunctionCollection(IR_TimerFunctions.d
   functions += IR_PrintAllTimers()
   functions += IR_PrintAllTimersToFile()
   functions += IR_ReduceTimers()
+  if (Knowledge.timer_automaticTiming)
+    functions += IR_PrintAllAutomaticTimers()
 }

@@ -25,7 +25,7 @@ import exastencils.datastructures._
 /// IR_CollectTimers
 
 object IR_CollectTimers extends DefaultStrategy("Collect all timers used") {
-  var timers : HashMap[String, IR_IV_Timer] = HashMap()
+  var timers : HashMap[String, IR_TimingIV] = HashMap()
 
   override def apply(node : Option[Node] = None) = {
     timers.clear
@@ -38,7 +38,7 @@ object IR_CollectTimers extends DefaultStrategy("Collect all timers used") {
   }
 
   this += new Transformation("Collect", {
-    case timer : IR_IV_Timer =>
+    case timer : IR_TimingIV =>
       timers += (timer.resolveName -> timer)
       timer
   })
