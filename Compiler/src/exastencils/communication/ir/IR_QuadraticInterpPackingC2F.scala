@@ -81,14 +81,14 @@ case class IR_QuadraticInterpPackingC2FRemote(
         for (k <- asArray.indices if k != j) yield (pos - asArray(k)) / (asArray(j) - asArray(k)) : IR_Expression
       }
 
-      (for (baseIdx <- asArray.indices) yield factors(baseIdx).reduce(_ * _ : IR_Expression)).toArray
+      //(for (baseIdx <- asArray.indices) yield factors(baseIdx).reduce(_ * _ : IR_Expression)).toArray
 
       // TODO: weights wrong when simplified here
-      /*val ret = for (baseIdx <- asArray.indices) yield factors(baseIdx).reduce(_ * _ : IR_Expression)
+      val ret = asArray.indices.map(i => IR_Multiplication(factors(i) : _*))
       for (e <- ret)
-        IR_GeneralSimplify.doUntilDoneStandalone(e)
+        IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(e))
 
-      ret.toArray*/
+      ret.toArray
     }
   }
 
