@@ -81,14 +81,14 @@ case class IR_QuadraticInterpPackingC2FRemote(
         for (k <- asArray.indices if k != j) yield (pos - asArray(k)) / (asArray(j) - asArray(k)) : IR_Expression
       }
 
-      //(for (baseIdx <- asArray.indices) yield factors(baseIdx).reduce(_ * _ : IR_Expression)).toArray
+      (for (baseIdx <- asArray.indices) yield factors(baseIdx).reduce(_ * _ : IR_Expression)).toArray
 
       // TODO: weights wrong when simplified here
-      val ret = asArray.indices.map(i => IR_Multiplication(factors(i) : _*))
+      /*val ret = asArray.indices.map(i => IR_Multiplication(factors(i) : _*))
       for (e <- ret)
         IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(e))
 
-      ret.toArray
+      ret.toArray*/
     }
   }
 
@@ -98,7 +98,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
     def toArray : Array[IR_Expression] = asArray
   }
 
-  def interpolate(x0 : IR_Expression, basePos : BasePositions, baseVals : BaseValues) : IR_Expression = {
+  def interpolate1D(x0 : IR_Expression, basePos : BasePositions, baseVals : BaseValues) : IR_Expression = {
     basePos.computeWeights(x0).zip(baseVals.toArray).map(e => e._1 * e._2 : IR_Expression).reduce(_ + _)
   }
 
@@ -166,9 +166,6 @@ case class IR_QuadraticInterpPackingC2FRemote(
     case Array(0, 0, 1)  => "T"
   }
 
-  def extrapVariableNeighbor(dir : Array[Int]) =
-    IR_VariableAccess(s"f_neighbor_${ dirToString(dir) }_ext", IR_RealDatatype)
-
   def isSameCondition(condA : IR_Expression, condB : IR_Expression) : Boolean = (condA, condB) match {
     case (c1 : IR_AndAnd, c2 : IR_AndAnd) if c1.left == c2.right && c1.right == c2.left => true
     case (c1 : IR_Expression, c2 : IR_Expression) if c1 == c2                           => true
@@ -222,8 +219,8 @@ case class IR_QuadraticInterpPackingC2FRemote(
       val baseValsInvCommDir = getBaseValues(invCommDir, defIt, RemappedBasesShifts)
       val x0 = IR_RealConstant(-0.25) * getCellWidth(commDirDim, defIt) // target location at: -0.25h
 
-      val extrapVariableCenter = IR_VariableAccess("f0_center_ext", IR_RealDatatype)
-      innerStmts += IR_VariableDeclaration(extrapVariableCenter, interpolate(x0, basePosInvCommDir, baseValsInvCommDir))
+      val f0 = IR_VariableAccess("f0_center_ext", IR_RealDatatype)
+      innerStmts += IR_VariableDeclaration(f0, interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir))
 
       // Step 2: also compute new (extrapolated) neighbor bases in orthogonal axis directions (2 dirs in 2D, 4 in 4D)
 
@@ -252,22 +249,22 @@ case class IR_QuadraticInterpPackingC2FRemote(
           case 2 =>
             val isCorner = isAtBlockCornerForDir2D(orthoDir)
 
-            casesForOrthoDir += (isCorner -> interpolate(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+            casesForOrthoDir += (isCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
 
             markStencilAdapted(isCorner, adapted = true)
           case 3 =>
             val isMinCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = true)
             val isMaxCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = false)
 
-            casesForOrthoDir += (isMinCorner -> interpolate(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
-            casesForOrthoDir += (isMaxCorner -> interpolate(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+            casesForOrthoDir += (isMinCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+            casesForOrthoDir += (isMaxCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
 
             markStencilAdapted(isMinCorner, adapted = true)
             markStencilAdapted(isMaxCorner, adapted = true)
 
             val isEdge = isAtBlockCornerForDir2D(orthoDir)
 
-            casesForOrthoDir += (isEdge -> interpolate(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
+            casesForOrthoDir += (isEdge -> interpolate1D(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
 
             markStencilAdapted(isEdge, adapted = true)
         }
@@ -276,7 +273,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
         val orthoBasePosInvCommDir = getBasePositionsForExtrapolation(invCommDir, defIt + IR_ExpressionIndex(orthoDir))
         val orthoBaseValsInvCommDir = getBaseValues(invCommDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
 
-        casesForOrthoDir += (isRegularCase() -> interpolate(x0_ortho, orthoBasePosInvCommDir, orthoBaseValsInvCommDir))
+        casesForOrthoDir += (isRegularCase() -> interpolate1D(x0_ortho, orthoBasePosInvCommDir, orthoBaseValsInvCommDir))
 
         markStencilAdapted(isRegularCase(), adapted = false)
 
@@ -301,68 +298,136 @@ case class IR_QuadraticInterpPackingC2FRemote(
         }
       }
 
-      def pushToBuffer(stmts : IR_Statement*) : ListBuffer[IR_Statement] = {
-        stmts.to[ListBuffer] :+ (IR_PreIncrement(it) : IR_Statement)
-      }
+      def pushToBuffer(value : IR_Expression) : ListBuffer[IR_Statement] = ListBuffer(
+        IR_Assignment(tmpBufAccess, value),
+        IR_PreIncrement(it) : IR_Statement
+      )
+
+      def stencilAdapted(cond : IR_Expression, dir : Array[Int]) =
+        stencilAdaptedForCase(cond).exists(e => (e._1 sameElements dir) && e._2)
 
       // Step 3 (2D): extrap bases already built -> extrap-/interpolation in second dir
       val fillStmtsPerCase = cases.map { case (cond, interps) =>
         val interpStmts : ListBuffer[IR_Statement] = ListBuffer()
 
-        for ((orthoDir, interp) <- interps if isUpwindDir(orthoDir)) {
-          // stencil adapted for upwind ortho dir -> first value interp, second extrap
-          // stencil adapted for downwind ortho dir -> first value extrap, second interp
+        def interpolate2D(
+            center : IR_ExpressionIndex,
+            centerValue : IR_Expression,
+            upwindDir : Array[Int], downwindDir : Array[Int],
+            upwindValue : IR_Expression, downwindValue : IR_Expression) = {
 
           // target location at +0.25h for interp, -0.25h for extrap
-          val orthoDirDim = getDimFromDir(orthoDir)
-          val x1_int = getCellWidth(orthoDirDim, defIt) / IR_RealConstant(4)
-          val x1_ext = -1 * getCellWidth(orthoDirDim, defIt) / IR_RealConstant(4)
+          val dirDim = getDimFromDir(upwindDir)
+          val x1_int = getCellWidth(dirDim, center) / IR_RealConstant(4)
+          val x1_ext = -1 * getCellWidth(dirDim, center) / IR_RealConstant(4)
 
-          val basePosOrthoDirExt = getBasePositionsForExtrapolation(orthoDir, defIt)
-          val basePosOrthoDirInt = getBasePositionsForInterpolation(orthoDir, defIt)
+          val basePosOrthoDirExt = getBasePositionsForExtrapolation(upwindDir, center)
+          val basePosOrthoDirInt = getBasePositionsForInterpolation(upwindDir, center)
 
-          val invOrthoDir = orthoDir.map(_ * -1)
+          // 3 Cases:
+          // stencil adapted for upwind ortho dir -> bases at remapped ortho positions -> first value interp, second extrap
+          // stencil adapted for downwind ortho dir -> bases at remapped ortho positions -> first value extrap, second interp
+          // stencil NOT adapted -> bases at regular ortho positions -> both values interpolated
+          if (stencilAdapted(cond, upwindDir)) {
+            // upwind remap
+            val remappedBaseVals = BaseValues(centerValue, upwindValue, downwindValue)
 
-          val orthoDirVal = extrapVariableNeighbor(orthoDir)
-          val invOrthoDirVal = extrapVariableNeighbor(invOrthoDir)
+            (interpolate1D(x1_int, basePosOrthoDirExt, remappedBaseVals),
+              interpolate1D(x1_ext, basePosOrthoDirExt, remappedBaseVals))
+          } else if (stencilAdapted(cond, downwindDir)) {
+            // downwind remap
+            val remappedBaseVals = BaseValues(centerValue, upwindValue, downwindValue)
 
-          // declare extrap results in ortho neighbors
-          interpStmts += IR_VariableDeclaration(orthoDirVal, interp)
-          interpStmts += IR_VariableDeclaration(invOrthoDirVal, interps.find(_._1 sameElements invOrthoDir).get._2)
+            (interpolate1D(x1_ext, basePosOrthoDirExt, remappedBaseVals),
+              interpolate1D(x1_int, basePosOrthoDirExt, remappedBaseVals))
+          } else {
+            // no remap
+            val baseValsForInterp = BaseValues(downwindValue, centerValue, upwindValue)
 
-          def stencilAdapted(dir : Array[Int]) =
-            stencilAdaptedForCase(cond).exists(e => (e._1 sameElements dir) && e._2)
+            (interpolate1D(x1_ext, basePosOrthoDirInt, baseValsForInterp),
+              interpolate1D(x1_int, basePosOrthoDirInt, baseValsForInterp))
+          }
+        }
 
-          // depending on case: use orthogonal extrap values for interp/extrap in second dir
-          val (f1_center, f2_center) = {
-            if (stencilAdapted(orthoDir)) {
-              // upwind remap -> bases at remapped ortho positions. interp -> extrap
-              val remappedBaseVals = BaseValues(extrapVariableCenter, invOrthoDirVal, orthoDirVal)
+        // fetch orthogonal upwind/downwind neighbors (in second dir) and their corresponding extrap values ...
+        val (orthoDirUpwind2D, f0_upwind2D) = interps(1)
+        val (orthoDirDownwind2D, f0_downwind2D) = interps(0)
 
-              ( interpolate(x1_int, basePosOrthoDirExt, remappedBaseVals),
-                interpolate(x1_ext, basePosOrthoDirExt, remappedBaseVals) )
-            } else if (stencilAdapted(invOrthoDir)) {
-              // downwind remap -> bases at remapped ortho positions. extrap -> interp
-              val remappedBaseVals = BaseValues(extrapVariableCenter, orthoDirVal, invOrthoDirVal)
+        val f0_upwind = IR_VariableAccess(s"f0_neighbor_${ dirToString(orthoDirUpwind2D) }_ext", IR_RealDatatype)
+        val f0_downwind = IR_VariableAccess(s"f0_neighbor_${ dirToString(orthoDirDownwind2D) }_ext", IR_RealDatatype)
 
-              ( interpolate(x1_ext, basePosOrthoDirExt, remappedBaseVals),
-                interpolate(x1_int, basePosOrthoDirExt, remappedBaseVals) )
-            } else {
-              // no remap -> bases at regular ortho positions -> only interp
-              val baseValsForInterp = BaseValues(invOrthoDirVal, extrapVariableCenter, orthoDirVal)
+        interpStmts += IR_VariableDeclaration(f0_upwind, f0_upwind2D)
+        interpStmts += IR_VariableDeclaration(f0_downwind, f0_downwind2D)
 
-              ( interpolate(x1_ext, basePosOrthoDirInt, baseValsForInterp),
-                interpolate(x1_int, basePosOrthoDirInt, baseValsForInterp) )
+        // ... and perform another quadratic interp/extrap in second direction
+        val (f1_val, f2_val) = interpolate2D(defIt, f0, orthoDirUpwind2D, orthoDirDownwind2D, f0_upwind2D, f0_downwind2D)
+
+        Knowledge.dimensionality match {
+          case 2 =>
+            // write 2D results into buffer
+            interpStmts ++= pushToBuffer(f1_val)
+            interpStmts ++= pushToBuffer(f2_val)
+          case 3 =>
+            val f1 = IR_VariableAccess("f1_int", IR_RealDatatype)
+            val f2 = IR_VariableAccess("f2_int", IR_RealDatatype)
+
+            // declare 2D interpolated values of first upwind orthogonal neighbor
+            if (orthoDirUpwind2D sameElements orthogonalNeighDirs(1)) {
+              interpStmts += IR_VariableDeclaration(f1, f1_val)
+              interpStmts += IR_VariableDeclaration(f2, f2_val)
             }
-          }
 
-          Knowledge.dimensionality match {
-            case 2 =>
-              interpStmts ++= pushToBuffer(IR_Assignment(tmpBufAccess, f1_center))
-              interpStmts ++= pushToBuffer(IR_Assignment(tmpBufAccess, f2_center))
-            case 3 =>
+            // fetch orthogonal upwind/downwind neighbors (in third dir) and their corresponding extrap values
+            val (orthoDirUpwind3D, f0_upwind3D) = interps(3)
+            val (orthoDirDownwind3D, f0_downwind3D) = interps(2)
 
-          }
+            // get directions to diagonal neighbor cells
+            val diagOrigins : Array[Array[Int]] = {
+              def adaptForRemap(d : Array[Int]) = if (stencilAdapted(cond, d)) d.map(_ * -2) else d
+
+              def arrSum(a : Array[Int], b : Array[Int]) = (a, b).zipped.map(_ + _)
+
+              Array(
+                arrSum(adaptForRemap(orthoDirUpwind3D), adaptForRemap(orthoDirUpwind2D)),
+                arrSum(adaptForRemap(orthoDirUpwind3D), adaptForRemap(orthoDirDownwind2D)),
+                arrSum(adaptForRemap(orthoDirDownwind3D), adaptForRemap(orthoDirUpwind2D)),
+                arrSum(adaptForRemap(orthoDirDownwind3D), adaptForRemap(orthoDirDownwind2D))
+              )
+            }
+
+            // construct further extrap bases on diagonal neighbor cells
+            val f0_diag : Array[IR_Expression] = diagOrigins.map { dir =>
+              val origin = defIt + IR_ExpressionIndex(dir)
+              val basePosInvCommDir = getBasePositionsForExtrapolation(invCommDir, origin)
+              val baseValsInvCommDir = getBaseValues(invCommDir, origin, RemappedBasesShifts)
+
+              interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir)
+            }
+
+            val f3 = IR_VariableAccess("f3_int", IR_RealDatatype)
+            val f4 = IR_VariableAccess("f4_int", IR_RealDatatype)
+            val f5 = IR_VariableAccess("f5_int", IR_RealDatatype)
+            val f6 = IR_VariableAccess("f6_int", IR_RealDatatype)
+
+            val (f3_val, f4_val) = interpolate2D(defIt + IR_ExpressionIndex(orthoDirUpwind3D), f0_upwind3D,
+              orthoDirUpwind2D, orthoDirDownwind2D, f0_diag(0), f0_diag(1))
+            interpStmts += IR_VariableDeclaration(f3, f3_val)
+            interpStmts += IR_VariableDeclaration(f4, f4_val)
+
+            val (f5_val, f6_val) = interpolate2D(defIt + IR_ExpressionIndex(orthoDirDownwind3D), f0_downwind3D,
+              orthoDirUpwind2D, orthoDirDownwind2D, f0_diag(2), f0_diag(3))
+            interpStmts += IR_VariableDeclaration(f5, f5_val)
+            interpStmts += IR_VariableDeclaration(f6, f6_val)
+
+            // perform another quadratic interp/extrap in third dimension
+
+            val (f7_val, f8_val) = interpolate2D(defIt, f1_val, orthoDirUpwind3D, orthoDirDownwind3D, f5_val, f3_val)
+            val (f9_val, f10_val) = interpolate2D(defIt, f2_val, orthoDirUpwind3D, orthoDirDownwind3D, f6_val, f4_val)
+
+            interpStmts ++= pushToBuffer(f7_val)
+            interpStmts ++= pushToBuffer(f8_val)
+            interpStmts ++= pushToBuffer(f9_val)
+            interpStmts ++= pushToBuffer(f10_val)
         }
 
         IR_IfCondition(cond, interpStmts)
@@ -379,20 +444,6 @@ case class IR_QuadraticInterpPackingC2FRemote(
       // ... and fold into a single nested if-else construct
       val sortedCases = fillStmtsPerCase.toSeq.sorted(caseOrdering)
       innerStmts += sortedCases.dropRight(1).reverse.foldLeft(sortedCases.reverse.head)((c1, c2) => IR_IfCondition(c2.condition, c2.trueBody, c1))
-
-      /*
-      // debug output
-      for ((cond, interps) <- cases) {
-        innerStmts += IR_IfCondition(cond,
-          ListBuffer[IR_Statement]() ++ (interps flatMap {
-            case (orthoDir, interp) =>
-              List(
-                IR_Comment("Neighbor dir = " + dirToString(commDir) + ". Ortho dir = " + dirToString(orthoDir) + ". Cond = " + cond.prettyprint),
-                IR_VariableDeclaration(extrapVariableNeighbor(orthoDir), interp))
-          }))
-      }
-      */
-
     } else {
       // TODO: add unpack loop
     }
