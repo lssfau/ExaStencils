@@ -228,6 +228,8 @@ case class IR_QuadraticInterpPackingC2FRemote(
     }
   }
 
+  def dirSum(a : Array[Int], b : Array[Int]) : Array[Int] = (a, b).zipped.map(_ + _)
+
   def dirToString(dir : Array[Int]) : String = dir match {
     case Array(-1, 0, 0) => "W"
     case Array(1, 0, 0)  => "E"
@@ -463,8 +465,6 @@ case class IR_QuadraticInterpPackingC2FRemote(
             val diagOrigins : Array[Array[Int]] = {
               def adaptForRemap(d : Array[Int]) = if (stencilAdapted(cond, d)) d.map(_ * -2) else d
 
-              def dirSum(a : Array[Int], b : Array[Int]) : Array[Int] = (a, b).zipped.map(_ + _)
-
               Array(
                 dirSum(adaptForRemap(orthoDirUpwind3D), adaptForRemap(orthoDirUpwind2D)),
                 dirSum(adaptForRemap(orthoDirUpwind3D), adaptForRemap(orthoDirDownwind2D)),
@@ -526,10 +526,31 @@ case class IR_QuadraticInterpPackingC2FRemote(
       val sortedCases = fillStmtsPerCase.toSeq.sorted(caseOrdering)
       innerStmts += sortedCases.dropRight(1).reverse.foldLeft(sortedCases.reverse.head)((c1, c2) => IR_IfCondition(c2.condition, c2.trueBody, c1))
     } else {
-      // TODO: add unpack loop
+      // interp/extrap values from coarse neighbor are written in order
+      // of the upwind orthogonal dirs (in regards to comm dir) and their cross sums
+
+      // fetch upwind orthogonal directions and their cross sum
+      val upwindOrthogonals = getOrthogonalNeighborDirs().filter(isUpwindDir)
+      val crossSumUpwindOrthogonals = Knowledge.dimensionality match {
+        case 2 =>
+          ListBuffer(Array.fill(3)(0), upwindOrthogonals(0))
+        case 3 =>
+          ListBuffer(Array.fill(3)(0), upwindOrthogonals(0), upwindOrthogonals(1), dirSum(upwindOrthogonals(0), upwindOrthogonals(1)))
+      }
+
+      // read from buffer into field
+      for (offset <- crossSumUpwindOrthogonals.distinct) {
+        innerStmts += IR_Assignment(
+          IR_DirectFieldAccess(field, slot, defIt + IR_ExpressionIndex(offset)),
+          tmpBufAccess)
+        innerStmts += IR_PreIncrement(it)
+      }
     }
 
-    val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, condition = condition)
+    // 2 values per dim written from coarse neighbor to fine receiver
+    val stride = if (send) null else IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2))
+
+    val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, stride, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
     ret += loop
