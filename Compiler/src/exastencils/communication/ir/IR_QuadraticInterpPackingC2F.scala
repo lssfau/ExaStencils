@@ -281,26 +281,26 @@ case class IR_QuadraticInterpPackingC2FRemote(
       }
 
       // aggregate cases by condition ...
-      var cases : HashMap[IR_Expression, ListBuffer[(Array[Int], IR_Expression)]] = HashMap()
+      var cases : HashMap[IR_Expression, HashMap[Array[Int], IR_Expression]] = HashMap()
       extrapResults foreach {
         case (orthoDir, orthoCases) =>
           orthoCases foreach {
             case (cond, interp) =>
               val key = cases.keys.find(isSameCondition(_, cond)).getOrElse(cond)
-              cases = cases.updated(key, cases.getOrElse(key, ListBuffer()) :+ (orthoDir -> interp))
+              cases = cases.updated(key, cases.getOrElse(key, HashMap()) + (orthoDir -> interp))
           }
       }
       // ... and fold in regular interp case for non-remapped orthogonal directions
       for ((cond, interps) <- cases if cond != isRegularCase()) {
         val regularInterp = cases(isRegularCase())
         for ((orthoDirRegular, interpRegular) <- regularInterp if !interps.exists(e => e._1 sameElements orthoDirRegular)) {
-          cases = cases.updated(cond, cases(cond) :+ (orthoDirRegular -> interpRegular))
+          cases = cases.updated(cond, cases(cond) + (orthoDirRegular -> interpRegular))
         }
       }
 
       def pushToBuffer(value : IR_Expression) : ListBuffer[IR_Statement] = ListBuffer(
         IR_Assignment(tmpBufAccess, value),
-        IR_PreIncrement(it) : IR_Statement
+        IR_PreIncrement(it)
       )
 
       def stencilAdapted(cond : IR_Expression, dir : Array[Int]) =
@@ -350,14 +350,17 @@ case class IR_QuadraticInterpPackingC2FRemote(
         }
 
         // fetch orthogonal upwind/downwind neighbors (in second dir) and their corresponding extrap values ...
-        val (orthoDirUpwind2D, f0_upwind2D) = interps(1)
-        val (orthoDirDownwind2D, f0_downwind2D) = interps(0)
+        val orthoDirDownwind2D = orthogonalNeighDirs(0)
+        val orthoDirUpwind2D = orthogonalNeighDirs(1)
 
-        val f0_upwind = IR_VariableAccess(s"f0_neighbor_${ dirToString(orthoDirUpwind2D) }_ext", IR_RealDatatype)
-        val f0_downwind = IR_VariableAccess(s"f0_neighbor_${ dirToString(orthoDirDownwind2D) }_ext", IR_RealDatatype)
+        val f0_downwind2D_val = interps(orthoDirDownwind2D)
+        val f0_upwind2D_val = interps(orthoDirUpwind2D)
 
-        interpStmts += IR_VariableDeclaration(f0_upwind, f0_upwind2D)
-        interpStmts += IR_VariableDeclaration(f0_downwind, f0_downwind2D)
+        val f0_upwind2D = IR_VariableAccess(s"f0_neighbor2D_${ dirToString(orthoDirUpwind2D) }_ext", IR_RealDatatype)
+        val f0_downwind2D = IR_VariableAccess(s"f0_neighbor2D_${ dirToString(orthoDirDownwind2D) }_ext", IR_RealDatatype)
+
+        interpStmts += IR_VariableDeclaration(f0_upwind2D, f0_upwind2D_val)
+        interpStmts += IR_VariableDeclaration(f0_downwind2D, f0_downwind2D_val)
 
         // ... and perform another quadratic interp/extrap in second direction
         val (f1_val, f2_val) = interpolate2D(defIt, f0, orthoDirUpwind2D, orthoDirDownwind2D, f0_upwind2D, f0_downwind2D)
@@ -372,14 +375,21 @@ case class IR_QuadraticInterpPackingC2FRemote(
             val f2 = IR_VariableAccess("f2_int", IR_RealDatatype)
 
             // declare 2D interpolated values of first upwind orthogonal neighbor
-            if (orthoDirUpwind2D sameElements orthogonalNeighDirs(1)) {
-              interpStmts += IR_VariableDeclaration(f1, f1_val)
-              interpStmts += IR_VariableDeclaration(f2, f2_val)
-            }
+            interpStmts += IR_VariableDeclaration(f1, f1_val)
+            interpStmts += IR_VariableDeclaration(f2, f2_val)
 
             // fetch orthogonal upwind/downwind neighbors (in third dir) and their corresponding extrap values
-            val (orthoDirUpwind3D, f0_upwind3D) = interps(3)
-            val (orthoDirDownwind3D, f0_downwind3D) = interps(2)
+            val orthoDirDownwind3D = orthogonalNeighDirs(2)
+            val orthoDirUpwind3D = orthogonalNeighDirs(3)
+
+            val f0_downwind3D_val = interps(orthoDirDownwind3D)
+            val f0_upwind3D_val = interps(orthoDirUpwind3D)
+
+            val f0_upwind3D = IR_VariableAccess(s"f0_neighbor3D_${ dirToString(orthoDirUpwind3D) }_ext", IR_RealDatatype)
+            val f0_downwind3D = IR_VariableAccess(s"f0_neighbor3D_${ dirToString(orthoDirDownwind3D) }_ext", IR_RealDatatype)
+
+            interpStmts += IR_VariableDeclaration(f0_upwind3D, f0_upwind3D_val)
+            interpStmts += IR_VariableDeclaration(f0_downwind3D, f0_downwind3D_val)
 
             // get directions to diagonal neighbor cells
             val diagOrigins : Array[Array[Int]] = {
@@ -396,12 +406,15 @@ case class IR_QuadraticInterpPackingC2FRemote(
             }
 
             // construct further extrap bases on diagonal neighbor cells
-            val f0_diag : Array[IR_Expression] = diagOrigins.map { dir =>
+            val f0_diag : Array[IR_Expression] = diagOrigins.zipWithIndex.map { case (dir, idx) =>
               val origin = defIt + IR_ExpressionIndex(dir)
               val basePosInvCommDir = getBasePositionsForExtrapolation(invCommDir, origin)
               val baseValsInvCommDir = getBaseValues(invCommDir, origin, RemappedBasesShifts)
 
-              interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir)
+              val f0_diag_entry = IR_VariableAccess(s"f0_diag${idx}", IR_RealDatatype)
+              interpStmts += IR_VariableDeclaration(f0_diag_entry, interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir))
+
+              f0_diag_entry
             }
 
             val f3 = IR_VariableAccess("f3_int", IR_RealDatatype)
@@ -421,8 +434,8 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
             // perform another quadratic interp/extrap in third dimension
 
-            val (f7_val, f8_val) = interpolate2D(defIt, f1_val, orthoDirUpwind3D, orthoDirDownwind3D, f5_val, f3_val)
-            val (f9_val, f10_val) = interpolate2D(defIt, f2_val, orthoDirUpwind3D, orthoDirDownwind3D, f6_val, f4_val)
+            val (f7_val, f8_val) = interpolate2D(defIt, f1, orthoDirUpwind3D, orthoDirDownwind3D, f5, f3)
+            val (f9_val, f10_val) = interpolate2D(defIt, f2, orthoDirUpwind3D, orthoDirDownwind3D, f6, f4)
 
             interpStmts ++= pushToBuffer(f7_val)
             interpStmts ++= pushToBuffer(f8_val)
