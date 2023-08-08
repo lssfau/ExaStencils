@@ -41,12 +41,12 @@ sealed case class BasePositions(var x0 : IR_Expression, var x1 : IR_Expression, 
         for (k <- asArray.indices if k != j) yield (x0 - asArray(k)) / (asArray(j) - asArray(k)) : IR_Expression
       }
 
-      val weights = for (baseIdx <- asArray.indices) yield factors(baseIdx).reduce(_ * _ : IR_Expression)
-
-      // TODO: weights wrong when simplified here
-      /*val weights = asArray.indices.map(i => IR_Multiplication(factors(i) : _*))
-      for (e <- weights)
-        IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(e))*/
+      val weights = asArray.indices.map(i => IR_Multiplication(factors(i) : _*))
+      weights.map(e => {
+        val wrapped = IR_ExpressionStatement(Duplicate(e))
+        IR_GeneralSimplify.doUntilDoneStandalone(wrapped)
+        wrapped.expression
+      }).toArray
 
       val w = BaseWeights(weights(0), weights(1), weights(2))
       addWeightsToCache(x0, this, w)
