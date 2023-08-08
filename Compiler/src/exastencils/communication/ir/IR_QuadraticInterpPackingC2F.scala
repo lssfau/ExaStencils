@@ -623,14 +623,30 @@ case class IR_QuadraticInterpPackingC2FLocal(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
-    var innerStmt : IR_Statement = IR_NullStatement
-    if (send) {
-      // TODO: add pack loop with interp kernel
-    } else {
-      // TODO: add unpack loop
+    // TODO: pull scheme for local comm, only push implemented
+
+    var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    // store final interp results for fine ghost neighbor cells (2 in 2D, 4 in 3D)
+    val interpResults = (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i =>
+      IR_VariableAccess(s"finalInterpResult2D_$i", IR_RealDatatype)).toArray
+
+    // declare variables for final interp results
+    for (res <- interpResults)
+      innerStmts += IR_VariableDeclaration(res)
+
+    // perform computation and fill variables
+    innerStmts ++= QuadraticInterpPackingC2FHelper.generateInterpStmts(interpResults, field, slot, packInfo)
+
+    // push result to destination
+    for (res <- interpResults) {
+      innerStmts += IR_Assignment(
+        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
+          IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
+        res)
     }
 
-    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, ListBuffer[IR_Statement](innerStmt))
+    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, innerStmts)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 

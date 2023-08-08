@@ -54,14 +54,16 @@ case class IR_LocalSend(
     def equalLevelCopyLoop() =
       IR_NoInterpPackingLocal(send = true, field, slot, refinementCase, packInfo, condition)
 
+    def coarseToFineCopyLoop() =
+      IR_QuadraticInterpPackingC2FLocal(send = true, field, slot, refinementCase, packInfo, condition)
+
     def getCopyLoop() = {
       if (Knowledge.refinement_enabled) {
         refinementCase match {
           case RefinementCase.EQUAL =>
             equalLevelCopyLoop()
           case RefinementCase.C2F   =>
-            // TODO: quadratic extrap/interp
-            equalLevelCopyLoop()
+            coarseToFineCopyLoop()
           case RefinementCase.F2C =>
             // TODO: linear interp
             equalLevelCopyLoop()
