@@ -470,7 +470,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
 
   // specialized simplification: (c/X) * (... + X*e + ...)  ->  c*e + (c/x) * (... + ...)
   private def cancelDownSummands(num : IR_Expression, div : IR_Expression, expr : IR_Expression) : IR_Addition = {
-    if (div.isInstanceOf[IR_IntegerConstant] || div.isInstanceOf[IR_FloatConstant])
+    if (div.isInstanceOf[IR_Number])
       return null // constant divisiors will be simplified elsewhere
     val (orig, canc) = cancelDown(expr, div)
     if (!canc.isEmpty)
