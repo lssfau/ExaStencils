@@ -382,19 +382,24 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       do {
         val expr = workQ.dequeue()
         expr match {
-          case IR_IntegerConstant(iv)                  => intCst *= iv
-          case IR_RealConstant(fv)                     => floatCst *= fv
-          case IR_Negative(e)                          =>
+          case IR_IntegerConstant(iv)                    => intCst *= iv
+          case IR_RealConstant(fv)                       => floatCst *= fv
+          case IR_Negative(e)                            =>
             workQ = (mutable.Queue() :+ e) ++ workQ
             intCst = -intCst
-          case IR_Multiplication(iFacs)                =>
+          case IR_Multiplication(iFacs)                  =>
             workQ = mutable.Queue() ++ iFacs ++ workQ
-          case d @ IR_Division(IR_RealConstant(fv), _) =>
+          case IR_Division(IR_RealConstant(fv), divisor) =>
             floatCst *= fv
-            d.left = IR_RealConstant(1.0)
-            if (div == null)
-              div = d
-            remA += d
+            divisor match {
+              case IR_RealConstant(dv)    => floatCst /= dv
+              case IR_IntegerConstant(dv) => floatCst /= dv
+              case _                      =>
+                val d = IR_Division(IR_RealConstant(1.0), divisor)
+                if (div == null)
+                  div = d
+                remA += d
+            }
           //          case _ : IR_VectorExpression | _ : IR_MatrixExpression =>
           //            if (remA.isEmpty)
           //              remA += expr
