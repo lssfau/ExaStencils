@@ -646,7 +646,10 @@ case class IR_QuadraticInterpPackingC2FLocal(
         res)
     }
 
-    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, innerStmts)
+    // 2 values per dim written from coarse neighbor to fine receiver
+    val stride = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(packInfo.neighDir), 1))
+
+    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, innerStmts, stride, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 
