@@ -548,7 +548,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
     }
 
     // 2 values per dim written from coarse neighbor to fine receiver
-    val stride = if (send) null else IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2))
+    val stride = if (send) null else IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1))
 
     val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, stride, condition = condition)
     loop.polyOptLevel = 1
