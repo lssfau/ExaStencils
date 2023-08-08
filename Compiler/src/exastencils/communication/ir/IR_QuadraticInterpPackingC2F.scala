@@ -357,14 +357,14 @@ case class IR_QuadraticInterpPackingC2FRemote(
           orthoCases foreach {
             case (cond, interp) =>
               val key = cases.keys.find(isSameCondition(_, cond)).getOrElse(cond)
-              cases = cases.updated(key, cases.getOrElse(key, HashMap()) + (orthoDir -> interp))
+              cases = cases.updated(key, cases.getOrElse(key, HashMap()) + (orthoDir -> Duplicate(interp)))
           }
       }
       // ... and fold in regular interp case for non-remapped orthogonal directions
       for ((cond, interps) <- cases if cond != isRegularCase()) {
         val regularInterp = cases(isRegularCase())
         for ((orthoDirRegular, interpRegular) <- regularInterp if !interps.exists(e => e._1 sameElements orthoDirRegular)) {
-          cases = cases.updated(cond, cases(cond) + (orthoDirRegular -> interpRegular))
+          cases = cases.updated(cond, cases(cond) + (orthoDirRegular -> Duplicate(interpRegular)))
         }
       }
 
