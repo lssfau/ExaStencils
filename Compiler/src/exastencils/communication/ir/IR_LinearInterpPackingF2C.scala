@@ -24,6 +24,8 @@ case class IR_LinearInterpPackingF2CRemote(
     var concurrencyId : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
+  import IR_InterpPackingHelper._
+
   def numDims : Int = field.layout.numDimsData
 
   def defIt : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims)
@@ -79,6 +81,8 @@ case class IR_LinearInterpPackingF2CLocal(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+
+  import IR_InterpPackingHelper._
 
   def numDims : Int = field.layout.numDimsData
 

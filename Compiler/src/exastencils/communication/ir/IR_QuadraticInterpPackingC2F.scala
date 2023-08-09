@@ -6,236 +6,62 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.DefaultNeighbors
-import exastencils.communication.ir.QuadraticInterpPackingC2FHelper._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
 import exastencils.field.ir._
-import exastencils.grid.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
-
-// interpolation/extrapolation classes
-
-sealed case class BaseShift(var remapped : Boolean) {
-  def toArray = if (remapped) Array(0, 1, 2) else Array(-1, 0, 1)
-
-  def scaleDir(dir : Array[Int], scale : Int) : Array[IR_Expression] = dir.map(_ * scale : IR_Expression)
-
-  def toOffsetArrays(dir : Array[Int]) : Array[Array[IR_Expression]] = {
-    Array(scaleDir(dir, toArray(0)), scaleDir(dir, toArray(1)), scaleDir(dir, toArray(2)))
-  }
-}
-
-sealed case class BasePositions(var x0 : IR_Expression, var x1 : IR_Expression, var x2 : IR_Expression) {
-  private val asArray : Array[IR_Expression] = Array(Duplicate(x0), Duplicate(x1), Duplicate(x2))
-
-  import QuadraticC2FInterpolationCaches._
-
-  def computeWeights(x0 : IR_Expression) : BaseWeights = {
-    if (!areWeightsCached(x0, this)) {
-
-      def factors(j : Int) = {
-        for (k <- asArray.indices if k != j) yield (x0 - asArray(k)) / (asArray(j) - asArray(k)) : IR_Expression
-      }
-
-      val weights = asArray.indices.map(i => IR_Multiplication(factors(i) : _*))
-      weights.map(e => {
-        val wrapped = IR_ExpressionStatement(Duplicate(e))
-        IR_GeneralSimplify.doUntilDoneStandalone(wrapped)
-        wrapped.expression
-      }).toArray
-
-      val w = BaseWeights(weights(0), weights(1), weights(2))
-      addWeightsToCache(x0, this, w)
-      w
-    } else {
-      getWeightsFromCache(x0, this)
-    }
-  }
-
-  def toArray : Array[IR_Expression] = asArray
-}
-
-sealed case class BaseWeights(var w0 : IR_Expression, var w1 : IR_Expression, var w2 : IR_Expression) {
-  private val asArray : Array[IR_Expression] = Array(Duplicate(w0), Duplicate(w1), Duplicate(w2))
-
-  def toArray : Array[IR_Expression] = asArray
-}
-
-sealed case class BaseValues(var f0 : IR_Expression, var f1 : IR_Expression, var f2 : IR_Expression) {
-  private val asArray : Array[IR_Expression] = Array(Duplicate(f0), Duplicate(f1), Duplicate(f2))
-
-  def toArray : Array[IR_Expression] = asArray
-}
-
-/// QuadraticC2FInterpolationCaches
-// caches computes weights, base positions and base values
-
-object QuadraticC2FInterpolationCaches {
-  private var weightCache : HashMap[(IR_Expression, BasePositions), BaseWeights] = HashMap()
-  private var positionCache : HashMap[(Int, Array[Int], IR_ExpressionIndex, BaseShift), BasePositions] = HashMap()
-  private var valuesCache : HashMap[(IR_Field, IR_Expression, Array[Int], IR_Expression, BaseShift), BaseValues] = HashMap()
-
-  def areWeightsCached(x0 : IR_Expression, basePos : BasePositions) : Boolean = {
-    weightCache.contains((x0, basePos))
-  }
-  def addWeightsToCache(x0 : IR_Expression, basePos : BasePositions, weights : BaseWeights) : Unit = {
-    weightCache += ((x0, basePos) -> weights)
-  }
-  def getWeightsFromCache(x0 : IR_Expression, basePos : BasePositions) : BaseWeights = {
-    weightCache((x0, basePos))
-  }
-
-  def arePositionsCached(level : Int, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift) : Boolean = {
-    positionCache.contains((level, dir, origin, shifts))
-  }
-  def addPositionsToCache(level : Int, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift, basePos : BasePositions) : Unit = {
-    positionCache += ((level, dir, origin, shifts) -> basePos)
-  }
-  def getPositionsFromCache(level : Int, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift) : BasePositions = {
-    positionCache((level, dir, origin, shifts))
-  }
-
-  def areValuesCached(field : IR_Field, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift) : Boolean = {
-    valuesCache.contains((field, slot, dir, origin, shifts))
-  }
-  def addValuesToCache(field : IR_Field, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift, baseVal : BaseValues) : Unit = {
-    valuesCache += ((field, slot, dir, origin, shifts) -> baseVal)
-  }
-  def getValuesFromCache(field : IR_Field, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift) : BaseValues = {
-    valuesCache((field, slot, dir, origin, shifts))
-  }
-}
 
 /// QuadraticInterpPackingC2FHelper
 // helper for generating statements with quadratic interp for local/remote comm
 
 object QuadraticInterpPackingC2FHelper {
-  /// shift helper variables
+  import IR_InterpPackingHelper._
+  import IR_InterpPackingBaseHelper._
+
+  /* shift helper variables */
 
   // shifts for accessing cell centers for interpolation with bases at [-h, 0, h]
-  private val CenteredBasesShifts = BaseShift(remapped = false)
+  private val CenteredBasesShifts = QuadraticBaseShifts(remapped = false)
 
   // shifts for accessing cell centers for extrapolation/interpolation with bases at [0, h, 2h]
   // these shifts are chosen such that values are not reconstructed with values from the ghost layers
-  private val RemappedBasesShifts = BaseShift(remapped = true)
+  private val RemappedBasesShifts = QuadraticBaseShifts(remapped = true)
 
-  /// helper functions
+  /* helper functions */
 
+  // lagrange interpolation in one dimension
   def interpolate1D(x0 : IR_Expression, basePos : BasePositions, baseVals : BaseValues) : IR_Expression = {
     basePos.computeWeights(x0).toArray.zip(baseVals.toArray).map(e => e._1 * e._2 : IR_Expression).reduce(_ + _)
   }
 
-  def getOrthogonalNeighborDirs(commDir : Array[Int]) : ListBuffer[Array[Int]] = {
-    DefaultNeighbors.neighbors.map(_.dir).filter(dir => !(dir sameElements commDir) && !(dir sameElements commDir.map(_ * -1)))
-  }
-
-  def getDimFromDir(dir : Array[Int]) : Int = {
-    if (dir.map(math.abs).sum != 1)
-      Logger.error("Invalid direction used for quadratic interp: " + dir.mkString("Array(", ", ", ")"))
-
-    // assume only axis directions -> first non-zero entry of array is requested dimension
-    dir.indexWhere(_ != 0)
-  }
-
-  def isUpwindDir(dir : Array[Int]) : Boolean = dir(getDimFromDir(dir)) > 0
-
-  def dirToString(dir : Array[Int]) : String = dir match {
-    case Array(-1, 0, 0) => "W"
-    case Array(1, 0, 0)  => "E"
-    case Array(0, -1, 0) => "S"
-    case Array(0, 1, 0)  => "N"
-    case Array(0, 0, -1) => "B"
-    case Array(0, 0, 1)  => "T"
-  }
-
-  def dirSum(a : Array[Int], b : Array[Int]) : Array[Int] = (a, b).zipped.map(_ + _)
-
+  // wrapper to check for equality of conditions
   def isSameCondition(condA : IR_Expression, condB : IR_Expression) : Boolean = (condA, condB) match {
     case (c1 : IR_AndAnd, c2 : IR_AndAnd) if c1.left == c2.right && c1.right == c2.left => true
     case (c1 : IR_Expression, c2 : IR_Expression) if c1 == c2                           => true
     case _                                                                              => false
   }
 
-  // quadratic lagrange extra-/interpolation for send
+  /* quadratic lagrange extra-/interpolation for send */
 
   def generateInterpStmts(results : Array[IR_VariableAccess], field : IR_Field, slot : IR_Expression, packInfo : IR_PackInfo) : ListBuffer[IR_Statement] = {
-    import QuadraticC2FInterpolationCaches._
+    def level : Int = field.level
 
-    def getBasePositions(dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift) : BasePositions = {
-      if (!arePositionsCached(field.level, dir, origin, shifts)) {
-        val offsets = shifts.toOffsetArrays(dir)
-        val dim = getDimFromDir(dir)
+    def localization = field.localization
 
-        val centerIdx = shifts.toArray.indexWhere(_ == 0)
-        val basePos = field.localization match {
-          case IR_AtCellCenter =>
-            if (Knowledge.grid_isUniform) {
-              // set origin to center cell
-              val off = shifts.toArray(centerIdx) * getCellWidth(dim, origin)
-
-              BasePositions(
-                shifts.toArray(0) * getCellWidth(dim, origin) - off,
-                shifts.toArray(1) * getCellWidth(dim, origin) - off,
-                shifts.toArray(2) * getCellWidth(dim, origin) - off
-              )
-            } else {
-              // set origin to center cell
-              val off = getCellCenter(dim, origin, IR_ExpressionIndex(offsets(centerIdx)))
-
-              BasePositions(
-                getCellCenter(dim, origin, IR_ExpressionIndex(offsets(0))) - off,
-                getCellCenter(dim, origin, IR_ExpressionIndex(offsets(1))) - off,
-                getCellCenter(dim, origin, IR_ExpressionIndex(offsets(2))) - off
-              )
-            }
-          case _               =>
-            Logger.error("Unsupported localization for quadratic interp in comm for mesh refinement.")
-        }
-        addPositionsToCache(field.level, dir, origin, shifts, basePos)
-        basePos
-      } else {
-        getPositionsFromCache(field.level, dir, origin, shifts)
-      }
-    }
-
-    def getBasePositionsForExtrapolation(dir : Array[Int], origin : IR_ExpressionIndex) : BasePositions =
-      getBasePositions(dir, origin, RemappedBasesShifts)
-
-    def getBasePositionsForInterpolation(dir : Array[Int], origin : IR_ExpressionIndex) : BasePositions =
-      getBasePositions(dir, origin, CenteredBasesShifts)
-
-    def getBaseValues(dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShift) : BaseValues = {
-      if (!areValuesCached(field, slot, dir, origin, shifts)) {
-        val offsets = shifts.toOffsetArrays(dir)
-
-        val baseVals = BaseValues(
-          IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(0))),
-          IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(1))),
-          IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(2)))
-        )
-        addValuesToCache(field, slot, dir, origin, shifts, baseVals)
-        baseVals
-      } else {
-        getValuesFromCache(field, slot, dir, origin, shifts)
-      }
-    }
+    def isRegularCase() : IR_Expression = IR_BooleanConstant(true)
 
     def numDims : Int = field.layout.numDimsData
 
     def defIt : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims)
 
-    def getCellCenter(dim : Int, origin : IR_ExpressionIndex, offset : IR_ExpressionIndex = IR_ExpressionIndex(0)) : IR_VirtualFieldAccess =
-      IR_VF_CellCenterPerDim.access(field.level, dim, origin + offset)
+    def getBasePositionsForExtrapolation(dir : Array[Int], origin : IR_ExpressionIndex) : BasePositions =
+      getBasePositions(level, localization, dir, origin, RemappedBasesShifts)
 
-    def getCellWidth(dim : Int, origin : IR_ExpressionIndex, offset : IR_ExpressionIndex = IR_ExpressionIndex(0)) : IR_Expression =
-      IR_VF_CellWidthPerDim.access(field.level, dim, origin + offset)
-
-    def isRegularCase() : IR_Expression = IR_BooleanConstant(true)
+    def getBasePositionsForInterpolation(dir : Array[Int], origin : IR_ExpressionIndex) : BasePositions =
+      getBasePositions(level, localization, dir, origin, CenteredBasesShifts)
 
     def isAtBlockCornerForDir3D(commDir : Array[Int], orthoDir : Array[Int], min : Boolean) : IR_Expression = {
       val ival = packInfo match {
@@ -275,8 +101,8 @@ object QuadraticInterpPackingC2FHelper {
 
     // Step 1 (1D): get value on neighboring fine ghost layer by extrapolating coarse cells in inverse comm direction
     val basePosInvCommDir = getBasePositionsForExtrapolation(invCommDir, defIt)
-    val baseValsInvCommDir = getBaseValues(invCommDir, defIt, RemappedBasesShifts)
-    val x0 = IR_RealConstant(-0.25) * getCellWidth(commDirDim, defIt) // target location at: -0.25h
+    val baseValsInvCommDir = getBaseValues(field, slot, invCommDir, defIt, RemappedBasesShifts)
+    val x0 = IR_RealConstant(-0.25) * getCellWidth(level, commDirDim, defIt) // target location at: -0.25h
 
     val f0 = IR_VariableAccess("f0_center_ext", IR_RealDatatype)
     innerStmts += IR_VariableDeclaration(f0, interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir))
@@ -290,12 +116,12 @@ object QuadraticInterpPackingC2FHelper {
     var stencilAdaptedForCase : HashMap[IR_Expression, ListBuffer[(Array[Int], Boolean)]] = HashMap()
     for (orthoDir <- orthogonalNeighDirs) {
       val remappedOrthoDir = orthoDir.map(_ * -2)
-      val remappedOrthoBaseVals = getBaseValues(invCommDir, defIt + IR_ExpressionIndex(remappedOrthoDir), RemappedBasesShifts)
+      val remappedOrthoBaseVals = getBaseValues(field, slot, invCommDir, defIt + IR_ExpressionIndex(remappedOrthoDir), RemappedBasesShifts)
       val remappedOrthoBasePosCommDir = getBasePositionsForExtrapolation(invCommDir, defIt + IR_ExpressionIndex(remappedOrthoDir))
 
       // target location at: -0.25h
-      val x0_ortho = IR_RealConstant(-0.25) * getCellWidth(commDirDim, defIt + IR_ExpressionIndex(orthoDir))
-      val x0_remapOrtho = IR_RealConstant(-0.25) * getCellWidth(commDirDim, defIt + IR_ExpressionIndex(remappedOrthoDir))
+      val x0_ortho = IR_RealConstant(-0.25) * getCellWidth(level, commDirDim, defIt + IR_ExpressionIndex(orthoDir))
+      val x0_remapOrtho = IR_RealConstant(-0.25) * getCellWidth(level, commDirDim, defIt + IR_ExpressionIndex(remappedOrthoDir))
 
       def markStencilAdapted(currCase : IR_Expression, adapted : Boolean) : Unit = {
         stencilAdaptedForCase = stencilAdaptedForCase.updated(currCase,
@@ -330,7 +156,7 @@ object QuadraticInterpPackingC2FHelper {
 
       // regular case without remap in second direction
       val orthoBasePosInvCommDir = getBasePositionsForExtrapolation(invCommDir, defIt + IR_ExpressionIndex(orthoDir))
-      val orthoBaseValsInvCommDir = getBaseValues(invCommDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
+      val orthoBaseValsInvCommDir = getBaseValues(field, slot, invCommDir, defIt + IR_ExpressionIndex(orthoDir), RemappedBasesShifts)
 
       casesForOrthoDir += (isRegularCase() -> interpolate1D(x0_ortho, orthoBasePosInvCommDir, orthoBaseValsInvCommDir))
 
@@ -372,8 +198,8 @@ object QuadraticInterpPackingC2FHelper {
 
         // target location at +0.25h for interp, -0.25h for extrap
         val dirDim = getDimFromDir(upwindDir)
-        val x1_int = getCellWidth(dirDim, center) / IR_RealConstant(4)
-        val x1_ext = -1 * getCellWidth(dirDim, center) / IR_RealConstant(4)
+        val x1_int = getCellWidth(level, dirDim, center) / IR_RealConstant(4)
+        val x1_ext = -1 * getCellWidth(level, dirDim, center) / IR_RealConstant(4)
 
         val basePosOrthoDirExt = getBasePositionsForExtrapolation(upwindDir, center)
         val basePosOrthoDirInt = getBasePositionsForInterpolation(upwindDir, center)
@@ -384,19 +210,19 @@ object QuadraticInterpPackingC2FHelper {
         // stencil NOT adapted -> bases at regular ortho positions -> both values interpolated
         if (stencilAdapted(cond, upwindDir)) {
           // upwind remap
-          val remappedBaseVals = BaseValues(centerValue, upwindValue, downwindValue)
+          val remappedBaseVals = QuadraticBaseValues(centerValue, upwindValue, downwindValue)
 
           (interpolate1D(x1_int, basePosOrthoDirExt, remappedBaseVals),
             interpolate1D(x1_ext, basePosOrthoDirExt, remappedBaseVals))
         } else if (stencilAdapted(cond, downwindDir)) {
           // downwind remap
-          val remappedBaseVals = BaseValues(centerValue, upwindValue, downwindValue)
+          val remappedBaseVals = QuadraticBaseValues(centerValue, upwindValue, downwindValue)
 
           (interpolate1D(x1_ext, basePosOrthoDirExt, remappedBaseVals),
             interpolate1D(x1_int, basePosOrthoDirExt, remappedBaseVals))
         } else {
           // no remap
-          val baseValsForInterp = BaseValues(downwindValue, centerValue, upwindValue)
+          val baseValsForInterp = QuadraticBaseValues(downwindValue, centerValue, upwindValue)
 
           (interpolate1D(x1_ext, basePosOrthoDirInt, baseValsForInterp),
             interpolate1D(x1_int, basePosOrthoDirInt, baseValsForInterp))
@@ -461,7 +287,7 @@ object QuadraticInterpPackingC2FHelper {
           val f0_diag : Array[IR_Expression] = diagOrigins.zipWithIndex.map { case (dir, idx) =>
             val origin = defIt + IR_ExpressionIndex(dir)
             val basePosInvCommDir = getBasePositionsForExtrapolation(invCommDir, origin)
-            val baseValsInvCommDir = getBaseValues(invCommDir, origin, RemappedBasesShifts)
+            val baseValsInvCommDir = getBaseValues(field, slot, invCommDir, origin, RemappedBasesShifts)
 
             val f0_diag_entry = IR_VariableAccess(s"f0_diag${ idx }", IR_RealDatatype)
             interpStmts += IR_VariableDeclaration(f0_diag_entry, interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir))
@@ -520,6 +346,8 @@ case class IR_QuadraticInterpPackingC2FRemote(
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+
+  import IR_InterpPackingHelper._
 
   def numDims : Int = field.layout.numDimsData
 
@@ -609,6 +437,8 @@ case class IR_QuadraticInterpPackingC2FLocal(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+
+  import IR_InterpPackingHelper._
 
   def numDims : Int = field.layout.numDimsData
 
