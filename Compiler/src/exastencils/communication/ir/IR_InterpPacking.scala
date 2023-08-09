@@ -21,6 +21,12 @@ import exastencils.logger.Logger
 // contains helper functions for packing with interpolation
 
 object IR_InterpPackingHelper {
+
+  // lagrange interpolation in one dimension
+  def interpolate1D(x0 : IR_Expression, basePos : BasePositions, baseVals : BaseValues) : IR_Expression = {
+    basePos.computeWeights(x0).toArray.zip(baseVals.toArray).map(e => e._1 * e._2 : IR_Expression).reduce(_ + _)
+  }
+
   // get all neighbor directions that are orthogonal to the communication direction
   def getOrthogonalNeighborDirs(commDir : Array[Int]) : ListBuffer[Array[Int]] = {
     DefaultNeighbors.neighbors.map(_.dir).filter(dir => !(dir sameElements commDir) && !(dir sameElements commDir.map(_ * -1)))

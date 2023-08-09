@@ -32,11 +32,6 @@ object QuadraticInterpPackingC2FHelper {
 
   /* helper functions */
 
-  // lagrange interpolation in one dimension
-  def interpolate1D(x0 : IR_Expression, basePos : BasePositions, baseVals : BaseValues) : IR_Expression = {
-    basePos.computeWeights(x0).toArray.zip(baseVals.toArray).map(e => e._1 * e._2 : IR_Expression).reduce(_ + _)
-  }
-
   // wrapper to check for equality of conditions
   def isSameCondition(condA : IR_Expression, condB : IR_Expression) : Boolean = (condA, condB) match {
     case (c1 : IR_AndAnd, c2 : IR_AndAnd) if c1.left == c2.right && c1.right == c2.left => true
