@@ -5,15 +5,69 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.QuadraticInterpPackingC2FHelper._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
 import exastencils.field.ir._
-import exastencils.grid.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
+
+object LinearInterpPackingF2CHelper {
+  import IR_InterpPackingBaseHelper._
+  import exastencils.communication.ir.IR_InterpPackingHelper._
+
+  private val shifts = LinearBaseShifts()
+
+  def generateInterpExpr(field : IR_Field, slot : IR_Expression, packInfo : IR_PackInfo) : IR_Expression = {
+    def level : Int = field.level
+
+    def localization = field.localization
+
+    def numDims : Int = field.layout.numDimsData
+
+    def defIt : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims)
+
+    def commDir : Array[Int] = packInfo.neighDir
+
+    def invCommDir : Array[Int] = commDir.map(_ * -1)
+
+    // fetch upwind orthogonal directions and their cross sum
+    val upwindOrthogonals = getOrthogonalNeighborDirs(commDir).filter(isUpwindDir)
+    val crossSumUpwindOrthogonals = Knowledge.dimensionality match {
+      case 2 =>
+        ListBuffer(Array.fill(3)(0), upwindOrthogonals(0))
+      case 3 =>
+        ListBuffer(Array.fill(3)(0), upwindOrthogonals(0), upwindOrthogonals(1), dirSum(upwindOrthogonals(0), upwindOrthogonals(1)))
+    }
+
+    // calculate linear interpolations on orthogonal (fine) neighbor cells in upwind dir
+    val results1D = crossSumUpwindOrthogonals.distinct.map(offset => {
+      val basePositionsOrtho = getBasePositions(level, localization, invCommDir, defIt + IR_ExpressionIndex(offset), shifts)
+      val baseValuesOrtho = getBaseValues(field, slot, invCommDir, defIt + IR_ExpressionIndex(offset), shifts)
+      val pos = 0.5 * getCellWidth(level, getDimFromDir(invCommDir), defIt + IR_ExpressionIndex(offset)) : IR_Expression
+
+      pos -> interpolate1D(pos, basePositionsOrtho, baseValuesOrtho)
+    }).toArray
+
+    // transition from 1D to 2D and then 3D
+    def interpAgain(res : Array[(IR_Expression, IR_Expression)]) = {
+      val resultPairs = res.sliding(2).collect { case Array(a, b) => (a, b) }.to[ListBuffer]
+      resultPairs.map {
+        case ((x0, a), (x1, b)) =>
+          val pos = 0.5 * (x1 - x0) : IR_Expression
+          pos -> interpolate1D(pos, LinearBasePositions(x0, x1), LinearBaseValues(a, b))
+      }.toArray
+    }
+
+    val results2D = interpAgain(results1D)
+    Knowledge.dimensionality match {
+      case 2 =>
+        results2D.head._2
+      case 3 =>
+        interpAgain(results2D).head._2
+    }
+  }
+}
 
 case class IR_LinearInterpPackingF2CRemote(
     var send : Boolean,
