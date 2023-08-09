@@ -67,11 +67,15 @@ object IR_InterpPackingBaseHelper {
   import exastencils.communication.ir.IR_InterpPackingHelper._
 
   private def createBaseValues(vals : IR_Expression*) : BaseValues = vals.length match {
+    case 2 =>
+      LinearBaseValues(vals(0), vals(1))
     case 3 =>
       QuadraticBaseValues(vals(0), vals(1), vals(2))
   }
 
   private def createBasePositions(positions : IR_Expression*) = positions.length match {
+    case 2 =>
+      LinearBasePositions(positions(0), positions(1))
     case 3 =>
       QuadraticBasePositions(positions(0), positions(1), positions(2))
   }
@@ -106,21 +110,11 @@ object IR_InterpPackingBaseHelper {
           if (Knowledge.grid_isUniform) {
             // set origin to center cell
             val off = shifts.toArray(centerIdx) * getCellWidth(level, dim, origin)
-
-            createBasePositions(
-              shifts.toArray(0) * getCellWidth(level, dim, origin) - off,
-              shifts.toArray(1) * getCellWidth(level, dim, origin) - off,
-              shifts.toArray(2) * getCellWidth(level, dim, origin) - off
-            )
+            createBasePositions(shifts.toArray.map(s => s * getCellWidth(level, dim, origin) - off) : _ *)
           } else {
             // set origin to center cell
             val off = getCellCenter(level, dim, origin, IR_ExpressionIndex(offsets(centerIdx)))
-
-            createBasePositions(
-              getCellCenter(level, dim, origin, IR_ExpressionIndex(offsets(0))) - off,
-              getCellCenter(level, dim, origin, IR_ExpressionIndex(offsets(1))) - off,
-              getCellCenter(level, dim, origin, IR_ExpressionIndex(offsets(2))) - off
-            )
+            createBasePositions(offsets.map(o => getCellCenter(level, dim, origin, IR_ExpressionIndex(o)) - off) : _ *)
           }
         case _               =>
           Logger.error("Unsupported localization for quadratic interp in comm for mesh refinement.")
