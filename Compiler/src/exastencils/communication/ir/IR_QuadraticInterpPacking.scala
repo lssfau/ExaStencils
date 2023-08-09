@@ -18,11 +18,11 @@ sealed case class QuadraticBasePositions(var x0 : IR_Expression, var x1 : IR_Exp
 
   import IR_InterpPackingCaches._
 
-  def computeWeights(x0 : IR_Expression) : BaseWeights = {
-    if (!areWeightsCached(x0, this)) {
+  def computeWeights(pos : IR_Expression) : BaseWeights = {
+    if (!areWeightsCached(pos, this)) {
 
       def factors(j : Int) = {
-        for (k <- asArray.indices if k != j) yield (x0 - asArray(k)) / (asArray(j) - asArray(k)) : IR_Expression
+        for (k <- asArray.indices if k != j) yield (pos - asArray(k)) / (asArray(j) - asArray(k)) : IR_Expression
       }
 
       val weights = asArray.indices.map(i => IR_Multiplication(factors(i) : _*))
@@ -33,10 +33,10 @@ sealed case class QuadraticBasePositions(var x0 : IR_Expression, var x1 : IR_Exp
       }).toArray
 
       val w = QuadraticBaseWeights(weights(0), weights(1), weights(2))
-      addWeightsToCache(x0, this, w)
+      addWeightsToCache(pos, this, w)
       w
     } else {
-      getWeightsFromCache(x0, this)
+      getWeightsFromCache(pos, this)
     }
   }
 
