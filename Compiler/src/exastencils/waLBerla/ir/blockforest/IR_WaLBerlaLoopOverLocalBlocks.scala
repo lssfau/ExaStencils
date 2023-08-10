@@ -72,7 +72,6 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
     // find out if block loop contains loop over dimensions and if it is executed (in parallel) on CPU/GPU
     FindLoopOverDimensions.applyStandalone(IR_Scope(body))
     val optLoopOverDims = FindLoopOverDimensions.loopOverDims
-    val condWrapper = NoDuplicateWrapper[IR_Expression](null)
 
     def getFieldPointer(fAcc : IR_MultiDimWaLBerlaFieldAccess) = IR_IV_WaLBerlaFieldData(fAcc.field, fAcc.slot, fAcc.fragIdx)
 
@@ -92,8 +91,8 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
           else
             false
 
-          stmts ++= getHostDeviceBranchingCondWrapper(condWrapper,
-            fieldPointer.initInBlockLoop(onGPU = false), fieldPointer.initInBlockLoop(onGPU = true), estimatedFasterHostExec)
+          stmts ++= getHostDeviceBranching(fieldPointer.initInBlockLoop(onGPU = false), fieldPointer.initInBlockLoop(onGPU = true),
+            estimatedFasterHostExec)
         } else {
           stmts ++= fieldPointer.initInBlockLoop(onGPU = false)
         }
