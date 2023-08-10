@@ -4,7 +4,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
@@ -13,8 +12,8 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.logger.Logger
-import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.annotateBranch
-import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.getCondWrapperValue
+import exastencils.parallelization.api.cuda.CUDA_ExecutionBranching
+import exastencils.parallelization.api.cuda.CUDA_PrepareHostCode.getTimeEstimation
 import exastencils.parallelization.ir._
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir.IR_CollectFieldAccesses
@@ -50,7 +49,7 @@ object IR_WaLBerlaLoopOverLocalBlocks {
 // iterates through process-local blocks
 case class IR_WaLBerlaLoopOverLocalBlocks(
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_LoopOverProcessLocalBlocks {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_LoopOverProcessLocalBlocks with CUDA_ExecutionBranching {
 
   def expandSpecial(collector : IR_StackCollector) : Output[IR_Scope] = {
     // TODO: separate omp and potentiallyParallel
@@ -73,11 +72,7 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
     // find out if block loop contains loop over dimensions and if it is executed (in parallel) on CPU/GPU
     FindLoopOverDimensions.applyStandalone(IR_Scope(body))
     val optLoopOverDims = FindLoopOverDimensions.loopOverDims
-    val cpuExecution = NoDuplicateWrapper[IR_Expression](IR_BooleanConstant(true))
-    val condWrapper = if (Knowledge.cuda_enabled && optLoopOverDims.isDefined && optLoopOverDims.get.parallelization.potentiallyParallel)
-      NoDuplicateWrapper[IR_Expression](getCondWrapperValue(optLoopOverDims.get))
-    else
-      cpuExecution
+    val condWrapper = NoDuplicateWrapper[IR_Expression](null)
 
     def getFieldPointer(fAcc : IR_MultiDimWaLBerlaFieldAccess) = IR_IV_WaLBerlaFieldData(fAcc.field, fAcc.slot, fAcc.fragIdx)
 
@@ -90,10 +85,18 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
 
         // declare field data pointer
         stmts += fieldPointer.getDeclaration()
-        if (Knowledge.cuda_enabled)
-          stmts ++= annotateBranch(condWrapper, fieldPointer.initInBlockLoop(onGPU = false), fieldPointer.initInBlockLoop(onGPU = true))
-        else
+        if (Knowledge.cuda_enabled) {
+          // check if it is possibly faster to execute kernel (with LoopOverDims) on CPU
+          val estimatedFasterHostExec = if (optLoopOverDims.isDefined)
+            getTimeEstimation(optLoopOverDims.get, host = true) <= getTimeEstimation(optLoopOverDims.get, host = false)
+          else
+            false
+
+          stmts ++= getHostDeviceBranchingCondWrapper(condWrapper,
+            fieldPointer.initInBlockLoop(onGPU = false), fieldPointer.initInBlockLoop(onGPU = true), estimatedFasterHostExec)
+        } else {
           stmts ++= fieldPointer.initInBlockLoop(onGPU = false)
+        }
 
         stmts
       })

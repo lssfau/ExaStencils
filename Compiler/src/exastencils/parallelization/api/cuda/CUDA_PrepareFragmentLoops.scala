@@ -7,14 +7,14 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_IV_FieldData
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.ir.IR_CommunicationKernelCollector
 import exastencils.util.ir.IR_FragmentLoopCollector
 
 trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_ExecutionBranching {
 
-  def fieldAccesses : mutable.Map[String, IR_IV_FieldData]
+  def fieldAccesses : mutable.Map[String, IR_IV_AbstractFieldLikeData]
   def bufferAccesses : mutable.Map[String, IR_IV_CommBuffer]
 
   def accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop]
@@ -79,7 +79,7 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_Executi
         elements.streams += executionStream
 
       // add accessed buffers/fields
-      elements.fieldAccesses ++= fieldAccesses.map { case (str, fAcc) => str -> IR_IV_FieldData(Duplicate(fAcc.field), Duplicate(fAcc.slot), Duplicate(fAcc.fragmentIdx)) }
+      elements.fieldAccesses ++= fieldAccesses.map { case (str, fAcc) => str -> IR_IV_AbstractFieldLikeData(Duplicate(fAcc.field), Duplicate(fAcc.slot), Duplicate(fAcc.fragmentIdx)) }
       elements.bufferAccesses ++= bufferAccesses.map(Duplicate(_))
 
       // check if loop is parallel

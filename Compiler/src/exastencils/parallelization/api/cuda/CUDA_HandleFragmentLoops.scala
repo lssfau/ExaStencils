@@ -13,7 +13,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.OutputType
-import exastencils.field.ir.IR_IV_FieldData
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda.CUDA_HandleFragmentLoops.getReductionCounter
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -41,7 +41,7 @@ object CUDA_HandleFragmentLoops extends DefaultStrategy("Handle synchronization 
 
 case class CUDA_AccessedElementsInFragmentLoop(
     var streams : ListBuffer[CUDA_Stream],
-    var fieldAccesses : mutable.HashMap[String, IR_IV_FieldData],
+    var fieldAccesses : mutable.HashMap[String, IR_IV_AbstractFieldLikeData],
     var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer],
     var isLoopParallel : Boolean,
     var fromMPIStatement : Boolean,

@@ -2,15 +2,14 @@ package exastencils.app.ir
 
 import exastencils.baseExt.ir.IR_HACK_TypeAliases
 import exastencils.baseExt.ir.IR_ResolveLoopOverFragments
+import exastencils.communication.ir.IR_SetupCommunicationWrapper
 import exastencils.config.Knowledge
 import exastencils.fieldlike.ir.IR_ResolveFieldLikeAccess
 import exastencils.globals.ir.IR_AddInternalVariables
 import exastencils.grid.ir.IR_ResolveIntegrateOnGrid
+import exastencils.parallelization.api.cuda.CUDA_FunctionConversionWrapper
 import exastencils.parallelization.api.cuda.CUDA_PrepareMPICode
 import exastencils.scheduling._
-import exastencils.scheduling.Scheduler
-import exastencils.scheduling.ir.CUDA_FunctionConversionWrapper
-import exastencils.scheduling.ir.IR_SetupCommunicationWrapper
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaAdaptKernels
 import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaHandleGPUMemory

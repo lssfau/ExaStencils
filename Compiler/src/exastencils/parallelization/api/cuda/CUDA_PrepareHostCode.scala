@@ -31,6 +31,7 @@ import exastencils.datastructures._
 import exastencils.field.ir.IR_AdvanceSlot
 import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
@@ -52,7 +53,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
-  var fieldAccesses = HashMap[String, IR_IV_FieldData]()
+  var fieldAccesses = HashMap[String, IR_IV_AbstractFieldLikeData]()
   var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
 
   var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
@@ -73,7 +74,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     this.unregister(gatherBuffers)
     Logger.popLevel()
 
-    fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, acc) => str -> IR_IV_FieldData(acc.field, acc.slot, acc.fragIdx) }
+    fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, acc) => str -> IR_IV_AbstractFieldLikeData(acc.field, acc.slot, acc.fragIdx) }
     bufferAccesses ++= gatherBuffers.bufferAccesses
   }
 

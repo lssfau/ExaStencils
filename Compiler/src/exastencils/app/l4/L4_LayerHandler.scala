@@ -38,6 +38,7 @@ import exastencils.knowledge.l4._
 import exastencils.layoutTransformation.l4.L4_AddSoAtoAoSTransformation
 import exastencils.logger.Logger
 import exastencils.operator.l4._
+import exastencils.optimization.l4.L4_GeneralSimplifyUntilDoneWrapper
 import exastencils.parsers.l4._
 import exastencils.prettyprinting.Indenter
 import exastencils.scheduling._
