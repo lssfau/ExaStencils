@@ -42,30 +42,30 @@ object LinearInterpPackingF2CHelper {
     }
 
     // calculate linear interpolations on orthogonal (fine) neighbor cells in upwind dir
-    val results1D = crossSumUpwindOrthogonals.distinct.map(offset => {
+    val linearInterpResult : Array[(IR_Expression, IR_Expression)] = crossSumUpwindOrthogonals.distinct.map(offset => {
       val basePositionsOrtho = getBasePositions(level, localization, invCommDir, defIt + IR_ExpressionIndex(offset), shifts)
       val baseValuesOrtho = getBaseValues(field, slot, invCommDir, defIt + IR_ExpressionIndex(offset), shifts)
-      val pos = 0.5 * getCellWidth(level, getDimFromDir(invCommDir), defIt + IR_ExpressionIndex(offset)) : IR_Expression
+      val pos = 0.5 * getCellWidth(level, getDimFromDir(invCommDir), defIt + IR_ExpressionIndex(offset))
 
       pos -> interpolate1D(pos, basePositionsOrtho, baseValuesOrtho)
     }).toArray
 
-    // transition from 1D to 2D and then 3D
-    def interpAgain(res : Array[(IR_Expression, IR_Expression)]) = {
+    // transition from 1D to 2D, and then 3D
+    def interpAgain(res : Array[(IR_Expression, IR_Expression)]) : Array[(IR_Expression, IR_Expression)] = {
       val resultPairs = res.sliding(2).collect { case Array(a, b) => (a, b) }.to[ListBuffer]
       resultPairs.map {
         case ((x0, a), (x1, b)) =>
-          val pos = 0.5 * (x1 - x0) : IR_Expression
+          val pos = 0.5 * (x1 - x0)
           pos -> interpolate1D(pos, LinearBasePositions(x0, x1), LinearBaseValues(a, b))
       }.toArray
     }
 
-    val results2D = interpAgain(results1D)
+    val bilinearInterpResult = interpAgain(linearInterpResult)
     Knowledge.dimensionality match {
       case 2 =>
-        results2D.head._2
+        bilinearInterpResult.head._2
       case 3 =>
-        interpAgain(results2D).head._2
+        interpAgain(bilinearInterpResult).head._2
     }
   }
 }
@@ -116,6 +116,8 @@ case class IR_LinearInterpPackingF2CRemote(
       innerStmts += IR_Assignment(tmpBufAccess, generateInterpExpr(field, slot, packInfo))
     else
       innerStmts += IR_Assignment(IR_DirectFieldAccess(field, Duplicate(slot), defIt), tmpBufAccess)
+
+    innerStmts += IR_PreIncrement(it)
 
     // fine neighbor cells (2 in 2D, 4 in 3D) are linearly interpolated and the result is sent to the coarse neighbor
     val stride = if (send) IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1)) else null
