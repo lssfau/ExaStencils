@@ -4,6 +4,7 @@ import exastencils.baseExt.ir._
 import exastencils.datastructures._
 import exastencils.fieldlike.ir.IR_FieldLikeAccessLike
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.field._
@@ -26,6 +27,9 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
         found = true
         fAcc
       case fAcc : IR_WaLBerlaFieldAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
+        found = true
+        fAcc
+      case fAcc : IR_WaLBerlaBlockDataID                                              =>
         found = true
         fAcc
       case fAcc : IR_IV_WaLBerlaGetField                                              =>
