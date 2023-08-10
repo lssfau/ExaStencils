@@ -40,5 +40,7 @@ abstract class NoTraversalStrategy(name : String) extends Strategy(name) {
     this.onAfter()
   }
 
+  def apply(applyAtNode : Option[Node]) : Unit = apply()
+
   def doWork()
 }

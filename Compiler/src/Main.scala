@@ -104,6 +104,9 @@ object Main {
       val start : Long = System.nanoTime()
 
       localInitialize(args)
+
+      ExaLayerHandler.updateAllLayers()
+
       ExaLayerHandler.initializeAllLayers()
 
       ExaLayerHandler.handleAllLayers()
