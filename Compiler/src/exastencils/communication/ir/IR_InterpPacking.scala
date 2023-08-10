@@ -90,14 +90,7 @@ object IR_InterpPackingBaseHelper {
     if (!areValuesCached(field, slot, dir, origin, shifts)) {
       val offsets = shifts.toOffsetArrays(dir)
 
-      val baseVals = shifts.toArray.length match {
-        case 3 =>
-          createBaseValues(
-            IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(0))),
-            IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(1))),
-            IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(offsets(2)))
-          )
-      }
+      val baseVals = createBaseValues(offsets.map(o => IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(o))) : _*)
       addValuesToCache(field, slot, dir, origin, shifts, baseVals)
       baseVals
     } else {
@@ -142,9 +135,8 @@ trait BaseShifts {
 
   def scaleDir(dir : Array[Int], scale : Int) : Array[IR_Expression] = dir.map(_ * scale : IR_Expression)
 
-  def toOffsetArrays(dir : Array[Int]) : Array[Array[IR_Expression]] = {
-    Array(scaleDir(dir, toArray(0)), scaleDir(dir, toArray(1)), scaleDir(dir, toArray(2)))
-  }
+  def toOffsetArrays(dir : Array[Int]) : Array[Array[IR_Expression]] =
+    toArray.map(e => scaleDir(dir, e))
 }
 
 /// BasePositions
