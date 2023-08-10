@@ -441,14 +441,16 @@ case class IR_QuadraticInterpPackingC2FLocal(
     if (condition.isDefined)
       Logger.error("Conditions for refined communication are not supported yet.")
 
+    // TODO: pull scheme for local comm, only push implemented
+    if (!Knowledge.comm_pushLocalData)
+      Logger.warn("Pull comm scheme is not yet implemented for quadratic C2F interp.")
+
     val packIntervalDest = packInfo.getPackIntervalDest()
     val packIntervalSrc = packInfo.getPackIntervalSrc()
 
     val neighbor = packInfo.neighbor
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
-
-    // TODO: pull scheme for local comm, only push implemented
 
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
 
