@@ -25,11 +25,16 @@ import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
+import exastencils.util.ir.IR_StackCollector
 
 /// IR_ResolveConstIVs
 
 // TODO: split and move to appropriate modules
 object IR_ResolveConstIVs extends DefaultStrategy("Resolve constant internal variables") {
+  var collector = new IR_StackCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
+
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
 

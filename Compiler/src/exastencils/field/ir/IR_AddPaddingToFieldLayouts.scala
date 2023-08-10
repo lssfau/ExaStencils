@@ -18,8 +18,10 @@
 
 package exastencils.field.ir
 
+import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.fieldlike.ir.IR_FieldLikeLayoutCollections
+import exastencils.scheduling.NoStrategyWrapper
 
 /// IR_AddPaddingToFieldLayouts
 
@@ -44,5 +46,14 @@ object IR_AddPaddingToFieldLayouts {
       // update reference offset since left padding may have changed
       fieldLayout.updateDefReferenceOffset()
     }
+  }
+}
+
+/// IR_AddPaddingToFieldLayoutsWrapper
+
+object IR_AddPaddingToFieldLayoutsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.data_alignFieldPointers)
+      IR_AddPaddingToFieldLayouts.apply()
   }
 }

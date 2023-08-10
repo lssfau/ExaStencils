@@ -28,6 +28,7 @@ import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.prettyprinting._
+import exastencils.scheduling.NoStrategyWrapper
 
 /// CUDA_KernelFunctions
 
@@ -49,7 +50,7 @@ object CUDA_KernelFunctions extends ObjectWithState {
 }
 
 case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunctions.defBaseName,
-  ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
+  ListBuffer("cmath", "algorithm", "limits"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
   ListBuffer(IR_GlobalCollection.defHeader)) {
 
   externalDependencies += "iostream" // required for error messages
@@ -65,7 +66,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
 
   var kernelCollection = ListBuffer[CUDA_Kernel]()
   var generatedRedKernels = mutable.HashSet[String]()
-  var requiredRedKernels = mutable.HashSet[(String, IR_Expression)]()
+  var requiredRedKernels = mutable.HashSet[(String, IR_Expression, CUDA_Stream)]()
   var counterMap = mutable.HashMap[String, Int]()
 
   def getRedKernelName(op : String, dt : IR_Datatype) =
@@ -92,7 +93,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     kernelCollection.clear // consume processed kernels
 
     // take care of reductions
-    for ((op, target) <- requiredRedKernels) addDefaultReductionKernel(op, target)
+    for ((op, target, stream) <- requiredRedKernels) addDefaultReductionKernel(op, target, stream)
     requiredRedKernels.clear // consume reduction requests
   }
 
@@ -108,7 +109,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     }
   }
 
-  def addDefaultReductionKernel(op : String, target : IR_Expression) : Unit = {
+  def addDefaultReductionKernel(op : String, target : IR_Expression, stream : CUDA_Stream) : Unit = {
     val reductionDt = CUDA_Util.getReductionDatatype(target)
     val kernelName = getRedKernelName(op, reductionDt)
     val wrapperName = getRedKernelWrapperName(op, reductionDt)
@@ -183,19 +184,24 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
       def halfStride = IR_VariableAccess("halfStride", IR_SpecialDatatype("size_t") /*FIXME*/)
 
       def data = IR_FunctionArgument("data", IR_PointerDatatype(reductionDt.resolveBaseDatatype))
-      var functionArgs = ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/))
+      var functionArgs = ListBuffer(data, numElements)
+      if (Knowledge.domain_numFragmentsPerBlock > 1)
+        functionArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
       def blockSize = Knowledge.cuda_reductionBlockSize
 
       var fctBody = ListBuffer[IR_Statement]()
 
-      // compile loop body
+      // compile args
       def blocks = IR_VariableAccess("blocks", IR_SpecialDatatype("size_t"))
+      val execCfg = CUDA_ExecutionConfiguration(Array[IR_Expression](blocks), Array[IR_Expression](blockSize), stream)
+      val kernelCallArgs = ListBuffer[IR_Expression](data.access, numElements.access, halfStride)
+
+      // compile loop body
       var loopBody = ListBuffer[IR_Statement]()
       loopBody += IR_VariableDeclaration(blocks, (numElements.access + (blockSize * 2 * halfStride - 1)) / (blockSize * 2 * halfStride))
       //loopBody += IR_IfCondition(IR_EqEq(0, blocks), IR_Assignment(blocks, 1)) // blocks cannot become 0 if numElements is positive
-      loopBody += CUDA_FunctionCall(kernelName, ListBuffer[IR_Expression](data.access, numElements.access, halfStride),
-        Array[IR_Expression](blocks), Array[IR_Expression](blockSize))
+      loopBody += CUDA_FunctionCall(kernelName, kernelCallArgs, execCfg)
 
       fctBody += IR_ForLoop(
         IR_VariableDeclaration(halfStride, 1),
@@ -203,26 +209,20 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
         IR_Assignment(halfStride, 2, "*="),
         loopBody)
 
-      // call default reduction kernel and return by value or copying to passed pointer
-      val returnDt = CUDA_Kernel.getReductionReturnDt(reductionDt)
-      returnDt match {
-        case IR_UnitDatatype =>
-          val matrixReductionTmp = IR_FunctionArgument("matrixReductionTmp", data.datatype)
-          functionArgs += matrixReductionTmp
-          fctBody += CUDA_Memcpy(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToHost")
-
-        case _ =>
-          def ret = IR_VariableAccess("ret", reductionDt)
-          fctBody += IR_VariableDeclaration(ret)
-          fctBody += CUDA_Memcpy(IR_AddressOf(ret), data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToHost")
-
-          fctBody += IR_Return(Some(ret))
+      // call default reduction kernel and return by copying to passed (host) pointer
+      // TODO: temporary solution until the reductions are optimized
+      val matrixReductionTmp = IR_FunctionArgument("matrixReductionTmp", data.datatype)
+      functionArgs += matrixReductionTmp
+      if (Knowledge.cuda_useManagedMemory) {
+        // D-D copy to reduction buffer
+        fctBody += CUDA_Memcpy(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToDevice")
       }
+      fctBody += CUDA_TransferUtil.genTransfer(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "D2H", stream)
 
       // compile final wrapper function
       val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */
         wrapperName,
-        returnDt,
+        IR_UnitDatatype,
         functionArgs,
         fctBody)
 
@@ -232,5 +232,14 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
 
       functions += fct
     }
+  }
+}
+
+/// CUDA_FunctionConversionWrapper
+
+object CUDA_FunctionConversionWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.cuda_enabled)
+      CUDA_KernelFunctions.get.convertToFunctions()
   }
 }

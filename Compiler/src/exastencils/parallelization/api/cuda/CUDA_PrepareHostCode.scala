@@ -18,13 +18,13 @@
 
 package exastencils.parallelization.api.cuda
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.Iterable
 import scala.collection.mutable
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -34,8 +34,7 @@ import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
-import exastencils.util.ir.IR_FctNameCollector
-import exastencils.util.ir.IR_StackCollector
+import exastencils.util.ir._
 
 /// CUDA_PrepareHostCode
 
@@ -44,136 +43,93 @@ import exastencils.util.ir.IR_StackCollector
   * Additionally required statements for memory transfer are added.
   */
 object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
-  "and annotating for later kernel transformation") {
+  "and annotating for later kernel transformation") with CUDA_PrepareFragmentLoops {
   val fctNameCollector = new IR_FctNameCollector
-  val stackCollector = new IR_StackCollector
+  val fragLoopCollector = new IR_FragmentLoopCollector
+  val commKernelCollector = new IR_CommunicationKernelCollector
   this.register(fctNameCollector)
-  this.register(stackCollector)
+  this.register(fragLoopCollector)
+  this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
-  def syncBeforeHost(access : String, others : Iterable[String]) = {
-    var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncHostForWrites)
-      sync = false // skip write accesses if demanded
-    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
-      sync = false // skip write access for read/write accesses
-    sync
-  }
+  var fieldAccesses = HashMap[String, IR_IV_FieldData]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
 
-  def syncAfterHost(access : String, others : Iterable[String]) = {
-    access.startsWith("write")
-  }
+  var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
 
-  def syncBeforeDevice(access : String, others : Iterable[String]) = {
-    var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncDeviceForWrites)
-      sync = false // skip write accesses if demanded
-    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
-      sync = false // skip write access for read/write accesses
-    sync
-  }
+  override def collectAccessedBuffers(stmts : IR_Statement*) : Unit = {
+    fieldAccesses.clear()
+    bufferAccesses.clear()
 
-  def syncAfterDevice(access : String, others : Iterable[String]) = {
-    access.startsWith("write")
-  }
-
-  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean) = {
-    val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
-    val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
     Logger.pushLevel(Logger.WARNING)
     val gatherFields = new CUDA_GatherFieldAccess()
     this.register(gatherFields)
-    this.execute(new Transformation("Gather local FieldAccess nodes", PartialFunction.empty), Some(IR_Scope(body)))
+    this.execute(new Transformation("Gather local FieldAccess nodes", PartialFunction.empty), Some(IR_Scope(stmts : _*)))
     this.unregister(gatherFields)
     val gatherBuffers = new CUDA_GatherBufferAccess()
     this.register(gatherBuffers)
-    this.execute(new Transformation("Gather local buffer access nodes", PartialFunction.empty), Some(IR_Scope(body)))
+    this.execute(new Transformation("Gather local buffer access nodes", PartialFunction.empty), Some(IR_Scope(stmts : _*)))
     this.unregister(gatherBuffers)
     Logger.popLevel()
 
+    fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, acc) => str -> IR_IV_FieldData(acc.field, acc.slot, acc.fragIdx) }
+    bufferAccesses ++= gatherBuffers.bufferAccesses
+  }
+
+  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream: CUDA_Stream) = {
+    val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
+    val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
+
+    // get accessed buffers
+    collectAccessedBuffers(body : _*)
+
     // host sync stmts
 
-    for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
-      // add data sync statements
-      if (syncBeforeHost(access._1, gatherFields.fieldAccesses.keys))
-        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written fields
-      if (syncAfterHost(access._1, gatherFields.fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(access._2.field, Duplicate(access._2.slot)), IR_BooleanConstant(true))
-    }
-
-    for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
-      val buffer = access._2
-
-      // add buffer sync statements
-      if (syncBeforeHost(access._1, gatherBuffers.bufferAccesses.keys))
-        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
-
-      // update flags for written buffers
-      if (syncAfterHost(access._1, gatherBuffers.bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-    }
+    beforeHost ++= syncEventsBeforeHost(executionStream)
 
     // device sync stmts
 
     if (isParallel) {
-      if (Knowledge.cuda_syncDeviceAfterKernelCalls)
+      if (!Knowledge.experimental_cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
-
-      for (access <- gatherFields.fieldAccesses.toSeq.sortBy(_._1)) {
-        // add data sync statements
-        if (syncBeforeDevice(access._1, gatherFields.fieldAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
-
-        // update flags for written fields
-        if (syncAfterDevice(access._1, gatherFields.fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(access._2.field, Duplicate(access._2.slot)), IR_BooleanConstant(true))
-      }
-
-      for (access <- gatherBuffers.bufferAccesses.toSeq.sortBy(_._1)) {
-        val buffer = access._2
-
-        // add data sync statements
-        if (syncBeforeDevice(access._1, gatherBuffers.bufferAccesses.keys))
-          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
-
-        // update flags for written fields
-        if (syncAfterDevice(access._1, gatherBuffers.bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx)), IR_BooleanConstant(true))
-      }
     }
+
+    beforeDevice ++= syncEventsBeforeDevice(executionStream)
 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def getCondWrapperValue(loop : IR_LoopOverDimensions) : IR_Expression = Knowledge.cuda_preferredExecution match {
-    case "Host"        => IR_BooleanConstant(true) // CPU by default
-    case "Device"      => IR_BooleanConstant(false) // GPU by default
-    case "Performance" =>
-      // decide according to performance estimates -> cpu if no estimates exist
-      val estimatedHost = loop.getAnnotation("perf_timeEstimate_host").getOrElse(0.0).asInstanceOf[Double]
-      val estimatedDevice = loop.getAnnotation("perf_timeEstimate_device").getOrElse(Double.MaxValue).asInstanceOf[Double]
+  // extract estimated times for host/device from performance evaluation strategy (zero if estimation doesn't exist)
+  def getTimeEstimation(loop: IR_LoopOverDimensions, host: Boolean) =
+    loop.getAnnotation(if (host) "perf_timeEstimate_host" else "perf_timeEstimate_device").getOrElse(0.0).asInstanceOf[Double]
 
-      IR_BooleanConstant(estimatedHost <= estimatedDevice)
-    case "Condition"   => Knowledge.cuda_executionCondition
-    case _             => Logger.error("Unknown value for 'cuda_preferredExecution' knowledge flag")
-  }
+  // use condWrapper to prevent automatic removal of branching from simplification strategies
+  def branchingWrapper(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) =
+    getHostDeviceBranchingCondWrapper(condWrapper, hostStmts, deviceStmts, getTimeEstimation(loop, host = true) <= getTimeEstimation(loop, host = false))
 
-  // set dummy first to prevent IR_GeneralSimplify from removing the branch statement until the condition is final
-  def annotateBranch(condWrapper : NoDuplicateWrapper[IR_Expression], hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-    val branch = IR_IfCondition(IR_VariableAccess("replaceIn_CUDA_AnnotateLoops", IR_BooleanDatatype), hostStmts, deviceStmts)
-    branch.annotate(CUDA_Util.CUDA_BRANCH_CONDITION, condWrapper)
-    ListBuffer[IR_Statement](branch)
-  }
+  // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
+  this += new Transformation("Collect accessed elements for fragment loop handling", {
+    case cl : IR_ContractingLoop      =>
+      // get LoopOverDims instance in contracting loop and check if parallel
+      val containedLoop = findContainedLoopOverDims(cl)
+      val isParallel = isLoopParallel(containedLoop)
+      collectAccessedElementsFragmentLoop(cl.body, fragLoopCollector, commKernelCollector,
+        isParallel, fromMPIStatement = false, getTimeEstimation(containedLoop, host = true), getTimeEstimation(containedLoop, host = false))
+      cl
+    case loop : IR_LoopOverDimensions =>
+      collectAccessedElementsFragmentLoop(loop.body, fragLoopCollector, commKernelCollector,
+        isLoopParallel(loop), fromMPIStatement = false, getTimeEstimation(loop, host = true), getTimeEstimation(loop, host = false))
+      loop
+  }, false)
 
-  def getBranch(condWrapper : NoDuplicateWrapper[IR_Expression], loop : IR_LoopOverDimensions, hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-    // set (previously empty) cond wrapper value to execution condition configuration
-    condWrapper.value = getCondWrapperValue(loop)
-    // create branching with execution condition and annotate branch for further processing
-    annotateBranch(condWrapper, hostStmts, deviceStmts)
-  }
+  // replace orig enclosing fragment loop with handled fragment loop structure
+  this += new Transformation("Create overlapping fragment loop structure", {
+    case loop : IR_LoopOverFragments                                                                                     =>
+      createFragLoopHandler(loop)
+    case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
+      createFragLoopHandler(loop)
+  }, false)
 
   this += new Transformation("Process ContractingLoop and LoopOverDimensions nodes", {
     case cl : IR_ContractingLoop =>
@@ -184,28 +140,17 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       var hostCondStmt : IR_IfCondition = null
       var deviceCondStmt : IR_IfCondition = null
 
-      val containedLoop = cl.body.find(s =>
-        s.isInstanceOf[IR_IfCondition] || s.isInstanceOf[IR_LoopOverDimensions]) match {
-        case Some(IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer())) =>
-          val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
-          bodyWithoutComments match {
-            case ListBuffer(loop : IR_LoopOverDimensions) => loop
-            case _                                        => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
-          }
-        case Some(loop : IR_LoopOverDimensions)                                            =>
-          loop
-        case None                                                                          => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
-      }
+      // get LoopOverDims instance in contracting loop
+      val containedLoop = findContainedLoopOverDims(cl)
 
-      // every LoopOverDimensions statement is potentially worse to transform in CUDA code
-      // Exceptions:
-      // 1. this loop is a special one and cannot be optimized in polyhedral model
-      // 2. this loop has no parallel potential
-      // use the host for dealing with the two exceptional cases
-      val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
+      // check if LoopOverDims is parallel
+      val isParallel = isLoopParallel(containedLoop)
+
+      // determine execution ( = comm/comp ) stream
+      val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel, executionStream)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
@@ -246,6 +191,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
                   if (isParallel) {
                     val njuCuda = Duplicate(nju)
                     njuCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
+                    njuCuda.annotate(CUDA_Util.CUDA_EXECUTION_STREAM, executionStream)
                     deviceCondStmt.trueBody += njuCuda
                   }
                   expand += 1
@@ -259,6 +205,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
               if (isParallel) {
                 val loopCuda = Duplicate(loop)
                 loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
+                loopCuda.annotate(CUDA_Util.CUDA_EXECUTION_STREAM, executionStream)
                 deviceStmts += loopCuda
               }
               expand += 1
@@ -268,7 +215,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       deviceStmts ++= afterDevice
       // lists are already added to branch
 
-      val res = if (isParallel) getBranch(condWrapper, containedLoop, hostStmts, deviceStmts) else hostStmts
+      val res = if (isParallel) branchingWrapper(condWrapper, containedLoop, hostStmts, deviceStmts) else hostStmts
 
       for ((fKey, offset) <- fieldOffset) {
         val field = fields(fKey)
@@ -281,21 +228,14 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val hostStmts = ListBuffer[IR_Statement]()
       val deviceStmts = ListBuffer[IR_Statement]()
 
-      // every LoopOverDimensions statement is potentially worth to transform in CUDA code
-      // Exceptions:
-      // 1. this loop is a special one and cannot be optimized in polyhedral model
-      // 2. this loop has no parallel potential
-      // 3. this loop (or an enclosing one) is not gpu-parallelizable
-      // use the host for dealing with the two exceptional cases
-      val isParallel = loop.parallelization.potentiallyParallel && // filter some generate loops
-        loop.parallelization.gpuParallelizable &&
-        !stackCollector.stack.exists {
-          case n : IR_HasParallelizationInfo => !n.parallelization.gpuParallelizable
-          case _                             => false
-        }
+      // check if LoopOverDims is parallel
+      val isParallel = isLoopParallel(loop)
+
+      // determine execution ( = comm/comp ) stream
+      val executionStream = CUDA_Stream.getStream(fragLoopCollector, commKernelCollector)
 
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel, executionStream)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
@@ -306,6 +246,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
         val loopCuda = Duplicate(loop)
         loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, condWrapper)
         loopCuda.polyOptLevel = math.min(2, loopCuda.polyOptLevel) // do not perform a tiling!
+        loopCuda.annotate(CUDA_Util.CUDA_EXECUTION_STREAM, executionStream)
         //loopCuda.polyOptLevel = 0 // is there a way to create only perfectly nested loops using the isl? (check with correction code) - should be fixed now
         deviceStmts += loopCuda
       }
@@ -314,6 +255,6 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       deviceStmts ++= afterDevice
       // lists are already added to branch
 
-      if (isParallel) getBranch(condWrapper, loop, hostStmts, deviceStmts) else hostStmts
+      if (isParallel) branchingWrapper(condWrapper, loop, hostStmts, deviceStmts) else hostStmts
   }, false)
 }

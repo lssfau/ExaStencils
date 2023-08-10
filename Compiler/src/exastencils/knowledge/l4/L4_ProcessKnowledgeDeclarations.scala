@@ -22,6 +22,7 @@ import exastencils.fieldlike.l4.L4_FieldLikeCollections
 import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollections
 import exastencils.interfacing.l4.L4_ProcessExternalFieldDeclarations
 import exastencils.operator.l4._
+import exastencils.scheduling.NoStrategyWrapper
 
 object L4_ProcessKnowledgeDeclarations {
   def apply() = {
@@ -42,4 +43,10 @@ object L4_ProcessKnowledgeDeclarations {
     // may require: Stencil and Field
     L4_ProcessStencilFieldDeclarations.apply()
   }
+}
+
+/// L4_ProcessKnowledgeDeclarationsWrapper
+
+object L4_ProcessKnowledgeDeclarationsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => L4_ProcessKnowledgeDeclarations.apply()
 }

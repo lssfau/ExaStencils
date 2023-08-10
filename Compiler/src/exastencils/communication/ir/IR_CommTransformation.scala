@@ -30,6 +30,7 @@ import exastencils.field.ir._
 import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.scheduling.NoStrategyWrapper
 
 case class IR_CommTransformation(var dim : Int, var trafoId : Int) {
   // 0 --> W
@@ -169,7 +170,6 @@ object IR_CommTransformationCollection {
       Logger.error("IR_CommTransformationCollection cannot deal with dimensionality " + Knowledge.dimensionality)
     }
   }
-
 }
 
 object IR_CommTrafoIdCollection {
@@ -180,4 +180,10 @@ object IR_CommTrafoIdCollection {
     List((0, 0), (2, 2), (1, 1), (3, 3)), // 2
     List((0, 2), (2, 1), (1, 3), (3, 0)) // 3
   )
+}
+
+/// IR_SetupCommunicationTransformationsWrapper
+
+object IR_SetupCommunicationTransformationsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => if (Knowledge.comm_enableCommTransformations) IR_CommTransformationCollection.setup()
 }

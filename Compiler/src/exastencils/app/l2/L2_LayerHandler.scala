@@ -34,7 +34,6 @@ import exastencils.operator.l2._
 import exastencils.parsers.l2._
 import exastencils.prettyprinting.Indenter
 import exastencils.scheduling._
-import exastencils.scheduling.l2._
 import exastencils.solver.l2._
 import exastencils.util.l2._
 import exastencils.waLBerla.l2.field.L2_WaLBerlaFieldCollection

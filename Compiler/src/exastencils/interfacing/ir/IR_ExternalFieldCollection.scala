@@ -18,8 +18,10 @@
 
 package exastencils.interfacing.ir
 
+import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.knowledge.ir.IR_KnowledgeCollection
 import exastencils.logger.Logger
+import exastencils.scheduling.NoStrategyWrapper
 
 /// IR_ExternalFieldCollection
 
@@ -39,4 +41,10 @@ object IR_ExternalFieldCollection extends IR_KnowledgeCollection[IR_ExternalFiel
       List(IR_CopyToExternalField(extField.targetField, extField),
         IR_CopyFromExternalField(extField.targetField, extField)))
   }
+}
+
+/// IR_SetupExternalCopyFunctionsWrapper
+
+object IR_SetupExternalCopyFunctionsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 }

@@ -23,12 +23,15 @@ import exastencils.applications.ir.IR_HandleMainApplication
 import exastencils.applications.swe.ir.IR_ResolveFragmentNlock
 import exastencils.applications.swe.ir.IR_ResolveFragmentOrder
 import exastencils.applications.swe.ir.IR_ResolveStationFunctions
+import exastencils.base.ExaRootNode
 import exastencils.base.ir._
 import exastencils.baseExt.ir.ComplexNumbers.IR_ResolveComplexNumbers
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_ResolveBoundaryFunctions
+import exastencils.communication.IR_SetupDefaultNeighborsWrapper
 import exastencils.communication.ir._
 import exastencils.config._
+import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.experimental.ir.IR_ResolveGismoFunctions
 import exastencils.field.ir._
 import exastencils.fieldlike.ir._
@@ -42,13 +45,14 @@ import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
+import exastencils.performance.ir.IR_AddPerformanceEstimatesWrapper
 import exastencils.polyhedron._
 import exastencils.prettyprinting.PrintToFile
 import exastencils.scheduling._
-import exastencils.scheduling.ir._
 import exastencils.solver.ir._
 import exastencils.stencil.ir._
 import exastencils.timing.ir._
+import exastencils.util.CImg
 import exastencils.util.ir._
 import exastencils.visualization.ir.interactive.cimg.IR_ResolveCImgFunctions
 import exastencils.visualization.ir.interactive.visit.IR_SetupVisit
@@ -209,6 +213,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_AnnotateLoop,
       CUDA_ExtractHostAndDeviceCode,
       CUDA_AdaptKernelDimensionality,
+      CUDA_HandleFragmentLoops,
       CUDA_HandleReductions,
       CUDA_ReplaceStdFunctionCallsWrapper))
 
@@ -281,5 +286,26 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.generateFortranInterface, IR_Fortranify))
 
     scheduler.register(IR_HACK_TypeAliases)
+  }
+}
+
+/// IR_AddRemainingNodesWrapper
+
+object IR_AddRemainingNodesWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    ExaRootNode.ir_root.nodes ++= List(
+      // FunctionCollections
+      IR_UtilFunctions(),
+      IR_DomainFunctions(),
+      IR_CommunicationFunctions(),
+
+      // Util
+      IR_Stopwatch(),
+      IR_TimerFunctions(),
+      CImg() // TODO: only if required
+    )
+
+    if (Knowledge.cuda_enabled)
+      ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()
   }
 }

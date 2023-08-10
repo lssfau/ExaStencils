@@ -34,6 +34,8 @@ import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.scheduling.NoStrategyWrapper
 import exastencils.solver.ir.IR_MatrixSolveOps
 import exastencils.util.ir.IR_Print
 
@@ -583,4 +585,22 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
         base
 
   }, false)
+}
+
+/// IR_ResolveMatrixOpsWrapper
+
+object IR_ResolveMatrixOpsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    //IR_SetupMatrixExpressions.apply()
+    var sthChanged = true
+    while (sthChanged) {
+      IR_GeneralSimplify.doUntilDone()
+      IR_ResolveMatFuncs.apply()
+      IR_ResolveMatOperators.apply()
+      sthChanged = IR_ResolveMatFuncs.results.last._2.matches > 0 || IR_ResolveMatOperators.results.last._2.matches > 0
+    }
+    IR_GeneralSimplify.doUntilDone()
+    IR_PostItMOps.apply()
+    IR_LinearizeMatrices.apply()
+  }
 }

@@ -20,6 +20,8 @@ package exastencils.field.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.config.Knowledge
+import exastencils.scheduling.NoStrategyWrapper
 import exastencils.waLBerla.l4.field._
 
 /// L4_DuplicateFieldLayoutsForFields
@@ -48,5 +50,14 @@ object L4_DuplicateFieldLayoutsForFields {
     // update collection
     L4_FieldLayoutCollection.objects = newFieldLayouts
     L4_WaLBerlaFieldLayoutCollection.objects = newWaLBerlaFieldLayouts
+  }
+}
+
+/// L4_DuplicateFieldLayoutsForFieldsWrapper
+
+object L4_DuplicateFieldLayoutsForFieldsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.l4_genSepLayoutsPerField)
+      L4_DuplicateFieldLayoutsForFields.apply()
   }
 }
