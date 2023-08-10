@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
@@ -79,6 +80,7 @@ case class IR_LinearInterpPackingF2CRemote(
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   import IR_InterpPackingHelper._
+  import LinearInterpPackingF2CHelper._
 
   def numDims : Int = field.layout.numDimsData
 
@@ -110,11 +112,10 @@ case class IR_LinearInterpPackingF2CRemote(
     // init temp buf idx counter
     ret += IR_Assignment(it, 0)
 
-    if (send) {
-
-    } else {
-
-    }
+    if (send)
+      innerStmts += IR_Assignment(tmpBufAccess, generateInterpExpr(field, slot, packInfo))
+    else
+      innerStmts += IR_Assignment(IR_DirectFieldAccess(field, Duplicate(slot), defIt), tmpBufAccess)
 
     // fine neighbor cells (2 in 2D, 4 in 3D) are linearly interpolated and the result is sent to the coarse neighbor
     val stride = if (send) IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1)) else null
@@ -137,6 +138,7 @@ case class IR_LinearInterpPackingF2CLocal(
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   import IR_InterpPackingHelper._
+  import LinearInterpPackingF2CHelper._
 
   def numDims : Int = field.layout.numDimsData
 
@@ -145,6 +147,10 @@ case class IR_LinearInterpPackingF2CLocal(
   override def expand() : OutputType = {
     if (condition.isDefined)
       Logger.error("Conditions for refined communication are not supported yet.")
+
+    // TODO: pull scheme for local comm, only push implemented
+    if (!Knowledge.comm_pushLocalData)
+      Logger.warn("Pull comm scheme is not yet implemented for linear F2C interp.")
 
     val packIntervalDest = packInfo.getPackIntervalDest()
     val packIntervalSrc = packInfo.getPackIntervalSrc()
@@ -155,10 +161,16 @@ case class IR_LinearInterpPackingF2CLocal(
 
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
 
+    // push result to destination
+    innerStmts += IR_Assignment(
+      IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
+        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
+      generateInterpExpr(field, slot, packInfo))
+
     // fine neighbor cells (2 in 2D, 4 in 3D) are linearly interpolated and the result is sent to the coarse neighbor
     val stride = if (send) IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1)) else null
 
-    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, innerStmts, stride, condition = condition)
+    val loop = new IR_LoopOverDimensions(numDims, packIntervalSrc, innerStmts, stride, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
     loop

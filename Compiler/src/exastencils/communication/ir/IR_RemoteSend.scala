@@ -59,36 +59,23 @@ case class IR_CopyToSendBuffer(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_RefinedCommunication {
 
   def numDims = field.layout.numDimsData
+
+  override def equalLevelCopyLoop() : IR_Statement =
+    IR_NoInterpPackingRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
+
+  override def coarseToFineCopyLoop() : IR_Statement =
+    IR_QuadraticInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
+
+  override def fineToCoarseCopyLoop() : IR_Statement =
+    IR_LinearInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
 
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
-    def equalLevelCopyLoop() : Unit =
-      ret += IR_NoInterpPackingRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
-
-    def coarseToFineCopyLoop() : Unit =
-      ret += IR_QuadraticInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
-
-    def getCopyLoop() = {
-      if (Knowledge.refinement_enabled) {
-        refinementCase match {
-          case RefinementCase.EQUAL =>
-            equalLevelCopyLoop()
-          case RefinementCase.C2F   =>
-            coarseToFineCopyLoop()
-          case RefinementCase.F2C   =>
-            // TODO: linear interp
-            equalLevelCopyLoop()
-        }
-      } else {
-        equalLevelCopyLoop()
-      }
-    }
-
-    getCopyLoop()
+    ret += getCopyLoop()
 
     ret
   }

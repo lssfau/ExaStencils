@@ -407,7 +407,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
       // read from buffer into field
       for (offset <- crossSumUpwindOrthogonals.distinct) {
         innerStmts += IR_Assignment(
-          IR_DirectFieldAccess(field, slot, defIt + IR_ExpressionIndex(offset)),
+          IR_DirectFieldAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)),
           tmpBufAccess)
         innerStmts += IR_PreIncrement(it)
       }

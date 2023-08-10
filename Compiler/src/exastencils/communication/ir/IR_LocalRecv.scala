@@ -40,9 +40,18 @@ case class IR_LocalRecv(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
     var insideFragLoop : Boolean,
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication with IR_RefinedCommunication {
 
   def numDims = field.layout.numDimsData
+
+  def equalLevelCopyLoop() : IR_Statement =
+    IR_NoInterpPackingLocal(send = false, field, slot, refinementCase, packInfo, condition)
+
+  def coarseToFineCopyLoop() : IR_Statement =
+    IR_QuadraticInterpPackingC2FLocal(send = false, field, slot, refinementCase, packInfo, condition)
+
+  def fineToCoarseCopyLoop() : IR_Statement =
+    IR_LinearInterpPackingF2CLocal(send = false, field, slot, refinementCase, packInfo, condition)
 
   override def expand() : Output[IR_Statement] = {
     val packIntervalDest = packInfo.getPackIntervalDest()
@@ -51,28 +60,6 @@ case class IR_LocalRecv(
     val neighbor = packInfo.neighbor
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
-
-    def equalLevelCopyLoop() =
-      IR_NoInterpPackingLocal(send = false, field, slot, refinementCase, packInfo, condition)
-
-    def coarseToFineCopyLoop() =
-      IR_QuadraticInterpPackingC2FLocal(send = false, field, slot, refinementCase, packInfo, condition)
-
-    def getCopyLoop() = {
-      if (Knowledge.refinement_enabled) {
-        refinementCase match {
-          case RefinementCase.EQUAL =>
-            equalLevelCopyLoop()
-          case RefinementCase.C2F   =>
-            coarseToFineCopyLoop()
-          case RefinementCase.F2C   =>
-            // TODO: linear interp
-            equalLevelCopyLoop()
-        }
-      } else {
-        equalLevelCopyLoop()
-      }
-    }
 
     def loopWithCommTrafos(trafo : IR_CommTransformation) = {
       val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
