@@ -126,7 +126,9 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   def mapBuffer(buffer : IR_IV_CommBuffer, inWriteOp : Boolean) = {
     var identifier = buffer.resolveName()
-    identifier = (if (inWriteOp) "write_" else "read_") + identifier
+    val neighIdx = buffer.neighIdx
+
+    identifier = (if (inWriteOp) "write_" else "read_") + identifier + "_" + neighIdx
 
     bufferAccesses.put(identifier, buffer)
   }

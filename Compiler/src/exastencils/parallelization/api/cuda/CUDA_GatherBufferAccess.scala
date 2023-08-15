@@ -73,11 +73,12 @@ class CUDA_GatherBufferAccess extends Collector {
 
       case buffer : IR_IV_CommBuffer =>
         val identifier = buffer.resolveName()
+        val neighIdx = buffer.neighIdx
 
         if (isRead)
-          bufferAccesses.put("read_" + identifier, buffer)
+          bufferAccesses.put(s"read_${identifier}_{$neighIdx}", buffer)
         if (isWrite)
-          bufferAccesses.put("write_" + identifier, buffer)
+          bufferAccesses.put(s"write_${identifier}_{$neighIdx}", buffer)
 
       case _ =>
     }
