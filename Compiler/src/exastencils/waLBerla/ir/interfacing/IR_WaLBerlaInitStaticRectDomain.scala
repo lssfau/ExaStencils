@@ -17,6 +17,7 @@ import exastencils.util.ir.IR_Print
 import exastencils.util.ir.IR_Read
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
 
@@ -256,6 +257,15 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
           // find local neighbor index in block vector
           bodyNeighborHoodLoop += IR_VariableDeclaration(wbLocalNeighborBlockIdx, findLocalNeighborBlockIndex())
           bodyNeighborHoodLoop += IR_VariableDeclaration(wbRemoteNeighborBlockIdx, findRemoteNeighborBlockIndex())
+
+          // determine (static) refinement case per block and neighbor dir
+          val refLevel = IR_WaLBerlaRefinementLevel()
+          val neighborRefLevel = blockForest.getLevelFromBlockId(wbNeighborBlockId)
+          bodyNeighborHoodLoop += IR_IfCondition(refLevel < neighborRefLevel,
+            IR_Assignment(IR_IV_NeighborRefinementCase(defIt, domainIdx, neigh.index), RefinementCase.C2F.id),
+            IR_IfCondition(refLevel > neighborRefLevel,
+              IR_Assignment(IR_IV_NeighborRefinementCase(defIt, domainIdx, neigh.index), RefinementCase.F2C.id),
+              IR_Assignment(IR_IV_NeighborRefinementCase(defIt, domainIdx, neigh.index), RefinementCase.EQUAL.id)))
 
           // connect local/remote fragments
           if (canHaveRemoteNeighs && canHaveLocalNeighs)
