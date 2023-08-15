@@ -310,12 +310,14 @@ case class CUDA_HandleFragmentLoops(
       syncAfterFragLoop.parallelization.reduction = Some(red)
 
       // force comp stream sync if comp kernels are not synced explicitly
-      val syncsComp = issuedStreamSyncsAfter.exists {
-        case streamSync : CUDA_StreamSynchronize if streamSync.stream.isInstanceOf[CUDA_ComputeStream] => true
-        case _ => false
+      if (Knowledge.experimental_cuda_useStreams) {
+        val syncsComp = issuedStreamSyncsAfter.exists {
+          case streamSync : CUDA_StreamSynchronize if streamSync.stream.isInstanceOf[CUDA_ComputeStream] => true
+          case _                                                                                         => false
+        }
+        if (!syncsComp && Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
+          syncAfterFragLoop.body += CUDA_Stream.genCompSync()
       }
-      if (!syncsComp)
-        syncAfterFragLoop.body += CUDA_Stream.genCompSync()
 
       val counter = CUDA_HandleFragmentLoops.getReductionCounter(red.targetName)
       val copies = IR_VariableAccess(red.targetName + "_fragCpy" + counter, IR_ArrayDatatype(reductionDt(redTarget), Knowledge.domain_numFragmentsPerBlock))
