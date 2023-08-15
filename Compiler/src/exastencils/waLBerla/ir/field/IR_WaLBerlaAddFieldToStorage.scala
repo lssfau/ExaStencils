@@ -36,7 +36,7 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
           refArrayToInit(slot),
           IR_FunctionCall(s"${ IR_WaLBerlaAddFieldToStorageWrapper().name } < $wbFieldTemplate >",
             blockForest,
-            IR_StringConstant(leveledField.stringIdentifier(slot)),
+            IR_StringConstant(leveledField.stringIdentifier(slot, onGPU = false)),
             leveledField.level,
             initValue,
             IR_VariableAccess(s"field::${ layout.layoutName }", IR_IntegerDatatype),

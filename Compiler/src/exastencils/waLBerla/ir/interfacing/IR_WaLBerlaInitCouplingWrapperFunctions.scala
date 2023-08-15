@@ -37,7 +37,7 @@ private case class IR_WaLBerlaResizeExaBuffersWrapper() extends IR_WaLBerlaWrapp
     if (IR_FieldCollection.objects.nonEmpty && Knowledge.data_genVariableFieldSizes) {
       for (lvl <- IR_FieldCollection.objects.groupBy(_.level).keys)
         body += IR_FunctionCall(IR_LeveledInternalFunctionReference("resizeAllInner", lvl, IR_UnitDatatype),
-          (0 until Knowledge.dimensionality).map(d => blockForest.getNumberOfCells(d) / Math.pow(2, Knowledge.maxLevel - lvl).toInt : IR_Expression).to[ListBuffer])
+          (0 until Knowledge.dimensionality).map(d => blockForest.getNumberOfCellsPerBlock(d) / Math.pow(2, Knowledge.maxLevel - lvl).toInt : IR_Expression).to[ListBuffer])
     }
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
@@ -47,8 +47,12 @@ private case class IR_WaLBerlaResizeExaBuffersWrapper() extends IR_WaLBerlaWrapp
   override def inlineIncludeImplementation : Boolean = true
 }
 
-private case class IR_WaLBerlaInitExaBuffersWrapper() extends IR_WaLBerlaWrapperFunction {
-  override def name : String = "initExaBuffers"
+object IR_WaLBerlaInitExaBuffersWrapper {
+  def fctName : String = "initExaBuffers"
+}
+
+case class IR_WaLBerlaInitExaBuffersWrapper() extends IR_WaLBerlaWrapperFunction {
+  override def name : String = IR_WaLBerlaInitExaBuffersWrapper.fctName
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var body = ListBuffer[IR_Statement]()

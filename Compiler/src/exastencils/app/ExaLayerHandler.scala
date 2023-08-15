@@ -23,6 +23,7 @@ import exastencils.app.l1._
 import exastencils.app.l2._
 import exastencils.app.l3._
 import exastencils.app.l4._
+import exastencils.config.Knowledge
 import exastencils.config.Settings
 
 /// ExaLayerHandler
@@ -33,6 +34,15 @@ object ExaLayerHandler {
   var l3_handler : L3_LayerHandler = L3_DefaultLayerHandler
   var l4_handler : L4_LayerHandler = L4_DefaultLayerHandler
   var ir_handler : IR_LayerHandler = IR_DefaultLayerHandler
+
+  def updateAllLayers() : Unit = {
+    if (Knowledge.waLBerla_generateInterface) {
+      l2_handler = L2_WaLBerlaLayerHandler
+      l3_handler = L3_WaLBerlaLayerHandler
+      l4_handler = L4_WaLBerlaLayerHandler
+      ir_handler = IR_WaLBerlaLayerHandler
+    }
+  }
 
   def allLayers = Array(l1_handler, l2_handler, l3_handler, l4_handler, ir_handler)
 
@@ -49,7 +59,10 @@ object ExaLayerHandler {
   }
 
   def handleAllLayers() : Unit = {
-    allLayers.foreach(_.handle())
+    allLayers.foreach { lh =>
+      lh.schedule()
+      lh.handle()
+    }
   }
 
   def shutdownAllLayers() : Unit = {

@@ -39,7 +39,7 @@ object MPI_DataType {
   def shouldBeUsed(field : IR_FieldLike, indexRange : IR_ExpressionIndexRange, condition : Option[IR_Expression]) : Boolean = {
     // TODO: extend range of supported cases
     // honor user-give knowledge parameters
-    if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
+    if (!Knowledge.mpi_useCustomDatatypes || !field.layout.useFixedLayoutSizes)
       return false
 
     // skip communication steps with conditions for now

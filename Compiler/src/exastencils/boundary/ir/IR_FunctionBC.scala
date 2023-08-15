@@ -26,6 +26,7 @@ import exastencils.boundary.l4._
 import exastencils.communication.NeighborInfo
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.fieldlike.l4.L4_FieldLikeCollections
+import exastencils.scheduling.NoStrategyWrapper
 
 /// IR_FunctionBC
 
@@ -51,4 +52,10 @@ object L4_ResolveBoundaryHandlingFunctions {
       }
     }
   }
+}
+
+/// L4_ResolveBoundaryHandlingFunctionsWrapper
+
+object L4_ResolveBoundaryHandlingFunctionsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => L4_ResolveBoundaryHandlingFunctions.apply()
 }

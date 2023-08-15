@@ -98,7 +98,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   /**
     * Resets this Strategy by, e.g., clearing all [[exastencils.datastructures.TransformationResult]]s.
     */
-  def reset() = {
+  override def reset() = {
     results_.clear()
   }
 

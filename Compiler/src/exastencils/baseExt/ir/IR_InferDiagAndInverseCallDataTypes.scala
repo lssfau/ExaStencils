@@ -20,6 +20,7 @@ package exastencils.baseExt.ir
 
 import exastencils.base.ir._
 import exastencils.datastructures._
+import exastencils.scheduling.NoStrategyWrapper
 
 /// IR_InferDiagAndInverseCallDataTypes
 
@@ -43,4 +44,10 @@ object IR_InferDiagAndInverseCallDataTypes extends DefaultStrategy("InferDiagAnd
       call.function = IR_PlainInternalFunctionReference(ref.name, params.head.datatype)
       call
   })
+}
+
+/// IR_InferDiagAndInverseCallDataTypesWrapper
+
+object IR_InferDiagAndInverseCallDataTypesWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => IR_InferDiagAndInverseCallDataTypes.doUntilDone()
 }

@@ -25,4 +25,6 @@ package exastencils.datastructures
   */
 abstract class CustomStrategy(name : String) extends Strategy(name) {
   def apply() : Unit
+
+  def apply(applyAtNode : Option[Node]) : Unit = apply()
 }

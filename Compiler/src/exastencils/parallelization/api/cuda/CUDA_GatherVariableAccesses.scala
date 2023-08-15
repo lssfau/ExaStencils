@@ -32,15 +32,16 @@ import exastencils.parallelization.api.cuda.CUDA_Util._
 object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local VariableAccess nodes") {
   var reductionTarget : Option[IR_Expression] = None
   var kernelCount : Int = 0
+  var fctName : String = ""
 
   var evaluableAccesses = mutable.HashMap[String, (IR_Access, IR_Datatype)]()
   var nonEvaluableAccesses = mutable.HashMap[String, (IR_VariableAccess, IR_Datatype)]()
   var ignoredAccesses = mutable.SortedSet[String]()
   var ignoredArrayVariableAccesses = mutable.SortedSet[String]()
 
-  def basePrefix(base : IR_VariableAccess) = base.name
+  def basePrefix(base : IR_VariableAccess) = s"${fctName}_${base.name}"
   // regular, evaluable indexed array accesses
-  def arrayAccessAsString(base : IR_VariableAccess, idx : IR_Expression) = basePrefix(base) + idx.prettyprint()
+  def arrayAccessAsString(base : IR_VariableAccess, idx : IR_Expression) = s"${basePrefix(base)}_kernelarg_${idx.prettyprint()}"
   def containsArrayAccess(base : IR_VariableAccess, idx : IR_Expression) = evaluableAccesses.contains(arrayAccessAsString(base, idx))
   // array variable accesses in case that a kernel is passed whole array as argument (for non-evaluable indices)
   def arrayVariableAccessAsString(base : IR_VariableAccess) = s"${basePrefix(base)}_deviceCopy_$kernelCount"

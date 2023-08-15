@@ -14,7 +14,7 @@ object GPU_WaLBerlaHandleGPUMemory extends DefaultStrategy("GPU memory handling 
   def getWaLBerlaFieldOption(fieldData : IR_IV_AbstractFieldLikeData) = IR_WaLBerlaFieldCollection.getByIdentifier(fieldData.field.name, fieldData.field.level)
 
   this += Transformation("Replace transfers", {
-    case _ @ CUDA_MemPrefetch(pointer : IR_IV_AbstractFieldLikeData, _, direction) if getWaLBerlaFieldOption(pointer).isDefined =>
+    case _ @ CUDA_MemPrefetch(pointer : IR_IV_AbstractFieldLikeData, _, direction, None) if getWaLBerlaFieldOption(pointer).isDefined =>
       val wbField = getWaLBerlaFieldOption(pointer).get
       val cpuID = IR_WaLBerlaBlockDataID(wbField, pointer.slot, onGPU = false)
       val gpuID = IR_WaLBerlaBlockDataID(wbField, pointer.slot, onGPU = true)

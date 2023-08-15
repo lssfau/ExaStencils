@@ -70,6 +70,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
   this += new Transformation("Process kernel nodes", {
     case kernel : CUDA_Kernel if kernel.reduction.isDefined =>
       val target = Duplicate(kernel.reduction.get.target)
+      val localTarget = Duplicate(kernel.localReductionTarget.get)
       val resultDt = CUDA_Util.getReductionDatatype(target)
       val strideReturnDt = resultDt.getSizeArray.product
 
@@ -88,15 +89,15 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       }
 
       // update local target
-      CUDA_ReplaceReductionAssignments.redTarget = Duplicate(target)
-      CUDA_ReplaceReductionAssignments.replacement = Duplicate(kernel.localReductionTarget.get)
+      CUDA_ReplaceReductionAssignments.redTarget = target
+      CUDA_ReplaceReductionAssignments.replacement = localTarget
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
 
       // set element in global reduction buffer to local result
       val dst = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size, resultDt), index, stride)
       val setReductionBuffer = resultDt match {
         case _ : IR_ScalarDatatype   =>
-          IR_Assignment(dst, kernel.localReductionTarget.get)
+          IR_Assignment(dst, localTarget)
         case mat : IR_MatrixDatatype =>
           val i = IR_VariableAccess("_i", IR_IntegerDatatype)
           val j = IR_VariableAccess("_j", IR_IntegerDatatype)
@@ -105,7 +106,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
 
           IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
             IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
-              IR_Assignment(dst, IR_ArrayAccess(kernel.localReductionTarget.get, idx))))))
+              IR_Assignment(dst, IR_ArrayAccess(localTarget, idx))))))
       }
 
       // assemble new body

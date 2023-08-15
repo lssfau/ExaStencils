@@ -72,3 +72,23 @@ case class CUDA_DeviceBufferDataUpdated(var field : IR_FieldLike, var direction 
   override def resolveDatatype() = IR_BooleanDatatype
   override def resolveDefValue() = Some(false)
 }
+
+/// CUDA_ExecutionMode
+
+abstract class CUDA_ExecutionMode(name : String) extends IR_UnduplicatedVariable {
+  override def resolveName() : String = name
+  override def resolveDatatype() : IR_Datatype = IR_BooleanDatatype
+}
+
+// currently tracked execution mode
+case class CUDA_CurrentExecutionMode() extends CUDA_ExecutionMode("currentExecutionMode") {
+  override def resolveDefValue() : Option[IR_Expression] = CUDA_CPUExecutionMode().resolveDefValue()
+}
+
+case class CUDA_CPUExecutionMode() extends CUDA_ExecutionMode("cpuExecutionMode") {
+  override def resolveDefValue() : Option[IR_Expression] = Some(true)
+}
+
+case class CUDA_GPUExecutionMode() extends CUDA_ExecutionMode("gpuExecutionMode") {
+  override def resolveDefValue() : Option[IR_Expression] = Some(false)
+}

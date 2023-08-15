@@ -31,12 +31,32 @@ import exastencils.domain.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.simd._
+import exastencils.util.ir.IR_StackCollector
 
 object IR_Vectorization extends DefaultStrategy("Vectorization") {
+  val collector = new IR_StackCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   final val VECT_ANNOT : String = "VECT"
   final val COND_VECTABLE : String = "VECT_C"
   final val COND_IGN_INCR : String = "VECT_ign++"
+
+  private def isLoopIncrement(assign : IR_Assignment) : Boolean = collector.stack.exists {
+    case e : IR_ForLoop if e.inc == assign => true
+    case _                                 => false
+  }
+
+  this += new Transformation("resolve compound assignments first", {
+    case assign @ IR_Assignment(dest, src, "+=") if !isLoopIncrement(assign) =>
+      IR_Assignment(Duplicate(dest), IR_Addition(dest, src))
+    case assign @ IR_Assignment(dest, src, "*=") if !isLoopIncrement(assign) =>
+      IR_Assignment(Duplicate(dest), IR_Multiplication(ListBuffer[IR_Expression](dest, src)))
+    case assign @ IR_Assignment(dest, src, "-=") if !isLoopIncrement(assign) =>
+      IR_Assignment(Duplicate(dest), IR_Subtraction(dest, src))
+    case assign @ IR_Assignment(dest, src, "/=") if !isLoopIncrement(assign) =>
+      IR_Assignment(Duplicate(dest), IR_Division(dest, src))
+  }, false)
 
   this += new Transformation("optimize", VectorizeInnermost, recursive = false, isParallel = true)
 }

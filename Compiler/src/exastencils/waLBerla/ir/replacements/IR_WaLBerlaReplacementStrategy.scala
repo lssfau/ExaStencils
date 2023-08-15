@@ -1,10 +1,10 @@
 package exastencils.waLBerla.ir.replacements
 
-import exastencils.baseExt.ir.IR_LoopOverPoints
-import exastencils.baseExt.ir.IR_LoopOverPointsInOneFragment
+import exastencils.baseExt.ir._
 import exastencils.datastructures._
 import exastencils.fieldlike.ir.IR_FieldLikeAccessLike
 import exastencils.util.ir.IR_StackCollector
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.field._
@@ -29,6 +29,9 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
       case fAcc : IR_WaLBerlaFieldAccess if IR_WaLBerlaFieldCollection.contains(fAcc) =>
         found = true
         fAcc
+      case fAcc : IR_WaLBerlaBlockDataID                                              =>
+        found = true
+        fAcc
       case fAcc : IR_IV_WaLBerlaGetField                                              =>
         found = true
         fAcc
@@ -43,13 +46,14 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
     IR_WaLBerlaFindAccessed.found
   }
 
-  def inWaLBerlaBlockLoop(collector : IR_StackCollector) : Boolean = {
-    collector.stack.exists {
-      case _ : IR_WaLBerlaLoopOverLocalBlocks                                                 => true
-      case _ : IR_WaLBerlaLoopOverLocalBlockArray                                             => true
-      case loop : IR_LoopOverPoints if loop.field.isInstanceOf[IR_WaLBerlaField]              => true
-      case loop : IR_LoopOverPointsInOneFragment if loop.field.isInstanceOf[IR_WaLBerlaField] => true
-      case _                                                                                  => false
+  def containingWaLBerlaBlockLoop(collector : IR_StackCollector) = {
+    collector.stack.collectFirst {
+      case loop : IR_WaLBerlaLoopOverLocalBlocks                                                                                    => loop
+      case loop : IR_WaLBerlaLoopOverLocalBlockArray                                                                                => loop
+      case loop : IR_LoopOverPoints if loop.field.isInstanceOf[IR_WaLBerlaField]                                                    => loop
+      case loop : IR_LoopOverPointsInOneFragment if loop.field.isInstanceOf[IR_WaLBerlaField]                                       => loop
     }
   }
+
+  def inWaLBerlaBlockLoop(collector : IR_StackCollector) : Boolean = containingWaLBerlaBlockLoop(collector).isDefined
 }

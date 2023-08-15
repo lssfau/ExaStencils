@@ -36,6 +36,8 @@ import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.IR_PolyArrayAccessLike
 import exastencils.prettyprinting._
+import exastencils.scheduling.NoStrategyWrapper
+import exastencils.util.DuplicateNodes
 import exastencils.util.ir._
 
 object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
@@ -781,3 +783,17 @@ case class IR_IV_LoopCarriedCSBuffer(var identifier : Int, var baseDatatype : IR
 /// IR_IV_LoopCarriedCSBufferBasePtr
 case class IR_IV_LoopCarriedCSBufferBasePtr(var identifier : Int, var baseDatatype : IR_Datatype)
   extends IR_IV_AbstractLoopCarriedCSBuffer("_base", true)
+
+/// IR_DuplicateNodesForCSEWrapper
+
+object IR_DuplicateNodesForCSEWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => {
+    if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
+      DuplicateNodes.instances.clear()
+      DuplicateNodes.printStack = false
+      DuplicateNodes.apply() // FIXME: only debug
+      IR_Inlining.apply(true)
+      IR_CommonSubexpressionElimination.apply()
+    }
+  }
+}

@@ -23,6 +23,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.parallelization.api.cuda.CUDA_DeviceSynchronize
 import exastencils.parallelization.api.mpi.MPI_Barrier
 
 /// IR_StopTimer
@@ -38,6 +39,7 @@ case class IR_StopTimer() extends IR_TimerFunction {
     val statements = ListBuffer[IR_Statement](
       IR_PreDecrement(accessMember("numEntries")),
       IR_IfCondition(IR_EqEq(0, accessMember("numEntries")), ListBuffer[IR_Statement](
+        if (Knowledge.timer_syncDevice && Knowledge.cuda_enabled) CUDA_DeviceSynchronize() else IR_NullStatement,
         if (Knowledge.timer_syncMpi && Knowledge.mpi_enabled) MPI_Barrier else IR_NullStatement,
         IR_AssignNowToTimer(accessMember("timerEnded")),
         IR_Assignment(accessMember("lastTimeMeasured"),

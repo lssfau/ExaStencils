@@ -32,11 +32,8 @@ import exastencils.io.ir.IR_IV_FragmentOffset
 import exastencils.io.ir.IR_IV_NumValidFrags
 import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
 import exastencils.io.ir.IR_IV_TotalNumFrags
-import exastencils.io.ir.IR_IV_FragmentOffset
-import exastencils.io.ir.IR_IV_NumValidFrags
-import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
-import exastencils.io.ir.IR_IV_TotalNumFrags
 import exastencils.logger.Logger
+import exastencils.scheduling.SingleSchedulable
 import exastencils.util.ir.IR_MathFunctionReference
 import exastencils.util.ir.IR_MathFunctions
 import exastencils.util.ir.IR_ResultingDatatype
@@ -382,19 +379,24 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       do {
         val expr = workQ.dequeue()
         expr match {
-          case IR_IntegerConstant(iv)                  => intCst *= iv
-          case IR_RealConstant(fv)                     => floatCst *= fv
-          case IR_Negative(e)                          =>
+          case IR_IntegerConstant(iv)                    => intCst *= iv
+          case IR_RealConstant(fv)                       => floatCst *= fv
+          case IR_Negative(e)                            =>
             workQ = (mutable.Queue() :+ e) ++ workQ
             intCst = -intCst
-          case IR_Multiplication(iFacs)                =>
+          case IR_Multiplication(iFacs)                  =>
             workQ = mutable.Queue() ++ iFacs ++ workQ
-          case d @ IR_Division(IR_RealConstant(fv), _) =>
+          case IR_Division(IR_RealConstant(fv), divisor) =>
             floatCst *= fv
-            d.left = IR_RealConstant(1.0)
-            if (div == null)
-              div = d
-            remA += d
+            divisor match {
+              case IR_RealConstant(dv)    => floatCst /= dv
+              case IR_IntegerConstant(dv) => floatCst /= dv
+              case _                      =>
+                val d = IR_Division(IR_RealConstant(1.0), divisor)
+                if (div == null)
+                  div = d
+                remA += d
+            }
           //          case _ : IR_VectorExpression | _ : IR_MatrixExpression =>
           //            if (remA.isEmpty)
           //              remA += expr
@@ -468,7 +470,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
 
   // specialized simplification: (c/X) * (... + X*e + ...)  ->  c*e + (c/x) * (... + ...)
   private def cancelDownSummands(num : IR_Expression, div : IR_Expression, expr : IR_Expression) : IR_Addition = {
-    if (div.isInstanceOf[IR_IntegerConstant] || div.isInstanceOf[IR_FloatConstant])
+    if (div.isInstanceOf[IR_Number])
       return null // constant divisiors will be simplified elsewhere
     val (orig, canc) = cancelDown(expr, div)
     if (!canc.isEmpty)
@@ -572,5 +574,13 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       base *= base
     }
     res
+  }
+}
+
+/// IR_GeneralSimplifyUntilDoneWrapper
+
+object IR_GeneralSimplifyUntilDoneWrapper extends SingleSchedulable {
+  override def apply(applyAtNode : Option[Node]) : Unit = {
+    IR_GeneralSimplify.doUntilDone(applyAtNode)
   }
 }
