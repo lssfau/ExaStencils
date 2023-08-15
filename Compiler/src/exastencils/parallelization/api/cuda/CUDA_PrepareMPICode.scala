@@ -61,7 +61,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     fieldAccesses.clear()
     bufferAccesses.clear()
 
-    stmt match {
+    stmt foreach {
       case send : MPI_Send    => processRead(send.buffer)
       case recv : MPI_Receive => processWrite(recv.buffer)
 
