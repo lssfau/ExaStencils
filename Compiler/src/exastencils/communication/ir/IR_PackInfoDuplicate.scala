@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_PackInfoDuplicate
 
@@ -58,7 +58,7 @@ trait IR_LocalPackInfoDuplicate extends IR_LocalPackInfo with IR_PackInfoDuplica
 
 case class IR_PackInfoDuplicateRemoteSend(
     var neighbor : NeighborInfo,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
 ) extends IR_RemotePackInfoDuplicate
@@ -68,7 +68,7 @@ case class IR_PackInfoDuplicateRemoteSend(
 
 case class IR_PackInfoDuplicateRemoteRecv(
     var neighbor : NeighborInfo,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
 ) extends IR_RemotePackInfoDuplicate
@@ -78,7 +78,7 @@ case class IR_PackInfoDuplicateRemoteRecv(
 
 case class IR_PackInfoDuplicateLocalSend(
     var neighbor : NeighborInfo,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
 ) extends IR_LocalPackInfoDuplicate
@@ -88,7 +88,7 @@ case class IR_PackInfoDuplicateLocalSend(
 
 case class IR_PackInfoDuplicateLocalRecv(
     var neighbor : NeighborInfo,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
 ) extends IR_LocalPackInfoDuplicate

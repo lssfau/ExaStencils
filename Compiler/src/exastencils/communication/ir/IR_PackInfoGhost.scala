@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 
 trait IR_PackInfoGhost extends IR_PackInfo {
   def ghostLayerBegin : IR_ExpressionIndex
@@ -73,7 +73,7 @@ trait IR_LocalPackInfoGhost extends IR_LocalPackInfo with IR_PackInfoGhost
 
 case class IR_PackInfoGhostRemoteSend(
     var neighbor : NeighborInfo,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost {
@@ -87,7 +87,7 @@ case class IR_PackInfoGhostRemoteSend(
 
 case class IR_PackInfoGhostRemoteRecv(
     var neighbor : NeighborInfo,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost {
@@ -101,7 +101,7 @@ case class IR_PackInfoGhostRemoteRecv(
 
 case class IR_PackInfoGhostLocalSend(
     var neighbor : NeighborInfo,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost {
@@ -117,7 +117,7 @@ case class IR_PackInfoGhostLocalSend(
 
 case class IR_PackInfoGhostLocalRecv(
     var neighbor : NeighborInfo,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost {

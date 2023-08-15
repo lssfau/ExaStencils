@@ -8,13 +8,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.field.ir.IR_Field
-import exastencils.grid.ir.IR_AtCellCenter
-import exastencils.grid.ir.IR_Localization
-import exastencils.grid.ir.IR_VF_CellCenterPerDim
-import exastencils.grid.ir.IR_VF_CellWidthPerDim
-import exastencils.grid.ir.IR_VirtualFieldAccess
+import exastencils.fieldlike.ir._
+import exastencils.grid.ir._
 import exastencils.logger.Logger
 
 /// IR_InterpPackingHelper
@@ -86,11 +81,11 @@ object IR_InterpPackingBaseHelper {
       QuadraticBasePositions(positions(0), positions(1), positions(2))
   }
 
-  def getBaseValues(field : IR_Field, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShifts) : BaseValues = {
+  def getBaseValues(field : IR_FieldLike, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShifts) : BaseValues = {
     if (!areValuesCached(field, slot, dir, origin, shifts)) {
       val offsets = shifts.toOffsetArrays(dir)
 
-      val baseVals = createBaseValues(offsets.map(o => IR_DirectFieldAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(o))) : _*)
+      val baseVals = createBaseValues(offsets.map(o => IR_DirectFieldLikeAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(o))) : _*)
       addValuesToCache(field, slot, dir, origin, shifts, baseVals)
       baseVals
     } else {

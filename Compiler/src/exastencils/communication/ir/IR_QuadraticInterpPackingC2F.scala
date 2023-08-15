@@ -11,7 +11,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
 
 /// QuadraticInterpPackingC2FHelper
@@ -41,7 +41,7 @@ object QuadraticInterpPackingC2FHelper {
 
   /* quadratic lagrange extra-/interpolation for send */
 
-  def generateInterpStmts(results : Array[IR_VariableAccess], field : IR_Field, slot : IR_Expression, packInfo : IR_PackInfo) : ListBuffer[IR_Statement] = {
+  def generateInterpStmts(results : Array[IR_VariableAccess], field : IR_FieldLike, slot : IR_Expression, packInfo : IR_PackInfo) : ListBuffer[IR_Statement] = {
     def level : Int = field.level
 
     def localization = field.localization
@@ -335,7 +335,7 @@ object QuadraticInterpPackingC2FHelper {
 
 case class IR_QuadraticInterpPackingC2FRemote(
     var send : Boolean,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
@@ -407,7 +407,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
       // read from buffer into field
       for (offset <- crossSumUpwindOrthogonals.distinct) {
         innerStmts += IR_Assignment(
-          IR_DirectFieldAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)),
+          IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)),
           tmpBufAccess)
         innerStmts += IR_PreIncrement(it)
       }
@@ -427,7 +427,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
 case class IR_QuadraticInterpPackingC2FLocal(
     var send : Boolean,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
@@ -468,7 +468,7 @@ case class IR_QuadraticInterpPackingC2FLocal(
     // push result to destination
     for (res <- interpResults) {
       innerStmts += IR_Assignment(
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
+        IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
           IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
         res)
     }

@@ -10,7 +10,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
 
 object LinearInterpPackingF2CHelper {
@@ -19,7 +19,7 @@ object LinearInterpPackingF2CHelper {
 
   private val shifts = LinearBaseShifts()
 
-  def generateInterpExpr(field : IR_Field, slot : IR_Expression, packInfo : IR_PackInfo) : IR_Expression = {
+  def generateInterpExpr(field : IR_FieldLike, slot : IR_Expression, packInfo : IR_PackInfo) : IR_Expression = {
     def level : Int = field.level
 
     def localization = field.localization
@@ -72,7 +72,7 @@ object LinearInterpPackingF2CHelper {
 
 case class IR_LinearInterpPackingF2CRemote(
     var send : Boolean,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
@@ -115,7 +115,7 @@ case class IR_LinearInterpPackingF2CRemote(
     if (send)
       innerStmts += IR_Assignment(tmpBufAccess, generateInterpExpr(field, slot, packInfo))
     else
-      innerStmts += IR_Assignment(IR_DirectFieldAccess(field, Duplicate(slot), defIt), tmpBufAccess)
+      innerStmts += IR_Assignment(IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt), tmpBufAccess)
 
     innerStmts += IR_PreIncrement(it)
 
@@ -133,7 +133,7 @@ case class IR_LinearInterpPackingF2CRemote(
 
 case class IR_LinearInterpPackingF2CLocal(
     var send : Boolean,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
@@ -165,7 +165,7 @@ case class IR_LinearInterpPackingF2CLocal(
 
     // push result to destination
     innerStmts += IR_Assignment(
-      IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
+      IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
       generateInterpExpr(field, slot, packInfo))
 

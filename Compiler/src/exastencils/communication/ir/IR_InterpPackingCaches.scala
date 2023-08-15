@@ -4,7 +4,7 @@ import scala.collection.immutable.HashMap
 
 import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir.IR_Localization
 
 /* caches for packing with interp */
@@ -15,7 +15,7 @@ import exastencils.grid.ir.IR_Localization
 object IR_InterpPackingCaches {
   private var weightCache : HashMap[(IR_Expression, BasePositions), BaseWeights] = HashMap()
   private var positionCache : HashMap[(Int, IR_Localization, Array[Int], IR_ExpressionIndex, BaseShifts), BasePositions] = HashMap()
-  private var valuesCache : HashMap[(IR_Field, IR_Expression, Array[Int], IR_Expression, BaseShifts), BaseValues] = HashMap()
+  private var valuesCache : HashMap[(IR_FieldLike, IR_Expression, Array[Int], IR_Expression, BaseShifts), BaseValues] = HashMap()
 
   def areWeightsCached(x0 : IR_Expression, basePos : BasePositions) : Boolean = {
     weightCache.contains((x0, basePos))
@@ -37,13 +37,13 @@ object IR_InterpPackingCaches {
     positionCache((level, localization, dir, origin, shifts))
   }
 
-  def areValuesCached(field : IR_Field, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShifts) : Boolean = {
+  def areValuesCached(field : IR_FieldLike, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShifts) : Boolean = {
     valuesCache.contains((field, slot, dir, origin, shifts))
   }
-  def addValuesToCache(field : IR_Field, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShifts, baseVal : BaseValues) : Unit = {
+  def addValuesToCache(field : IR_FieldLike, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShifts, baseVal : BaseValues) : Unit = {
     valuesCache += ((field, slot, dir, origin, shifts) -> baseVal)
   }
-  def getValuesFromCache(field : IR_Field, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShifts) : BaseValues = {
+  def getValuesFromCache(field : IR_FieldLike, slot : IR_Expression, dir : Array[Int], origin : IR_ExpressionIndex, shifts : BaseShifts) : BaseValues = {
     valuesCache((field, slot, dir, origin, shifts))
   }
 }

@@ -4,13 +4,13 @@ import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.base.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.datastructures.Node
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_PackInfo
 
 trait IR_PackInfo extends Node {
   def neighbor : NeighborInfo
-  def field : IR_Field
+  def field : IR_FieldLike
 
   def neighDir : Array[Int] = neighbor.dir
 

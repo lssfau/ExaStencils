@@ -10,11 +10,11 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir._
 
 case class IR_NoInterpPackingRemote(
     var send : Boolean,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
@@ -34,7 +34,7 @@ case class IR_NoInterpPackingRemote(
 
     def commBuffer = IR_IV_CommBuffer(field, s"${ itName }_${ concurrencyId }", indices.getTotalSize, neighborIdx)
 
-    val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
+    val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
     if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
       // compact packing with condition
@@ -90,7 +90,7 @@ case class IR_NoInterpPackingRemote(
 
 case class IR_NoInterpPackingLocal(
     var send : Boolean,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
@@ -109,13 +109,13 @@ case class IR_NoInterpPackingLocal(
     // only inner statement for assignment is different for send/recv
     var innerStmt : IR_Statement = if (send)
       IR_Assignment(
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
+        IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
           IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)))
+        IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)))
     else
       IR_Assignment(
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)),
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx),
+        IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)),
+        IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx),
           IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)))
 
     if (condition.isDefined)

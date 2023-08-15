@@ -7,11 +7,11 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.domain.ir.RefinementCase
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 
 trait IR_Communication extends IR_Statement with IR_Expandable {
 
-  def field : IR_Field
+  def field : IR_FieldLike
 
   def refinementCase : RefinementCase.Access
 

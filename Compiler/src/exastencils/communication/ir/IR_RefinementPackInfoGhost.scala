@@ -4,7 +4,7 @@ import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_RefinementPackInfoGhost
 
@@ -79,7 +79,7 @@ trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
 case class IR_F2CPackInfoGhostRemoteSend(
     var neighbor : NeighborInfo,
     var indexOfRefinedNeighbor : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_F2CPackInfoGhost {
@@ -93,7 +93,7 @@ case class IR_F2CPackInfoGhostRemoteSend(
 case class IR_F2CPackInfoGhostRemoteRecv(
     var neighbor : NeighborInfo,
     var indexOfRefinedNeighbor : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_F2CPackInfoGhost {
@@ -107,7 +107,7 @@ case class IR_F2CPackInfoGhostRemoteRecv(
 case class IR_F2CPackInfoGhostLocalSend(
     var neighbor : NeighborInfo,
     var indexOfRefinedNeighbor : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_F2CPackInfoGhost {
@@ -123,7 +123,7 @@ case class IR_F2CPackInfoGhostLocalSend(
 case class IR_F2CPackInfoGhostLocalRecv(
     var neighbor : NeighborInfo,
     var indexOfRefinedNeighbor : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_F2CPackInfoGhost {
@@ -140,7 +140,7 @@ case class IR_F2CPackInfoGhostLocalRecv(
 case class IR_C2FPackInfoGhostRemoteSend(
     var neighbor : NeighborInfo,
     var indexOfRefinedNeighbor : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_C2FPackInfoGhost {
@@ -154,7 +154,7 @@ case class IR_C2FPackInfoGhostRemoteSend(
 case class IR_C2FPackInfoGhostRemoteRecv(
     var neighbor : NeighborInfo,
     var indexOfRefinedNeighbor : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_C2FPackInfoGhost {
@@ -168,7 +168,7 @@ case class IR_C2FPackInfoGhostRemoteRecv(
 case class IR_C2FPackInfoGhostLocalSend(
     var neighbor : NeighborInfo,
     var indexOfRefinedNeighbor : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_C2FPackInfoGhost {
@@ -184,7 +184,7 @@ case class IR_C2FPackInfoGhostLocalSend(
 case class IR_C2FPackInfoGhostLocalRecv(
     var neighbor : NeighborInfo,
     var indexOfRefinedNeighbor : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_C2FPackInfoGhost {

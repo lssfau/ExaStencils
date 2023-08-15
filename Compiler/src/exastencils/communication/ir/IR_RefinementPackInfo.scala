@@ -20,8 +20,10 @@ trait IR_RefinementPackInfo extends IR_PackInfo {
     Logger.error(s"Number of inner layers of ${field.codeName} per dim must be >= 4 when using mesh refinement.")
 
   // total layout size per dim is divisible by two
-  if ((0 until numDimsGrid).exists(dim => field.layout.defTotal(dim) % 2 != 0))
-   Logger.error(s"Total layout size of ${field.codeName} per dim must be divisible by two when using mesh refinement.")
+  if (field.layout.useFixedLayoutSizes) {
+    if ((0 until numDimsGrid).exists(dim => field.layout.defTotalFixed(dim) % 2 != 0))
+     Logger.error(s"Total layout size of ${field.codeName} per dim must be divisible by two when using mesh refinement.")
+  }
 
   // no comm of duplicate layers
   if (field.layout.communicatesDuplicated && field.layout.layoutsPerDim.exists(layoutPerDim => layoutPerDim.numDupLayersLeft > 0 || layoutPerDim.numDupLayersRight > 0))

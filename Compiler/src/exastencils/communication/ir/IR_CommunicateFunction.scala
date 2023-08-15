@@ -63,7 +63,7 @@ case class IR_CommunicateFunction(
       duplicate : Boolean,
       refinementCase : RefinementCase.Access,
       curNeighbors : ListBuffer[NeighborInfo],
-      genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
+      genPackInfo : (NeighborInfo, Int, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
 
     // create pack infos for different cases
     def getIndexOfRefinedNeighbor(neighInfo: NeighborInfo) = {
@@ -109,7 +109,7 @@ case class IR_CommunicateFunction(
       send : Boolean,
       duplicate : Boolean,
       curNeighbors : ListBuffer[NeighborInfo],
-      genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
+      genPackInfo : (NeighborInfo, Int, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
 
     genRefinedIndicesWrapper(send, duplicate, RefinementCase.F2C, curNeighbors, genPackInfo)
   }
@@ -140,7 +140,7 @@ case class IR_CommunicateFunction(
       send : Boolean,
       duplicate : Boolean,
       curNeighbors : ListBuffer[NeighborInfo],
-      genPackInfo : (NeighborInfo, Int, IR_Field, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
+      genPackInfo : (NeighborInfo, Int, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) = {
 
     genRefinedIndicesWrapper(send, duplicate, RefinementCase.C2F, curNeighbors, genPackInfo)
   }
