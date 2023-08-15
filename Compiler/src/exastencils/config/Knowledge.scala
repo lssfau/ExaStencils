@@ -1048,6 +1048,7 @@ object Knowledge {
     Constraints.condEnsureValue(data_genVariableFieldSizes, true, !waLBerla_useFixedLayoutsFromExa && waLBerla_generateInterface, "Enable 'data_genVariableFieldSizes' when waLberla fields without fixed layouts are used.")
     Constraints.condError(!waLBerla_useGridPartFromExa && waLBerla_createCartComm, "Knowledge flag 'waLBerla_createCartComm' is only available with Exa grid partitioning (waLBerla_useGridPartFromExa = true).")
 
+    Constraints.condEnsureValue(refinement_enabled, true, waLBerla_useRefinement, "Flag 'refinement_enabled' must be enabled when 'waLBerla_useRefinement' is true")
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
     Constraints.condError(waLBerla_useRefinement && waLBerla_useGridPartFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
     Constraints.condError(waLBerla_useRefinement && !waLBerla_generateCommSchemes, "waLBerla refinement works only with generated CPU comm schemes at the moment -> 'waLBerla_generateCommSchemes' must be true.")
