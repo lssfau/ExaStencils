@@ -17,7 +17,9 @@
 //=============================================================================
 
 package exastencils.communication
+import exastencils.domain.ir.RefinementCase
 
+import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config.Knowledge
@@ -27,6 +29,7 @@ import exastencils.scheduling.NoStrategyWrapper
 /// DefaultNeighbors
 
 object DefaultNeighbors {
+
   var neighbors = ListBuffer[NeighborInfo]()
 
   // ignores array entries beyond Knowledge.dimensionality
@@ -47,15 +50,28 @@ object DefaultNeighbors {
   def setup() : Unit = {
     neighbors.clear
 
+    val recvNeighborsForEqualLevel = HashMap(/* levelDiff */ RefinementCase.EQUAL -> /* numNeighbors */ 1)
+
     if (Knowledge.comm_onlyAxisNeighbors) {
       var neighIndex = 0
       for (dim <- 0 until Knowledge.dimensionality) {
-        neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+        val downwindDir = Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0)
+        val upwindDir   = Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0)
+
+        val recvNeighborsPerRefinementCase = if (Knowledge.refinement_enabled)
+          // equal level + fine-to-coarse (1 neighbor) + coarse-to-fine (multiple neighbors)
+          recvNeighborsForEqualLevel + (RefinementCase.F2C -> 1) + (RefinementCase.C2F -> Knowledge.refinement_maxFineNeighborsForCommAxis)
+        else
+          // no refinement -> equal level
+          recvNeighborsForEqualLevel
+
+        neighbors += NeighborInfo(downwindDir, recvNeighborsPerRefinementCase, neighIndex)
         neighIndex += 1
-        neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+        neighbors += NeighborInfo(upwindDir, recvNeighborsPerRefinementCase, neighIndex)
         neighIndex += 1
       }
     } else {
+      // TODO: only equal-level communication supported
       val unitDirections = Array(-1, 0, 1)
       var directions = ListBuffer(ListBuffer(-1), ListBuffer(0), ListBuffer(1))
       for (dim <- 1 until Knowledge.dimensionality)
@@ -63,7 +79,7 @@ object DefaultNeighbors {
 
       var neighIndex = 0
       for (dir <- directions; if dir.map(i => if (0 == i) 0 else 1).sum > 0) {
-        neighbors += NeighborInfo(dir.toArray, neighIndex)
+        neighbors += NeighborInfo(dir.toArray, recvNeighborsForEqualLevel, neighIndex)
         neighIndex += 1
       }
     }
@@ -83,7 +99,7 @@ object IR_SetupDefaultNeighborsWrapper extends NoStrategyWrapper {
 
 /// NeighborInfo
 
-case class NeighborInfo(var dir : Array[Int], var index : Int) {
+case class NeighborInfo(var dir : Array[Int], numRecvNeighborsForRefinementCase : HashMap[RefinementCase.Access, Int], var index : Int) {
   def dirToString(dir : Int) : String = {
     if (dir < 0)
       Array.fill(dir)("N").mkString
@@ -92,6 +108,10 @@ case class NeighborInfo(var dir : Array[Int], var index : Int) {
     else
       "0"
   }
+
+  def sendNeighborsForRefinementCase(refCase : RefinementCase.Access) = (0 until numRecvNeighborsForRefinementCase(RefinementCase.getOppositeCase(refCase)))
+
+  def recvNeighborsForRefinementCase(refCase : RefinementCase.Access) = (0 until numRecvNeighborsForRefinementCase(refCase))
 
   def label = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => s"i$i" + dirToString(dir(i))).mkString("_")
 }

@@ -57,40 +57,26 @@ case class IR_RemoteSend(
 case class IR_CopyToSendBuffer(
     var field : IR_FieldLike,
     var slot : IR_Expression,
-    var neighbor : NeighborInfo,
-    var indices : IR_ExpressionIndexRange,
+    var refinementCase : RefinementCase.Access,
+    var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_RefinedCommunication {
 
   def numDims = field.layout.numDimsData
+
+  override def equalLevelCopyLoop() : IR_Statement =
+    IR_NoInterpPackingRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
+
+  override def coarseToFineCopyLoop() : IR_Statement =
+    IR_QuadraticInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
+
+  override def fineToCoarseCopyLoop() : IR_Statement =
+    IR_LinearInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
 
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
-    if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
-      // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
-      def it = IR_IV_CommBufferIterator(field, s"Send_${ concurrencyId }", neighbor.index)
-
-      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-        IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-      val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-
-      ret += IR_Assignment(it, 0)
-      ret += IR_LoopOverDimensions(numDims, indices, IR_IfCondition(
-        condition.get, ListBuffer[IR_Statement](
-          IR_Assignment(tmpBufAccess, fieldAccess),
-          IR_Assignment(it, 1, "+="))))
-    } else {
-      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
-        IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-      val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-
-      val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(tmpBufAccess, fieldAccess)))
-      loop.polyOptLevel = 1
-      loop.parallelization.potentiallyParallel = true
-      ret += loop
-    }
+    ret += getCopyLoop()
 
     ret
   }

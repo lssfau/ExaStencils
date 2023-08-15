@@ -29,8 +29,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
-import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 
@@ -65,59 +64,26 @@ case class IR_RemoteRecv(
 case class IR_CopyFromRecvBuffer(
     var field : IR_FieldLike,
     var slot : IR_Expression,
-    var neighbor : NeighborInfo,
-    var indices : IR_ExpressionIndexRange,
+    var refinementCase : RefinementCase.Access,
+    var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_RefinedCommunication {
 
   def numDims = field.layout.numDimsData
+
+  def equalLevelCopyLoop() : IR_Statement =
+    IR_NoInterpPackingRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, condition)
+
+  def coarseToFineCopyLoop() : IR_Statement =
+    IR_QuadraticInterpPackingC2FRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, condition)
+
+  def fineToCoarseCopyLoop() : IR_Statement =
+    IR_LinearInterpPackingF2CRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, condition)
 
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
-    if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
-      // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
-      def it = IR_IV_CommBufferIterator(field, s"Recv_${ concurrencyId }", neighbor.index)
-
-      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-        IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-      val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-
-      ret += IR_Assignment(it, 0)
-      ret += IR_LoopOverDimensions(numDims, indices, IR_IfCondition(
-        condition.get, ListBuffer[IR_Statement](
-          IR_Assignment(fieldAccess, tmpBufAccess),
-          IR_Assignment(it, 1, "+="))))
-    } else {
-      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
-        IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-
-      def fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-
-      if (Knowledge.comm_enableCommTransformations) {
-        val trafoId = IR_IV_CommTrafoId(field.domain.index, neighbor.index)
-
-        def loop(trafo : IR_CommTransformation) = {
-          val ret = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(trafo.applyRemoteTrafo(fieldAccess, indices, neighbor), trafo.applyBufferTrafo(tmpBufAccess))))
-          ret.polyOptLevel = 1
-          ret.parallelization.potentiallyParallel = true
-          ret
-        }
-
-        ret += IR_Switch(trafoId, IR_CommTransformationCollection.trafos.zipWithIndex.map {
-          case (trafo, i) => IR_Case(i, ListBuffer[IR_Statement](loop(trafo)))
-        })
-      } else {
-        val ass : IR_Statement = IR_Assignment(fieldAccess, tmpBufAccess)
-
-        val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer(ass), condition = condition)
-        loop.polyOptLevel = 1
-        loop.parallelization.potentiallyParallel = true
-        ret += loop
-      }
-
-    }
+    ret += getCopyLoop()
 
     ret
   }
