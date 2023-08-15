@@ -1,5 +1,6 @@
 package exastencils.communication.ir
 
+import scala.collection.immutable.ListMap
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -182,6 +183,18 @@ object QuadraticInterpPackingC2FHelper {
       stencilAdaptedForCase(cond).exists(e => (e._1 sameElements dir) && e._2)
 
     // Step 3 (2D): extrap bases already built -> extrap-/interpolation in second dir
+    var commonExtrapBases : ListMap[IR_Expression, IR_VariableAccess] = ListMap()
+
+    def fetchOrAddExtrapBase(extrapExpr : IR_Expression) : IR_VariableAccess = {
+      if (!commonExtrapBases.contains(extrapExpr)) {
+        val ret = Duplicate(extrapExpr) -> IR_VariableAccess(s"f0_neighbor2D_${commonExtrapBases.size}_ext", IR_RealDatatype)
+        commonExtrapBases += ret
+        ret._2
+      } else {
+        commonExtrapBases(extrapExpr)
+      }
+    }
+
     val fillStmtsPerCase = cases.map { case (cond, interps) =>
       val interpStmts : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -228,14 +241,8 @@ object QuadraticInterpPackingC2FHelper {
       val orthoDirDownwind2D = orthogonalNeighDirs(0)
       val orthoDirUpwind2D = orthogonalNeighDirs(1)
 
-      val f0_downwind2D_val = interps(orthoDirDownwind2D)
-      val f0_upwind2D_val = interps(orthoDirUpwind2D)
-
-      val f0_upwind2D = IR_VariableAccess(s"f0_neighbor2D_${ dirToString(orthoDirUpwind2D) }_ext", IR_RealDatatype)
-      val f0_downwind2D = IR_VariableAccess(s"f0_neighbor2D_${ dirToString(orthoDirDownwind2D) }_ext", IR_RealDatatype)
-
-      interpStmts += IR_VariableDeclaration(f0_upwind2D, f0_upwind2D_val)
-      interpStmts += IR_VariableDeclaration(f0_downwind2D, f0_downwind2D_val)
+      val f0_upwind2D = fetchOrAddExtrapBase(interps(orthoDirUpwind2D))
+      val f0_downwind2D = fetchOrAddExtrapBase(interps(orthoDirDownwind2D))
 
       // ... and perform another quadratic interp/extrap in second direction
       val (f1_val, f2_val) = interpolate2D(defIt, f0, orthoDirUpwind2D, orthoDirDownwind2D, f0_upwind2D, f0_downwind2D)
@@ -246,25 +253,16 @@ object QuadraticInterpPackingC2FHelper {
           interpStmts += IR_Assignment(results(0), f1_val)
           interpStmts += IR_Assignment(results(1), f2_val)
         case 3 =>
-          val f1 = IR_VariableAccess("f1_int", IR_RealDatatype)
-          val f2 = IR_VariableAccess("f2_int", IR_RealDatatype)
-
           // declare 2D interpolated values of first upwind orthogonal neighbor
-          interpStmts += IR_VariableDeclaration(f1, f1_val)
-          interpStmts += IR_VariableDeclaration(f2, f2_val)
+          val f1 = fetchOrAddExtrapBase(f1_val)
+          val f2 = fetchOrAddExtrapBase(f2_val)
 
           // fetch orthogonal upwind/downwind neighbors (in third dir) and their corresponding extrap values
           val orthoDirDownwind3D = orthogonalNeighDirs(2)
           val orthoDirUpwind3D = orthogonalNeighDirs(3)
 
-          val f0_downwind3D_val = interps(orthoDirDownwind3D)
-          val f0_upwind3D_val = interps(orthoDirUpwind3D)
-
-          val f0_upwind3D = IR_VariableAccess(s"f0_neighbor3D_${ dirToString(orthoDirUpwind3D) }_ext", IR_RealDatatype)
-          val f0_downwind3D = IR_VariableAccess(s"f0_neighbor3D_${ dirToString(orthoDirDownwind3D) }_ext", IR_RealDatatype)
-
-          interpStmts += IR_VariableDeclaration(f0_upwind3D, f0_upwind3D_val)
-          interpStmts += IR_VariableDeclaration(f0_downwind3D, f0_downwind3D_val)
+          val f0_upwind3D = fetchOrAddExtrapBase(interps(orthoDirUpwind3D))
+          val f0_downwind3D = fetchOrAddExtrapBase(interps(orthoDirDownwind3D))
 
           // get directions to diagonal neighbor cells
           val diagOrigins : Array[Array[Int]] = {
@@ -279,31 +277,24 @@ object QuadraticInterpPackingC2FHelper {
           }
 
           // construct further extrap bases on diagonal neighbor cells
-          val f0_diag : Array[IR_Expression] = diagOrigins.zipWithIndex.map { case (dir, idx) =>
+          val f0_diag : Array[IR_VariableAccess] = diagOrigins.map { dir =>
             val origin = defIt + IR_ExpressionIndex(dir)
             val basePosInvCommDir = getBasePositionsForExtrapolation(invCommDir, origin)
             val baseValsInvCommDir = getBaseValues(field, slot, invCommDir, origin, RemappedBasesShifts)
 
-            val f0_diag_entry = IR_VariableAccess(s"f0_diag${ idx }", IR_RealDatatype)
-            interpStmts += IR_VariableDeclaration(f0_diag_entry, interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir))
-
-            f0_diag_entry
+            fetchOrAddExtrapBase(interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir))
           }
-
-          val f3 = IR_VariableAccess("f3_int", IR_RealDatatype)
-          val f4 = IR_VariableAccess("f4_int", IR_RealDatatype)
-          val f5 = IR_VariableAccess("f5_int", IR_RealDatatype)
-          val f6 = IR_VariableAccess("f6_int", IR_RealDatatype)
 
           val (f3_val, f4_val) = interpolate2D(defIt + IR_ExpressionIndex(orthoDirUpwind3D), f0_upwind3D,
             orthoDirUpwind2D, orthoDirDownwind2D, f0_diag(0), f0_diag(1))
-          interpStmts += IR_VariableDeclaration(f3, f3_val)
-          interpStmts += IR_VariableDeclaration(f4, f4_val)
 
           val (f5_val, f6_val) = interpolate2D(defIt + IR_ExpressionIndex(orthoDirDownwind3D), f0_downwind3D,
             orthoDirUpwind2D, orthoDirDownwind2D, f0_diag(2), f0_diag(3))
-          interpStmts += IR_VariableDeclaration(f5, f5_val)
-          interpStmts += IR_VariableDeclaration(f6, f6_val)
+
+          val f3 = fetchOrAddExtrapBase(f3_val)
+          val f4 = fetchOrAddExtrapBase(f4_val)
+          val f5 = fetchOrAddExtrapBase(f5_val)
+          val f6 = fetchOrAddExtrapBase(f6_val)
 
           // perform another quadratic interp/extrap in third dimension
           val (f7_val, f8_val) = interpolate2D(defIt, f1, orthoDirUpwind3D, orthoDirDownwind3D, f5, f3)
@@ -318,6 +309,9 @@ object QuadraticInterpPackingC2FHelper {
 
       IR_IfCondition(cond, interpStmts)
     }
+
+    // add declarations for variables storing common subexpressions
+    commonExtrapBases.foreach { case (initVal, varAcc) => innerStmts += IR_VariableDeclaration(varAcc, initVal) }
 
     // sort cases to remove ambiguity ...
     val caseOrdering : Ordering[IR_IfCondition] = Ordering.by {
