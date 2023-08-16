@@ -52,8 +52,7 @@ object LinearInterpPackingF2CHelper {
 
     // transition from 1D to 2D, and then 3D
     def interpAgain(res : Array[(IR_Expression, IR_Expression)]) : Array[(IR_Expression, IR_Expression)] = {
-      val resultPairs = res.sliding(2).collect { case Array(a, b) => (a, b) }.to[ListBuffer]
-      resultPairs.map {
+      res.sliding(2).collect { case Array(a, b) => (a, b) }.map {
         case ((x0, a), (x1, b)) =>
           val pos = 0.5 * (x1 - x0)
           pos -> interpolate1D(pos, LinearBasePositions(x0, x1), LinearBaseValues(a, b))
