@@ -30,7 +30,7 @@ object LinearInterpPackingF2CHelper {
 
     def commDir : Array[Int] = packInfo.neighDir
 
-    def invCommDir : Array[Int] = commDir.map(_ * -1)
+    def upwindCommDir : Array[Int] = if (isUpwindDir(commDir)) commDir else commDir.map(_ * -1)
 
     // fetch upwind orthogonal directions and their cross sum
     val upwindOrthogonals = getOrthogonalNeighborDirs(commDir).filter(isUpwindDir)
@@ -43,9 +43,9 @@ object LinearInterpPackingF2CHelper {
 
     // calculate linear interpolations on orthogonal (fine) neighbor cells in upwind dir
     val linearInterpResult : Array[(IR_Expression, IR_Expression)] = crossSumUpwindOrthogonals.distinct.map(offset => {
-      val basePositionsOrtho = getBasePositions(level, localization, invCommDir, defIt + IR_ExpressionIndex(offset), shifts)
-      val baseValuesOrtho = getBaseValues(field, slot, invCommDir, defIt + IR_ExpressionIndex(offset), shifts)
-      val pos = 0.5 * getCellWidth(level, getDimFromDir(invCommDir), defIt + IR_ExpressionIndex(offset))
+      val basePositionsOrtho = getBasePositions(level, localization, upwindCommDir, defIt + IR_ExpressionIndex(offset), shifts)
+      val baseValuesOrtho = getBaseValues(field, slot, upwindCommDir, defIt + IR_ExpressionIndex(offset), shifts)
+      val pos = 0.5 * getCellWidth(level, getDimFromDir(upwindCommDir), defIt + IR_ExpressionIndex(offset))
 
       pos -> interpolate1D(pos, basePositionsOrtho, baseValuesOrtho)
     }).toArray
