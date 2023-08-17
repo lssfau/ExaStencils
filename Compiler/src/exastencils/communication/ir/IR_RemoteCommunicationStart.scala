@@ -45,7 +45,7 @@ case class IR_RemoteCommunicationStart(
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_RemoteCommunication {
 
-  override def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Int) : IR_Statement = {
+  override def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
 
@@ -57,14 +57,14 @@ case class IR_RemoteCommunicationStart(
     }
   }
 
-  override def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Int) : IR_Statement = {
+  override def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
 
     val body = {
       val maxCnt = Duplicate(indices).getTotalSize
       val cnt = if (condition.isDefined && Knowledge.comm_compactPackingForConditions)
-        IR_IV_CommBufferIterator(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor }", neighbor.index)
+        IR_IV_CommBufferIterator(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index)
       else
         maxCnt
       if (!Knowledge.data_genVariableFieldSizes && IR_SimplifyExpression.evalIntegral(maxCnt) <= 0) {
@@ -80,15 +80,15 @@ case class IR_RemoteCommunicationStart(
         IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), offsetAccess,
           1, MPI_DataType(field, Duplicate(indices), Duplicate(condition)), concurrencyId, indexOfRefinedNeighbor)
       } else {
-        IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor }",
+        IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }",
           Duplicate(maxCnt), neighbor.index), cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
       }
     }
     if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
   }
 
-  def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Int) : IR_Statement = {
-    IR_WaitForRemoteTransfer(field, Duplicate(neighbor), s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor }")
+  def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
+    IR_WaitForRemoteTransfer(field, Duplicate(neighbor), s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }")
   }
 
   override def expand() : Output[StatementList] = {
@@ -105,24 +105,37 @@ case class IR_RemoteCommunicationStart(
       ListBuffer[IR_Statement](
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-            packInfos.zipWithIndex.map { case (packInfo, i) => genCopy(packInfo, addCondition = true, i) }))
+            packInfos.map {
+              case packInfo : IR_RefinementPackInfo => genCopy(packInfo, addCondition = true, Some(packInfo.indexOfRefinedNeighbor))
+              case packInfo : IR_PackInfo           => genCopy(packInfo, addCondition = true)
+            }))
         else IR_NullStatement,
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-            packInfos.zipWithIndex.map { case (packInfo, i) => genTransfer(packInfo, addCondition = true, i) }))
+            packInfos.map {
+              case packInfo : IR_RefinementPackInfo => genTransfer(packInfo, addCondition = true, Some(packInfo.indexOfRefinedNeighbor))
+              case packInfo : IR_PackInfo           => genTransfer(packInfo, addCondition = true)
+            }))
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-            packInfos.zipWithIndex.map { case (packInfo, i) => genWait(packInfo.neighbor, i) }))
+            packInfos.map {
+              case packInfo : IR_RefinementPackInfo => genWait(packInfo.neighbor, Some(packInfo.indexOfRefinedNeighbor))
+              case packInfo : IR_PackInfo           => genWait(packInfo.neighbor)
+            }))
         else IR_NullStatement)
     else
       ListBuffer(wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-          packInfos.zipWithIndex.map { case (packInfo, i) =>
+          packInfos.map { packInfo =>
+            val indexOfRefinedNeigh = packInfo match {
+              case p : IR_RefinementPackInfo => Some(p.indexOfRefinedNeighbor)
+              case _                         => None
+            }
             wrapCond(packInfo.neighbor, ListBuffer(
-              if (start) genCopy(packInfo, addCondition = false, i) else IR_NullStatement,
-              if (start) genTransfer(packInfo, addCondition = false, i) else IR_NullStatement,
-              if (end) genWait(packInfo.neighbor, i) else IR_NullStatement))
+              if (start) genCopy(packInfo, addCondition = false, indexOfRefinedNeigh) else IR_NullStatement,
+              if (start) genTransfer(packInfo, addCondition = false, indexOfRefinedNeigh) else IR_NullStatement,
+              if (end) genWait(packInfo.neighbor, indexOfRefinedNeigh) else IR_NullStatement))
           })))
   }
 }

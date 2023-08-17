@@ -41,14 +41,14 @@ case class IR_RemoteSend(
     var numDataPoints : IR_Expression,
     var datatype : IR_Datatype,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Int) extends IR_Statement with IR_Expandable {
+    var indexOfRefinedNeighbor : Option[Int]) extends IR_Statement with IR_Expandable {
 
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
       IR_PotentiallyCritical(MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domain.index, neighbor.index),
         MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), neighbor.index, concurrencyId, indexOfRefinedNeighbor),
-        MPI_Request(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor }", neighbor.index))),
-      IR_Assignment(IR_IV_RemoteReqOutstanding(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor }", neighbor.index), true))
+        MPI_Request(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index))),
+      IR_Assignment(IR_IV_RemoteReqOutstanding(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index), true))
   }
 }
 
@@ -60,7 +60,7 @@ case class IR_CopyToSendBuffer(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : Option[Int],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_RefinedCommunication {
 
   def numDims = field.layout.numDimsData

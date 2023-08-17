@@ -24,16 +24,22 @@ import exastencils.datastructures.Transformation.Output
 
 /// MPI_GeneratedTag
 
-case class MPI_GeneratedTag(var from : IR_Expression, var to : IR_Expression, var dirOfSend : IR_Expression, var concurrencyId : Int, var indexOfRefinedNeighbor : Int) extends IR_Expression with IR_Expandable {
+case class MPI_GeneratedTag(var from : IR_Expression, var to : IR_Expression, var dirOfSend : IR_Expression, var concurrencyId : Int, var indexOfRefinedNeighbor : Option[Int]) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
 
   def expand() : Output[IR_Expression] = {
     // ("((unsigned int)" ~ from ~ " << 20)") + ("((unsigned int)(" ~ to ~ ") << 10)") + concurrencyId
     //CastExpression(SpecialDatatype("unsigned int"), from << IntegerConstant(20)) + CastExpression(SpecialDatatype("unsigned int"), to << IntegerConstant(10)) + concurrencyId
-    (IR_Cast(IR_SpecialDatatype("unsigned int"), concurrencyId << IR_IntegerConstant(31 - 3))
-      + IR_Cast(IR_SpecialDatatype("unsigned int"), indexOfRefinedNeighbor << IR_IntegerConstant(31 - 6))
-      + IR_Cast(IR_SpecialDatatype("unsigned int"), from << IR_IntegerConstant(31 - 16))
-      + IR_Cast(IR_SpecialDatatype("unsigned int"), to << IR_IntegerConstant(31 - 26))
-      + dirOfSend)
+    if (indexOfRefinedNeighbor.isDefined)
+      (IR_Cast(IR_SpecialDatatype("unsigned int"), concurrencyId << IR_IntegerConstant(31 - 3))
+        + IR_Cast(IR_SpecialDatatype("unsigned int"), indexOfRefinedNeighbor.get << IR_IntegerConstant(31 - 6))
+        + IR_Cast(IR_SpecialDatatype("unsigned int"), from << IR_IntegerConstant(31 - 16))
+        + IR_Cast(IR_SpecialDatatype("unsigned int"), to << IR_IntegerConstant(31 - 26))
+        + dirOfSend)
+    else
+      (IR_Cast(IR_SpecialDatatype("unsigned int"), concurrencyId << IR_IntegerConstant(31 - 6))
+        + IR_Cast(IR_SpecialDatatype("unsigned int"), from << IR_IntegerConstant(31 - 16))
+        + IR_Cast(IR_SpecialDatatype("unsigned int"), to << IR_IntegerConstant(31 - 26))
+        + dirOfSend)
   }
 }

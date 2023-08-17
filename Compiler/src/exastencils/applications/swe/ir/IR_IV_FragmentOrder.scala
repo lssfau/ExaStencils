@@ -83,10 +83,10 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
   private def beginRemoteComm() = {
     def compose(neighIdx : Int) = {
-      val sendTag = MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neighIdx), neighIdx, 0, 0)
+      val sendTag = MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neighIdx), neighIdx, 0, None)
       val sendReq = MPI_RequestNoField(s"Send", neighIdx)
 
-      val recvTag = MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(0, neighIdx), IR_IV_CommunicationId(), neighNeighIdx(neighIdx), 0, 0)
+      val recvTag = MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(0, neighIdx), IR_IV_CommunicationId(), neighNeighIdx(neighIdx), 0, None)
       val recvReq = MPI_RequestNoField(s"Recv", neighIdx)
 
       val send = MPI_Send(IR_AddressOf(IR_IV_FragmentOrder()), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), sendTag, sendReq)

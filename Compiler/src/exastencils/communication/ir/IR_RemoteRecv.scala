@@ -43,7 +43,7 @@ case class IR_RemoteRecv(
     var numDataPoints : IR_Expression,
     var datatype : IR_Datatype,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Int) extends IR_Statement with IR_Expandable {
+    var indexOfRefinedNeighbor : Option[Int]) extends IR_Statement with IR_Expandable {
 
   override def expand() : Output[StatementList] = {
 
@@ -55,8 +55,8 @@ case class IR_RemoteRecv(
           else
             DefaultNeighbors.getOpposingNeigh(neighbor.index).index,
           concurrencyId, indexOfRefinedNeighbor),
-        MPI_Request(field, s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor }", neighbor.index))),
-      IR_Assignment(IR_IV_RemoteReqOutstanding(field, s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor }", neighbor.index), true))
+        MPI_Request(field, s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index))),
+      IR_Assignment(IR_IV_RemoteReqOutstanding(field, s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index), true))
 
   }
 }
@@ -69,7 +69,7 @@ case class IR_CopyFromRecvBuffer(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : Option[Int],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_RefinedCommunication {
 
   def numDims = field.layout.numDimsData
