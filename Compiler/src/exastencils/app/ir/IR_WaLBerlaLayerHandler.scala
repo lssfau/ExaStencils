@@ -73,12 +73,12 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
 
     // generate interface at last
     scheduler.appendToFirstFound(IR_HACK_TypeAliases,
-      IR_GeneralSimplifyUntilDoneWrapper, // one last time after block loops are expanded
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
       IR_WaLBerlaReplaceFragmentIVs,
-      IR_WaLBerlaReplaceVariableAccesses)
+      IR_WaLBerlaReplaceVariableAccesses,
+      IR_GeneralSimplifyUntilDoneWrapper) // one last time after block loops are expanded and replacements are done
   }
 
   override def print() : Unit = IR_DefaultLayerHandler.print()
