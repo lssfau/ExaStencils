@@ -45,19 +45,19 @@ case class IR_RemoteCommunicationFinish(
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_RemoteCommunication {
 
-  override def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement = {
+  override def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Int) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
 
     if (requiresPacking(refinementCase, indices, condition)) {
-      val body = IR_CopyFromRecvBuffer(field, Duplicate(slot), refinementCase, packInfo, concurrencyId, Duplicate(condition))
+      val body = IR_CopyFromRecvBuffer(field, Duplicate(slot), refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, Duplicate(condition))
       if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
     } else {
       IR_NullStatement
     }
   }
 
-  override def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement = {
+  override def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Int) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
 
@@ -69,20 +69,23 @@ case class IR_RemoteCommunicationFinish(
       } else if (!Knowledge.data_genVariableFieldSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
         val arrayAccess = IR_DirectFieldAccess(field, Duplicate(slot), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
-        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId)
+        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess,
+          1, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
       } else if (MPI_DataType.shouldBeUsed(field, indices, condition)) {
         val arrayAccess = IR_DirectFieldAccess(field, Duplicate(slot), Duplicate(indices.begin)).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
-        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess, 1, MPI_DataType(field, Duplicate(indices), Duplicate(condition)), concurrencyId)
+        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess,
+          1, MPI_DataType(field, Duplicate(indices), Duplicate(condition)), concurrencyId, indexOfRefinedNeighbor)
       } else {
-        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId)
+        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor }",
+          Duplicate(maxCnt), neighbor.index), cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
       }
     }
     if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
   }
 
-  def genWait(neighbor : NeighborInfo) : IR_Statement = {
-    IR_WaitForRemoteTransfer(field, Duplicate(neighbor), s"Recv_${ concurrencyId }")
+  def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Int) : IR_Statement = {
+    IR_WaitForRemoteTransfer(field, Duplicate(neighbor), s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor }")
   }
 
   override def expand() : Output[StatementList] = {
@@ -99,22 +102,23 @@ case class IR_RemoteCommunicationFinish(
       ListBuffer[IR_Statement](
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-            packInfos.map(pack => genTransfer(pack, true))))
+            packInfos.zipWithIndex.map { case (pack, i) => genTransfer(pack, addCondition = true, i) } ))
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-            packInfos.map(pack => genWait(pack.neighbor)))) // TODO: omp parallel or too much overhead? remove inner critical?
+            packInfos.zipWithIndex.map { case (pack, i) => genWait(pack.neighbor, i) } )) // TODO: omp parallel or too much overhead? remove inner critical?
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-            packInfos.map(pack => genCopy(pack, true))))
+            packInfos.zipWithIndex.map { case (pack, i) => genTransfer(pack, addCondition = true, i) } ))
         else IR_NullStatement)
     else
       ListBuffer(wrapFragLoop(
-        IR_IfCondition(IR_IV_IsValidForDomain(domainIdx), packInfos.map(packInfo =>
-          wrapCond(packInfo.neighbor, ListBuffer(
-            if (start) genTransfer(packInfo, false) else IR_NullStatement,
-            if (end) genWait(packInfo.neighbor) else IR_NullStatement,
-            if (end) genCopy(packInfo, false) else IR_NullStatement))))))
+        IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
+          packInfos.zipWithIndex.map { case (pack, i) =>
+            wrapCond(pack.neighbor, ListBuffer(
+              if (start) genTransfer(pack, addCondition = false, i) else IR_NullStatement,
+              if (end) genWait(pack.neighbor, i) else IR_NullStatement,
+              if (end) genCopy(pack, addCondition = false, i) else IR_NullStatement)) } )))
   }
 }
