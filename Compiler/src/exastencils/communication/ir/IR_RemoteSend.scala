@@ -41,14 +41,15 @@ case class IR_RemoteSend(
     var src : IR_Expression,
     var numDataPoints : IR_Expression,
     var datatype : IR_Datatype,
-    var concurrencyId : Int) extends IR_Statement with IR_Expandable {
+    var concurrencyId : Int,
+    var indexOfRefinedNeighbor : Int) extends IR_Statement with IR_Expandable {
 
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
       IR_PotentiallyCritical(MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domain.index, neighbor.index),
-        MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), neighbor.index, concurrencyId),
-        MPI_Request(field, s"Send_${ concurrencyId }", neighbor.index))),
-      IR_Assignment(IR_IV_RemoteReqOutstanding(field, s"Send_${ concurrencyId }", neighbor.index), true))
+        MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), neighbor.index, concurrencyId, indexOfRefinedNeighbor),
+        MPI_Request(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor }", neighbor.index))),
+      IR_Assignment(IR_IV_RemoteReqOutstanding(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor }", neighbor.index), true))
   }
 }
 
@@ -60,6 +61,7 @@ case class IR_CopyToSendBuffer(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
+    var indexOfRefinedNeighbor : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_RefinedCommunication {
 
   def numDims = field.layout.numDimsData
@@ -68,10 +70,10 @@ case class IR_CopyToSendBuffer(
     IR_NoInterpPackingRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
 
   override def coarseToFineCopyLoop() : IR_Statement =
-    IR_QuadraticInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
+    IR_QuadraticInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
 
   override def fineToCoarseCopyLoop() : IR_Statement =
-    IR_LinearInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, condition)
+    IR_LinearInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
 
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()

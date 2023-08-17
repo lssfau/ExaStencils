@@ -52,8 +52,8 @@ abstract class IR_RemoteCommunication extends IR_Communication with IR_ApplyRemo
       (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)
   }
 
-  def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
-  def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean) : IR_Statement
+  def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Int) : IR_Statement
+  def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Int) : IR_Statement
 
   def wrapCond(neighbor : NeighborInfo, stmt : IR_Statement) : IR_Statement =
     IR_IfCondition(isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index),

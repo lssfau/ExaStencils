@@ -334,6 +334,7 @@ case class IR_QuadraticInterpPackingC2FRemote(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
+    var indexOfRefinedNeighbor : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   import IR_InterpPackingHelper._
@@ -354,11 +355,11 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
     var ret = ListBuffer[IR_Statement]()
 
-    def it = IR_IV_CommBufferIterator(field, s"${ itName }_${ concurrencyId }", neighborIdx)
+    def it = IR_IV_CommBufferIterator(field, s"${ itName }_${ concurrencyId }_${ indexOfRefinedNeighbor }", neighborIdx)
 
     def itName = if (send) "Send" else "Recv"
 
-    def commBuffer = IR_IV_CommBuffer(field, s"${ itName }_${ concurrencyId }", indices.getTotalSize, neighborIdx)
+    def commBuffer = IR_IV_CommBuffer(field, s"${ itName }_${ concurrencyId }_${ indexOfRefinedNeighbor }", indices.getTotalSize, neighborIdx)
 
     val tmpBufAccess = IR_TempBufferAccess(commBuffer,
       IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
