@@ -1,13 +1,11 @@
 package exastencils.waLBerla.ir.blockforest
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ProcessLocalBlockLoopVariable
 import exastencils.datastructures.Node
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellWidthBlockPerDim
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 
@@ -26,17 +24,7 @@ object IR_WaLBerlaBlockLoopVariable {
   implicit val ord = Ordering.by { member : IR_WaLBerlaBlockLoopVariable => (member, member) }(Ordering.Tuple2(byTypeOrd, byNameOrd))
 }
 
-trait IR_WaLBerlaBlockLoopVariable extends IR_Expression {
-  def resolveName() : String
-  def resolveDatatype() : IR_Datatype
-
-  def resolveAccess() : IR_VariableAccess = IR_VariableAccess(resolveName(), resolveDatatype())
-
-  def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(resolveDatatype(), resolveName())
-
-  override def datatype = resolveDatatype()
-  override def prettyprint(out : PpStream) : Unit = out << resolveName
-}
+trait IR_WaLBerlaBlockLoopVariable extends IR_ProcessLocalBlockLoopVariable
 
 object IR_WaLBerlaFindBlockLoopVariables extends QuietDefaultStrategy("Find accesses with refinement") {
   var blockLoopVariables : ListBuffer[IR_WaLBerlaBlockLoopVariable] = ListBuffer()
