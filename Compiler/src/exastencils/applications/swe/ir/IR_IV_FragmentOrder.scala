@@ -58,7 +58,12 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
   override var name = "commFragOrderInternal"
   def returnType : IR_Datatype = IR_UnitDatatype
 
-  def refinementCase : RefinementCase.Access = RefinementCase.EQUAL // TODO
+  // TODO: adapt for refinement
+  def refinementCase : RefinementCase.Access = RefinementCase.EQUAL
+
+  def concurrencyId : Int = 0
+
+  def indexOfRefinedNeighbor : Option[Int] = None
 
   override def prettyprint_decl() : String = {
     returnType.prettyprint + ' ' + name + "( );\n"
@@ -83,20 +88,20 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
   private def beginRemoteComm() = {
     def compose(neighIdx : Int) = {
-      val sendTag = MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neighIdx), neighIdx, 0, None)
-      val sendReq = MPI_RequestNoField(s"Send", neighIdx)
+      val sendTag = MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neighIdx), neighIdx, concurrencyId, indexOfRefinedNeighbor)
+      val sendReq = MPI_RequestNoField(send = true, neighIdx)
 
-      val recvTag = MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(0, neighIdx), IR_IV_CommunicationId(), neighNeighIdx(neighIdx), 0, None)
-      val recvReq = MPI_RequestNoField(s"Recv", neighIdx)
+      val recvTag = MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(0, neighIdx), IR_IV_CommunicationId(), neighNeighIdx(neighIdx), concurrencyId, indexOfRefinedNeighbor)
+      val recvReq = MPI_RequestNoField(send = false, neighIdx)
 
-      val send = MPI_Send(IR_AddressOf(IR_IV_FragmentOrder()), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), sendTag, sendReq)
-      val recv = MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neighIdx)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), recvTag, recvReq)
+      val sendCall = MPI_Send(IR_AddressOf(IR_IV_FragmentOrder()), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), sendTag, sendReq)
+      val recvCall = MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neighIdx)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), recvTag, recvReq)
 
       ListBuffer[IR_Statement](
-        IR_PotentiallyCritical(send),
-        IR_Assignment(IR_IV_RemoteReqOutstandingNoField(s"Send", neighIdx), true),
-        IR_PotentiallyCritical(recv),
-        IR_Assignment(IR_IV_RemoteReqOutstandingNoField(s"Recv", neighIdx), true))
+        IR_PotentiallyCritical(sendCall),
+        IR_Assignment(IR_IV_RemoteReqOutstandingNoField(send = true, neighIdx, concurrencyId, indexOfRefinedNeighbor), true),
+        IR_PotentiallyCritical(recvCall),
+        IR_Assignment(IR_IV_RemoteReqOutstandingNoField(send = false, neighIdx, concurrencyId, indexOfRefinedNeighbor), true))
     }
 
     IR_LoopOverFragments(
@@ -107,11 +112,11 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
   private def finishRemoteComm() = {
     def compose(neighIdx : Int) = {
-      ListBuffer("Recv", "Send").map(dir =>
-        IR_IfCondition(IR_IV_RemoteReqOutstandingNoField(dir, neighIdx),
+      ListBuffer(false, true).map(isSend =>
+        IR_IfCondition(IR_IV_RemoteReqOutstandingNoField(isSend, neighIdx, concurrencyId, indexOfRefinedNeighbor),
           ListBuffer[IR_Statement](
-            IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_RequestNoField(dir, neighIdx))),
-            IR_Assignment(IR_IV_RemoteReqOutstandingNoField(dir, neighIdx), false))) : IR_Statement)
+            IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_RequestNoField(isSend, neighIdx))),
+            IR_Assignment(IR_IV_RemoteReqOutstandingNoField(isSend, neighIdx, concurrencyId, indexOfRefinedNeighbor), false))) : IR_Statement)
     }
 
     IR_LoopOverFragments(

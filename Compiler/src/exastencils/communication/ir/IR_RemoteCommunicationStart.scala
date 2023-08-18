@@ -64,7 +64,7 @@ case class IR_RemoteCommunicationStart(
     val body = {
       val maxCnt = Duplicate(indices).getTotalSize
       val cnt = if (condition.isDefined && Knowledge.comm_compactPackingForConditions)
-        IR_IV_CommBufferIterator(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index)
+        IR_IV_CommBufferIterator(field, send = true, neighbor.index, concurrencyId, indexOfRefinedNeighbor)
       else
         maxCnt
       if (field.layout.useFixedLayoutSizes && IR_SimplifyExpression.evalIntegral(maxCnt) <= 0) {
@@ -80,15 +80,16 @@ case class IR_RemoteCommunicationStart(
         IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), offsetAccess,
           1, MPI_DataType(field, Duplicate(indices), Duplicate(condition)), concurrencyId, indexOfRefinedNeighbor)
       } else {
-        IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }",
-          Duplicate(maxCnt), neighbor.index), cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
+        IR_RemoteSend(field, Duplicate(slot), Duplicate(neighbor),
+          IR_IV_CommBuffer(field, send = true, Duplicate(maxCnt), neighbor.index, concurrencyId, indexOfRefinedNeighbor),
+          cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
       }
     }
     if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
-    IR_WaitForRemoteTransfer(field, Duplicate(neighbor), s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }")
+    IR_WaitForRemoteTransfer(field, send = true, Duplicate(neighbor), concurrencyId, indexOfRefinedNeighbor)
   }
 
   override def expand() : Output[StatementList] = {

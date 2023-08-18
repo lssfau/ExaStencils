@@ -355,11 +355,9 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
     var ret = ListBuffer[IR_Statement]()
 
-    def it = IR_IV_CommBufferIterator(field, s"${ itName }_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighborIdx)
+    def it = IR_IV_CommBufferIterator(field, send, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
 
-    def itName = if (send) "Send" else "Recv"
-
-    def commBuffer = IR_IV_CommBuffer(field, s"${ itName }_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", indices.getTotalSize, neighborIdx)
+    def commBuffer = IR_IV_CommBuffer(field, send, indices.getTotalSize, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
 
     val tmpBufAccess = IR_TempBufferAccess(commBuffer,
       IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)

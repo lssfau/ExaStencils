@@ -624,7 +624,8 @@ case class CUDA_Kernel(
 
     for (bufferAccess <- bufferAccesses) {
       val buffer = bufferAccess._2
-      callArgs += CUDA_BufferDeviceData(buffer.field, buffer.direction, buffer.size, buffer.neighIdx)
+      callArgs += CUDA_BufferDeviceData(buffer.field, buffer.send, buffer.size, buffer.neighIdx,
+        buffer.concurrencyId, buffer.indexOfRefinedNeighbor, buffer.fragmentIdx)
     }
 
     for (ivAccess <- ivAccesses)

@@ -48,8 +48,8 @@ case class IR_RemoteSend(
     ListBuffer[IR_Statement](
       IR_PotentiallyCritical(MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domain.index, neighbor.index),
         MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), neighbor.index, concurrencyId, indexOfRefinedNeighbor),
-        MPI_Request(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index))),
-      IR_Assignment(IR_IV_RemoteReqOutstanding(field, s"Send_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index), true))
+        MPI_Request(field, send = true, neighbor.index, concurrencyId, indexOfRefinedNeighbor))),
+      IR_Assignment(IR_IV_RemoteReqOutstanding(field, send = true, neighbor.index, concurrencyId, indexOfRefinedNeighbor), true))
   }
 }
 

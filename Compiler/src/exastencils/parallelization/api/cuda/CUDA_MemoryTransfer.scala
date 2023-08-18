@@ -149,7 +149,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_AbstractFieldLikeData, st
 case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = buffer.field
-    val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
+    val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
@@ -161,7 +161,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           Duplicate(buffer),
-          CUDA_BufferDeviceData(field, buffer.direction, Duplicate(buffer.size), Duplicate(buffer.neighIdx)),
+          CUDA_BufferDeviceData(field, buffer.send, Duplicate(buffer.size), Duplicate(buffer.neighIdx), Duplicate(buffer.concurrencyId), Duplicate(buffer.indexOfRefinedNeighbor)),
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
@@ -174,7 +174,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
 case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = buffer.field
-    val isDirty = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
+    val isDirty = CUDA_HostBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx))
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
@@ -186,7 +186,7 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : C
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           Duplicate(buffer),
-          CUDA_BufferDeviceData(field, buffer.direction, Duplicate(buffer.size), Duplicate(buffer.neighIdx)),
+          CUDA_BufferDeviceData(field, buffer.send, Duplicate(buffer.size), Duplicate(buffer.neighIdx), Duplicate(buffer.concurrencyId), Duplicate(buffer.indexOfRefinedNeighbor)),
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),

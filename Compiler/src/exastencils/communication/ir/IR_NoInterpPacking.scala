@@ -31,16 +31,14 @@ case class IR_NoInterpPackingRemote(
 
     var ret = ListBuffer[IR_Statement]()
 
-    def itName = if (send) "Send" else "Recv"
-
-    def commBuffer = IR_IV_CommBuffer(field, s"${ itName }_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", indices.getTotalSize, neighborIdx)
+    def commBuffer = IR_IV_CommBuffer(field, send, indices.getTotalSize, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
 
     val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
     if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
       // compact packing with condition
 
-      def it = IR_IV_CommBufferIterator(field, s"${ itName }_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighborIdx)
+      def it = IR_IV_CommBufferIterator(field, send, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
 
       val tmpBufAccess = IR_TempBufferAccess(commBuffer,
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)

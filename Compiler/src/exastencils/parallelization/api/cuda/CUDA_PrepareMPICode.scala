@@ -237,7 +237,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
               CUDA_FieldDeviceData(fieldData.field, fieldData.slot, fieldData.fragmentIdx)
 
             case buffer : IR_IV_CommBuffer =>
-              CUDA_BufferDeviceData(buffer.field, buffer.direction, buffer.size, buffer.neighIdx, buffer.fragmentIdx)
+              CUDA_BufferDeviceData(buffer.field, buffer.send, buffer.size, buffer.neighIdx,
+                buffer.concurrencyId, buffer.indexOfRefinedNeighbor, buffer.fragmentIdx)
           })
         }
 
