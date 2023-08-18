@@ -242,7 +242,7 @@ case class CUDA_HandleFragmentLoops(
 
       // update flags for written buffers
       if (syncAfterHost(access._1, bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.send, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
     }
 
     // - device sync stmts -
@@ -270,7 +270,7 @@ case class CUDA_HandleFragmentLoops(
 
         // update flags for written fields
         if (syncAfterDevice(access._1, bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.send, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
       }
     }
 

@@ -55,8 +55,8 @@ case class IR_RemoteRecv(
           else
             DefaultNeighbors.getOpposingNeigh(neighbor.index).index,
           concurrencyId, indexOfRefinedNeighbor),
-        MPI_Request(field, s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index))),
-      IR_Assignment(IR_IV_RemoteReqOutstanding(field, s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighbor.index), true))
+        MPI_Request(field, send = false, neighbor.index, concurrencyId, indexOfRefinedNeighbor))),
+      IR_Assignment(IR_IV_RemoteReqOutstanding(field, send = false, neighbor.index, concurrencyId, indexOfRefinedNeighbor), true))
 
   }
 }

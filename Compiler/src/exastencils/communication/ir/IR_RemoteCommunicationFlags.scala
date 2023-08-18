@@ -28,13 +28,17 @@ import exastencils.prettyprinting._
 
 case class IR_IV_RemoteReqOutstanding(
     var field : IR_Field,
-    var direction : String,
+    var send : Boolean,
     var neighIdx : IR_Expression,
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
+    var concurrencyId : Int,
+    var indexOfRefinedNeighbor : Option[Int],
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable with IR_HasMessageDirection {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveName() = s"remoteReqOutstanding_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveName() = s"remoteReqOutstanding_${ direction }_${ concurrencyId }" +
+    (if (indexOfRefinedNeighbor.isDefined) s"_${ indexOfRefinedNeighbor.get }" else "") +
+    resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDatatype() = IR_BooleanDatatype
   override def resolveDefValue() = Some(false)
 }
@@ -42,13 +46,18 @@ case class IR_IV_RemoteReqOutstanding(
 /// IR_IV_RemoteReqOutstandingNoField
 
 case class IR_IV_RemoteReqOutstandingNoField(
-    var direction : String,
+    var send : Boolean,
     var neighIdx : IR_Expression,
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, true) {
+    var concurrencyId : Int,
+    var indexOfRefinedNeighbor : Option[Int],
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+) extends IR_InternalVariable(true, false, false, false, true) with IR_HasMessageDirection {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"remoteReqOutstandingNoField_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
+  override def resolveName() = s"remoteReqOutstandingNoField_${ direction }_${ concurrencyId }" +
+    (if (indexOfRefinedNeighbor.isDefined) s"_${ indexOfRefinedNeighbor.get }" else "") +
+    resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
   override def resolveDatatype() = IR_BooleanDatatype
   override def resolveDefValue() = Some(false)
 }

@@ -77,15 +77,16 @@ case class IR_RemoteCommunicationFinish(
         IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), offsetAccess,
           1, MPI_DataType(field, Duplicate(indices), Duplicate(condition)), concurrencyId, indexOfRefinedNeighbor)
       } else {
-        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor), IR_IV_CommBuffer(field, s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }",
-          Duplicate(maxCnt), neighbor.index), cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
+        IR_RemoteRecv(field, Duplicate(slot), Duplicate(neighbor),
+          IR_IV_CommBuffer(field, send = false, Duplicate(maxCnt), neighbor.index, concurrencyId, indexOfRefinedNeighbor),
+          cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
       }
     }
     if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
-    IR_WaitForRemoteTransfer(field, Duplicate(neighbor), s"Recv_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }")
+    IR_WaitForRemoteTransfer(field, send = false, Duplicate(neighbor), concurrencyId, indexOfRefinedNeighbor)
   }
 
   override def expand() : Output[StatementList] = {

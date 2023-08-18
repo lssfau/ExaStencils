@@ -53,7 +53,12 @@ case class CUDA_DeviceDataUpdated(override var field : IR_Field, override var sl
 /// CUDA_HostBufferDataUpdated
 
 // TODO: move to communication package?
-case class CUDA_HostBufferDataUpdated(var field : IR_Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
+case class CUDA_HostBufferDataUpdated(
+    var field : IR_Field,
+    var send : Boolean,
+    var neighIdx : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable with IR_HasMessageDirection {
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName() = s"hostBufferDataUpdated_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
@@ -64,7 +69,12 @@ case class CUDA_HostBufferDataUpdated(var field : IR_Field, var direction : Stri
 /// CUDA_DeviceBufferDataUpdated
 
 // TODO: move to communication package?
-case class CUDA_DeviceBufferDataUpdated(var field : IR_Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
+case class CUDA_DeviceBufferDataUpdated(
+    var field : IR_Field,
+    var send : Boolean,
+    var neighIdx : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable with IR_HasMessageDirection {
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName() = s"deviceBufferDataUpdated_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
