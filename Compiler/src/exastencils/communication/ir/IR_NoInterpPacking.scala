@@ -19,6 +19,7 @@ case class IR_NoInterpPackingRemote(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
+    var indexOfRefinedNeighbor : Option[Int],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   def numDims = field.layout.numDimsData
@@ -32,14 +33,14 @@ case class IR_NoInterpPackingRemote(
 
     def itName = if (send) "Send" else "Recv"
 
-    def commBuffer = IR_IV_CommBuffer(field, s"${ itName }_${ concurrencyId }", indices.getTotalSize, neighborIdx)
+    def commBuffer = IR_IV_CommBuffer(field, s"${ itName }_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", indices.getTotalSize, neighborIdx)
 
     val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
 
     if (condition.isDefined && Knowledge.comm_compactPackingForConditions) {
       // compact packing with condition
 
-      def it = IR_IV_CommBufferIterator(field, s"${ itName }_${ concurrencyId }", neighborIdx)
+      def it = IR_IV_CommBufferIterator(field, s"${ itName }_${ concurrencyId }_${ indexOfRefinedNeighbor.getOrElse(0) }", neighborIdx)
 
       val tmpBufAccess = IR_TempBufferAccess(commBuffer,
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)

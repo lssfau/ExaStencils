@@ -75,7 +75,7 @@ case class IR_CopyFromRecvBuffer(
   def numDims = field.layout.numDimsData
 
   def equalLevelCopyLoop() : IR_Statement =
-    IR_NoInterpPackingRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, condition)
+    IR_NoInterpPackingRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
 
   def coarseToFineCopyLoop() : IR_Statement =
     IR_QuadraticInterpPackingC2FRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
