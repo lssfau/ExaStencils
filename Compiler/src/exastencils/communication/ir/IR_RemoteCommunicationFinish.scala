@@ -102,37 +102,23 @@ case class IR_RemoteCommunicationFinish(
       ListBuffer[IR_Statement](
         if (start) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-            packInfos.map {
-              case packInfo : IR_RefinementPackInfo => genTransfer(packInfo, addCondition = true, Some(packInfo.indexOfRefinedNeighbor))
-              case packInfo : IR_PackInfo           => genTransfer(packInfo, addCondition = true)
-            }))
+            packInfos.map(packInfo => genTransfer(packInfo, addCondition = true, getIndexOfRefinedNeighbor(packInfo)))))
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx), // TODO: omp parallel or too much overhead? remove inner critical?
-            packInfos.map {
-              case packInfo : IR_RefinementPackInfo => genWait(packInfo.neighbor, Some(packInfo.indexOfRefinedNeighbor))
-              case packInfo : IR_PackInfo           => genWait(packInfo.neighbor)
-            }))
+            packInfos.map(packInfo => genWait(packInfo.neighbor, getIndexOfRefinedNeighbor(packInfo)))))
         else IR_NullStatement,
         if (end) wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-            packInfos.map {
-              case packInfo : IR_RefinementPackInfo => genTransfer(packInfo, addCondition = true, Some(packInfo.indexOfRefinedNeighbor))
-              case packInfo : IR_PackInfo           => genTransfer(packInfo, addCondition = true)
-            }))
+            packInfos.map(packInfo => genCopy(packInfo, addCondition = true, getIndexOfRefinedNeighbor(packInfo)))))
         else IR_NullStatement)
     else
       ListBuffer(wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
-          packInfos.map(packInfo => {
-            val indexOfRefinedNeigh = packInfo match {
-              case p : IR_RefinementPackInfo => Some(p.indexOfRefinedNeighbor)
-              case _                         => None
-            }
+          packInfos.map(packInfo =>
             wrapCond(packInfo.neighbor, ListBuffer(
-              if (start) genTransfer(packInfo, addCondition = false, indexOfRefinedNeigh) else IR_NullStatement,
-              if (end) genWait(packInfo.neighbor, indexOfRefinedNeigh) else IR_NullStatement,
-              if (end) genCopy(packInfo, addCondition = false, indexOfRefinedNeigh) else IR_NullStatement))
-          }))))
+              if (start) genTransfer(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,
+              if (end) genWait(packInfo.neighbor, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,
+              if (end) genCopy(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement))))))
   }
 }
