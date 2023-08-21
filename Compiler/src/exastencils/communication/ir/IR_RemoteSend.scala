@@ -45,8 +45,12 @@ case class IR_RemoteSend(
 
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
-      IR_PotentiallyCritical(MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domain.index, neighbor.index),
-        MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), neighbor.index, concurrencyId, indexOfRefinedNeighbor),
+      IR_PotentiallyCritical(
+        MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domain.index, neighbor.index, indexOfRefinedNeighbor),
+        MPI_GeneratedTag(
+          IR_IV_CommunicationId(),
+          IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index, indexOfRefinedNeighbor),
+          neighbor.index, concurrencyId, indexOfRefinedNeighbor),
         MPI_Request(field, send = true, neighbor.index, concurrencyId, indexOfRefinedNeighbor))),
       IR_Assignment(IR_IV_RemoteReqOutstanding(field, send = true, neighbor.index, concurrencyId, indexOfRefinedNeighbor), true))
   }
@@ -61,7 +65,7 @@ case class IR_CopyToSendBuffer(
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
     var indexOfRefinedNeighbor : Option[Int],
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_RefinedCommunication {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_HasRefinedPacking {
 
   def numDims = field.layout.numDimsData
 

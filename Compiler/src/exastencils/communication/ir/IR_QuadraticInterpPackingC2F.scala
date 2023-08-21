@@ -430,6 +430,7 @@ case class IR_QuadraticInterpPackingC2FLocal(
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
+    var indexOfRefinedNeighbor : Option[Int],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   import IR_InterpPackingHelper._
@@ -467,8 +468,9 @@ case class IR_QuadraticInterpPackingC2FLocal(
     // push result to destination
     for (res <- interpResults) {
       innerStmts += IR_Assignment(
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
-          IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
+        IR_DirectFieldAccess(field, Duplicate(slot),
+          IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
+          IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
         res)
     }
 

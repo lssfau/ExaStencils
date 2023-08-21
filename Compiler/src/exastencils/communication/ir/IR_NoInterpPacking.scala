@@ -61,7 +61,7 @@ case class IR_NoInterpPackingRemote(
 
       if (!send && Knowledge.comm_enableCommTransformations) {
         // special case: recv with comm trafos
-        val trafoId = IR_IV_CommTrafoId(field.domain.index, neighborIdx)
+        val trafoId = IR_IV_CommTrafoId(field.domain.index, neighborIdx, indexOfRefinedNeighbor)
 
         def loop(trafo : IR_CommTransformation) = {
           val ret = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(trafo.applyRemoteTrafo(fieldAccess, indices, neighbor), trafo.applyBufferTrafo(tmpBufAccess))))
@@ -93,6 +93,7 @@ case class IR_NoInterpPackingLocal(
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
+    var indexOfRefinedNeighbor : Option[Int],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   def numDims = field.layout.numDimsData
@@ -108,13 +109,15 @@ case class IR_NoInterpPackingLocal(
     // only inner statement for assignment is different for send/recv
     var innerStmt : IR_Statement = if (send)
       IR_Assignment(
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx), IR_ExpressionIndex(
-          IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
+        IR_DirectFieldAccess(field, Duplicate(slot),
+          IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
+          IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
         IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)))
     else
       IR_Assignment(
         IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)),
-        IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx),
+        IR_DirectFieldAccess(field, Duplicate(slot),
+          IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
           IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)))
 
     if (condition.isDefined)

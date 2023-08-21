@@ -41,6 +41,8 @@ object IR_SetupStagCellWidth {
   /// stag_cv_width   -> width of the staggered control volumes
   /// |-|   |---|   |-|
 
+  val indexOfRefinedNeighbor : Option[Int] = None
+
   def for_AA(level : Int, dim : Int) : ListBuffer[IR_Statement] = {
     if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to global domain")
 
@@ -80,7 +82,7 @@ object IR_SetupStagCellWidth {
     val leftGhostAccess = IR_FieldAccess(field, 0, leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         IR_Assignment(IR_GridUtil.offsetAccess(leftGhostAccess, 1, dim), IR_GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         IR_Assignment(Duplicate(leftGhostAccess), IR_GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
@@ -94,7 +96,7 @@ object IR_SetupStagCellWidth {
     val rightGhostAccess = IR_FieldAccess(field, 0, rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         IR_Assignment(IR_GridUtil.offsetAccess(rightGhostAccess, -1, dim), IR_GridUtil.offsetAccess(rightGhostAccess, -2, dim)),
         IR_Assignment(Duplicate(rightGhostAccess), IR_GridUtil.offsetAccess(rightGhostAccess, -1, dim))))

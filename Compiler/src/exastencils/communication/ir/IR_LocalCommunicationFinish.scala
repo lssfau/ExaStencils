@@ -48,16 +48,18 @@ case class IR_LocalCommunicationFinish(
         val neighbor = packInfo.neighbor
         val neighborIdx = neighbor.index
         val domainIdx = field.domain.index
+        val indexOfRefinedNeighbor = getIndexOfRefinedNeighbor(packInfo)
 
         wrapCond(neighbor,
+          indexOfRefinedNeighbor,
           ListBuffer[IR_Statement](
-            IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommDone(
-              field,
+            IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(),
+              IR_AddressOf(IR_IV_LocalCommDone(field,
               if (Knowledge.comm_enableCommTransformations)
-                IR_IV_CommNeighNeighIdx(domainIdx, neighborIdx)
+                IR_IV_CommNeighNeighIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor)
               else
                 DefaultNeighbors.getOpposingNeigh(neighbor).index,
-              IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx))))))
+              IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor))))))
       }))
   }
 

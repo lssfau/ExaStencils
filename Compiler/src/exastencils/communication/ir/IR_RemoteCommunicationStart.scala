@@ -51,7 +51,7 @@ case class IR_RemoteCommunicationStart(
 
     if (requiresPacking(refinementCase, indices, condition)) {
       val body = IR_CopyToSendBuffer(field, Duplicate(slot), refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, Duplicate(condition))
-      if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
+      if (addCondition) wrapCond(Duplicate(neighbor), getIndexOfRefinedNeighbor(packInfo), ListBuffer[IR_Statement](body)) else body
     } else {
       IR_NullStatement
     }
@@ -85,7 +85,7 @@ case class IR_RemoteCommunicationStart(
           cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
       }
     }
-    if (addCondition) wrapCond(Duplicate(neighbor), ListBuffer[IR_Statement](body)) else body
+    if (addCondition) wrapCond(Duplicate(neighbor), getIndexOfRefinedNeighbor(packInfo), ListBuffer[IR_Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
@@ -120,7 +120,9 @@ case class IR_RemoteCommunicationStart(
       ListBuffer(wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
           packInfos.map { packInfo =>
-            wrapCond(packInfo.neighbor, ListBuffer(
+            wrapCond(packInfo.neighbor,
+              getIndexOfRefinedNeighbor(packInfo),
+              ListBuffer(
               if (start) genCopy(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,
               if (start) genTransfer(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,
               if (end) genWait(packInfo.neighbor, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement))

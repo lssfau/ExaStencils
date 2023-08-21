@@ -72,22 +72,24 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
     }
   }
 
+  def indexOfRefinedNeighbor : Option[Int] = None // TODO: refinement index
+
   def connectLocalElement(localFragmentIdx : IR_Expression, neighFragmentIdx : IR_Expression, neighIdx : Int, domain : Int) = {
     ListBuffer[IR_Statement](
-      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
-      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), false),
-      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, Duplicate(localFragmentIdx)), neighFragmentIdx),
-      IR_Assignment(IR_IV_CommNeighNeighIdx(domain, neighIdx, Duplicate(localFragmentIdx)), DefaultNeighbors.getOpposingNeigh(neighIdx).index),
+      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), true),
+      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), false),
+      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), neighFragmentIdx),
+      IR_Assignment(IR_IV_CommNeighNeighIdx(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), DefaultNeighbors.getOpposingNeigh(neighIdx).index),
       setIterationOffset(neighIdx, domain, Duplicate(localFragmentIdx)))
   }
 
   def connectRemoteElement(localFragmentIdx : IR_Expression, localNeighIdx : IR_Expression, remoteRank : IR_Expression, neighIdx : Int, domain : Int) = {
     ListBuffer[IR_Statement](
-      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
-      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), true),
-      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, Duplicate(localFragmentIdx)), localNeighIdx),
-      IR_Assignment(IR_IV_NeighborRemoteRank(domain, neighIdx, Duplicate(localFragmentIdx)), remoteRank),
-      IR_Assignment(IR_IV_CommNeighNeighIdx(domain, neighIdx, Duplicate(localFragmentIdx)), DefaultNeighbors.getOpposingNeigh(neighIdx).index),
+      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), true),
+      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), true),
+      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), localNeighIdx),
+      IR_Assignment(IR_IV_NeighborRemoteRank(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), remoteRank),
+      IR_Assignment(IR_IV_CommNeighNeighIdx(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), DefaultNeighbors.getOpposingNeigh(neighIdx).index),
       setIterationOffset(neighIdx, domain, Duplicate(localFragmentIdx)))
   }
 

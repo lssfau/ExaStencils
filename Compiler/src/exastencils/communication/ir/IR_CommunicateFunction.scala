@@ -254,6 +254,7 @@ case class IR_CommunicateFunction(
     var commStmts = ListBuffer[IR_Statement]()
 
     val refinementCase = RefinementCase.EQUAL // TODO: refinement not supported here
+    val indexOfRefinedNeighbor = None
 
     val domains = IR_DomainCollection.objects
 
@@ -264,9 +265,9 @@ case class IR_CommunicateFunction(
         for (neigh <- neighbors) {
           commStmts += IR_IfCondition(
             if (sendNeighbors.contains(neigh))
-              IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
+              IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
             else
-              IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index)),
+              IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
             IR_RemoteCommunicationStart(field, Duplicate(slot), refinementCase, genPackInfosDuplicateRemoteSend(ListBuffer(neigh)),
               start = true, end = false, concurrencyId, insideFragLoop = true, condition)
           )
@@ -277,9 +278,9 @@ case class IR_CommunicateFunction(
         for (neigh <- neighbors) {
           commStmts += IR_IfCondition(
             if (sendNeighbors.contains(neigh))
-              IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
+              IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
             else
-              IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index)),
+              IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
             IR_RemoteCommunicationFinish(field, Duplicate(slot), refinementCase, genPackInfosDuplicateRemoteRecv(ListBuffer(neigh)),
               start = true, end = false, concurrencyId, insideFragLoop = true, condition)
           )
@@ -295,15 +296,15 @@ case class IR_CommunicateFunction(
         var andStmts = ListBuffer[IR_Expression]()
         for (n <- sendNeighs) {
           if (sendNeighbors contains n)
-            andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index))
+            andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
           else
-            andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index))
+            andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
         }
         for (n <- recvNeighs) {
           if (recvNeighbors contains n)
-            andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index))
+            andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
           else
-            andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index))
+            andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
         }
 
         localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
@@ -326,9 +327,9 @@ case class IR_CommunicateFunction(
         for (neigh <- neighbors) {
           commStmts += IR_IfCondition(
             if (recvNeighbors.contains(neigh))
-              IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
+              IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
             else
-              IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index)),
+              IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
             IR_RemoteCommunicationFinish(field, Duplicate(slot), refinementCase, genPackInfosDuplicateRemoteRecv(ListBuffer(neigh)),
               start = false, end = true, concurrencyId, insideFragLoop = true, condition)
           )
@@ -339,9 +340,9 @@ case class IR_CommunicateFunction(
         for (neigh <- neighbors) {
           commStmts += IR_IfCondition(
             if (sendNeighbors.contains(neigh))
-              IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
+              IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
             else
-              IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index)),
+              IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
             IR_RemoteCommunicationStart(field, Duplicate(slot), refinementCase, genPackInfosDuplicateRemoteSend(ListBuffer(neigh)),
               start = false, end = true, concurrencyId, insideFragLoop = true, condition)
           )
@@ -357,15 +358,15 @@ case class IR_CommunicateFunction(
         var andStmts = ListBuffer[IR_Expression]()
         for (n <- sendNeighs) {
           if (sendNeighbors contains n)
-            andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index))
+            andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
           else
-            andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index))
+            andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
         }
         for (n <- recvNeighs) {
           if (recvNeighbors contains n)
-            andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index))
+            andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
           else
-            andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index))
+            andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
         }
 
         localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),

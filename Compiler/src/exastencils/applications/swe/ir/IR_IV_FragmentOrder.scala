@@ -71,31 +71,34 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
   def generateFctAccess() = IR_PlainInternalFunctionReference(name, returnType)
 
-  private def neighNeighIdx(neighIdx : Int) : IR_Expression = if (Knowledge.comm_enableCommTransformations) IR_IV_CommNeighNeighIdx(0, neighIdx) else DefaultNeighbors.getOpposingNeigh(neighIdx).index
+  private def neighNeighIdx(neighIdx : Int) : IR_Expression = if (Knowledge.comm_enableCommTransformations)
+    IR_IV_CommNeighNeighIdx(0, neighIdx, indexOfRefinedNeighbor)
+  else
+    DefaultNeighbors.getOpposingNeigh(neighIdx).index
 
   private def localComm() = {
     def compose(neighIdx : Int) = {
       IR_Assignment(
-        IR_IV_NeighFragOrder(neighNeighIdx(neighIdx), IR_IV_NeighborFragmentIdx(0, neighIdx)),
+        IR_IV_NeighFragOrder(neighNeighIdx(neighIdx), IR_IV_NeighborFragmentIdx(0, neighIdx, indexOfRefinedNeighbor)),
         IR_IV_FragmentOrder())
     }
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(isLocalNeighbor(refinementCase, 0, neighIdx),
+        IR_IfCondition(isLocalNeighbor(refinementCase, 0, neighIdx, indexOfRefinedNeighbor),
           compose(neighIdx)) : IR_Statement))
   }
 
   private def beginRemoteComm() = {
     def compose(neighIdx : Int) = {
-      val sendTag = MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neighIdx), neighIdx, concurrencyId, indexOfRefinedNeighbor)
+      val sendTag = MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(0, neighIdx, indexOfRefinedNeighbor), neighIdx, concurrencyId, indexOfRefinedNeighbor)
       val sendReq = MPI_RequestNoField(send = true, neighIdx)
 
-      val recvTag = MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(0, neighIdx), IR_IV_CommunicationId(), neighNeighIdx(neighIdx), concurrencyId, indexOfRefinedNeighbor)
+      val recvTag = MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(0, neighIdx, indexOfRefinedNeighbor), IR_IV_CommunicationId(), neighNeighIdx(neighIdx), concurrencyId, indexOfRefinedNeighbor)
       val recvReq = MPI_RequestNoField(send = false, neighIdx)
 
-      val sendCall = MPI_Send(IR_AddressOf(IR_IV_FragmentOrder()), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), sendTag, sendReq)
-      val recvCall = MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neighIdx)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx), recvTag, recvReq)
+      val sendCall = MPI_Send(IR_AddressOf(IR_IV_FragmentOrder()), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx, indexOfRefinedNeighbor), sendTag, sendReq)
+      val recvCall = MPI_Receive(IR_AddressOf(IR_IV_NeighFragOrder(neighIdx)), 1, IR_IntegerDatatype, IR_IV_NeighborRemoteRank(0, neighIdx, indexOfRefinedNeighbor), recvTag, recvReq)
 
       ListBuffer[IR_Statement](
         IR_PotentiallyCritical(sendCall),
@@ -106,7 +109,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(isRemoteNeighbor(refinementCase, 0, neighIdx),
+        IR_IfCondition(isRemoteNeighbor(refinementCase, 0, neighIdx, indexOfRefinedNeighbor),
           compose(neighIdx)) : IR_Statement))
   }
 
@@ -121,7 +124,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
     IR_LoopOverFragments(
       DefaultNeighbors.neighbors.map(_.index).map(neighIdx =>
-        IR_IfCondition(isRemoteNeighbor(refinementCase, 0, neighIdx),
+        IR_IfCondition(isRemoteNeighbor(refinementCase, 0, neighIdx, indexOfRefinedNeighbor),
           compose(neighIdx)) : IR_Statement))
   }
 
@@ -158,7 +161,7 @@ object IR_ResolveFragmentOrder extends DefaultStrategy("ResolveFragmentOrder") {
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("getNeighIsValid", _), args) =>
       // usage: getNeighIsValid ( neighIdx )
-      IR_IV_NeighborIsValid(0, args(0))
+      IR_IV_NeighborIsValid(0, args(0), indexOfRefinedNeighbor = None) // TODO: refined neighbor idx
 
     case IR_ExpressionStatement(call : IR_FunctionCall) if "communicateFragOrder" == call.name =>
       if (Knowledge.refinement_enabled)
