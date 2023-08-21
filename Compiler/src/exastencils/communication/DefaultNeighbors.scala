@@ -24,6 +24,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
+import exastencils.scheduling.NoStrategyWrapper
 
 /// DefaultNeighbors
 
@@ -88,6 +89,12 @@ object DefaultNeighbors {
       for (neigh <- neighbors) { neigh.dir ++= Array.fill(3 - Knowledge.dimensionality)(0) }
     }
   }
+}
+
+/// IR_SetupDefaultNeighborsWrapper
+
+object IR_SetupDefaultNeighborsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => DefaultNeighbors.setup()
 }
 
 /// NeighborInfo

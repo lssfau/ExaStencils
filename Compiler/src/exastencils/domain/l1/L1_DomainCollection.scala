@@ -21,6 +21,7 @@ package exastencils.domain.l1
 import exastencils.domain.l2._
 import exastencils.knowledge.l1.L1_KnowledgeContainer._
 import exastencils.knowledge.l1._
+import exastencils.scheduling.NoStrategyWrapper
 
 /// L1_DomainCollection
 
@@ -45,4 +46,10 @@ object L1_DomainCollection extends L1_BasicKnowledgeCollection[L1_Domain, L2_Dom
       case _                                    =>
     }
   }
+}
+
+/// L1_HandleDomainAliasesWrapper
+
+object L1_HandleDomainAliasesWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => L1_DomainCollection.handleAliases()
 }

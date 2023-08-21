@@ -22,6 +22,7 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.boundary.l4._
 import exastencils.field.l4._
+import exastencils.scheduling.NoStrategyWrapper
 
 /// IR_FunctionBC
 
@@ -42,4 +43,10 @@ object L4_ResolveBoundaryHandlingFunctions {
       }
     }
   }
+}
+
+/// L4_ResolveBoundaryHandlingFunctionsWrapper
+
+object L4_ResolveBoundaryHandlingFunctionsWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => L4_ResolveBoundaryHandlingFunctions.apply()
 }

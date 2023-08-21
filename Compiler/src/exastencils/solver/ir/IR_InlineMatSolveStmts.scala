@@ -1,9 +1,6 @@
 package exastencils.solver.ir
 
-import exastencils.base.ir.IR_Access
-import exastencils.base.ir.IR_ExpressionStatement
-import exastencils.base.ir.IR_FunctionCall
-import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LinearizeMatrices
 import exastencils.baseExt.ir.IR_PostItMOps
 import exastencils.datastructures.QuietDefaultStrategy
@@ -23,6 +20,6 @@ object IR_InlineMatSolveStmts extends QuietDefaultStrategy("Resolve IR_LocalSolv
       )
       IR_PostItMOps.applyStandalone(inlinedSolveStmts)
       IR_LinearizeMatrices.applyStandalone(inlinedSolveStmts)
-      inlinedSolveStmts
+      IR_Comment(s"Inlined ${fc.name}") +: inlinedSolveStmts
   })
 }

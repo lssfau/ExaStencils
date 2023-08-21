@@ -32,11 +32,8 @@ import exastencils.io.ir.IR_IV_FragmentOffset
 import exastencils.io.ir.IR_IV_NumValidFrags
 import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
 import exastencils.io.ir.IR_IV_TotalNumFrags
-import exastencils.io.ir.IR_IV_FragmentOffset
-import exastencils.io.ir.IR_IV_NumValidFrags
-import exastencils.io.ir.IR_IV_NumValidFragsPerBlock
-import exastencils.io.ir.IR_IV_TotalNumFrags
 import exastencils.logger.Logger
+import exastencils.scheduling.SingleSchedulable
 import exastencils.util.ir.IR_MathFunctionReference
 import exastencils.util.ir.IR_MathFunctions
 import exastencils.util.ir.IR_ResultingDatatype
@@ -473,7 +470,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
 
   // specialized simplification: (c/X) * (... + X*e + ...)  ->  c*e + (c/x) * (... + ...)
   private def cancelDownSummands(num : IR_Expression, div : IR_Expression, expr : IR_Expression) : IR_Addition = {
-    if (div.isInstanceOf[IR_IntegerConstant] || div.isInstanceOf[IR_FloatConstant])
+    if (div.isInstanceOf[IR_Number])
       return null // constant divisiors will be simplified elsewhere
     val (orig, canc) = cancelDown(expr, div)
     if (!canc.isEmpty)
@@ -577,5 +574,13 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       base *= base
     }
     res
+  }
+}
+
+/// IR_GeneralSimplifyUntilDoneWrapper
+
+object IR_GeneralSimplifyUntilDoneWrapper extends SingleSchedulable {
+  override def apply(applyAtNode : Option[Node]) : Unit = {
+    IR_GeneralSimplify.doUntilDone(applyAtNode)
   }
 }

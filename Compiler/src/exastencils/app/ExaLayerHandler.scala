@@ -49,7 +49,10 @@ object ExaLayerHandler {
   }
 
   def handleAllLayers() : Unit = {
-    allLayers.foreach(_.handle())
+    allLayers.foreach { lh =>
+      lh.schedule()
+      lh.handle()
+    }
   }
 
   def shutdownAllLayers() : Unit = {
