@@ -27,24 +27,24 @@ abstract class IR_WaLBerlaBlockConnection() extends IR_WaLBerlaInterfaceMember(t
 
 /// IR_WaLBerlaNeighborIsValid
 
-case class IR_WaLBerlaNeighborIsValid(var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaBlockConnection {
-  override protected def proxy : IR_IV_FragmentConnection = IR_IV_NeighborIsValid(domainIdx, neighIdx, fragmentIdx)
+case class IR_WaLBerlaNeighborIsValid(var neighIdx : IR_Expression, var indexOfRefinedNeighbor : Option[Int], var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaBlockConnection {
+  override protected def proxy : IR_IV_FragmentConnection = IR_IV_NeighborIsValid(domainIdx, neighIdx, indexOfRefinedNeighbor, fragmentIdx)
 }
 
 /// IR_WaLBerlaNeighborIsRemote
 
-case class IR_WaLBerlaNeighborIsRemote(var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaBlockConnection {
-  override protected def proxy : IR_IV_FragmentConnection = IR_IV_NeighborIsRemote(domainIdx, neighIdx, fragmentIdx)
+case class IR_WaLBerlaNeighborIsRemote(var neighIdx : IR_Expression, var indexOfRefinedNeighbor : Option[Int], var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaBlockConnection {
+  override protected def proxy : IR_IV_FragmentConnection = IR_IV_NeighborIsRemote(domainIdx, neighIdx, indexOfRefinedNeighbor, fragmentIdx)
 }
 
 /// IR_WaLBerlaNeighborFragmentIdx
 
-case class IR_WaLBerlaNeighborFragmentIdx(var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaBlockConnection {
-  override protected def proxy : IR_IV_FragmentConnection = IR_IV_NeighborFragmentIdx(domainIdx, neighIdx, fragmentIdx)
+case class IR_WaLBerlaNeighborFragmentIdx(var neighIdx : IR_Expression, var indexOfRefinedNeighbor : Option[Int], var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaBlockConnection {
+  override protected def proxy : IR_IV_FragmentConnection = IR_IV_NeighborFragmentIdx(domainIdx, neighIdx, indexOfRefinedNeighbor, fragmentIdx)
 }
 
 /// IR_WaLBerlaNeighborRemoteRank
 
-case class IR_WaLBerlaNeighborRemoteRank(var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaBlockConnection {
-  override protected def proxy : IR_IV_FragmentConnection = IR_IV_NeighborRemoteRank(domainIdx, neighIdx, fragmentIdx)
+case class IR_WaLBerlaNeighborRemoteRank(var neighIdx : IR_Expression, var indexOfRefinedNeighbor : Option[Int], var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaBlockConnection {
+  override protected def proxy : IR_IV_FragmentConnection = IR_IV_NeighborRemoteRank(domainIdx, neighIdx, indexOfRefinedNeighbor, fragmentIdx)
 }

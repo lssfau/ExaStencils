@@ -12,7 +12,7 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 
 object IR_WaLBerlaReplaceDomainBoundaryConditions extends IR_WaLBerlaReplacementStrategy("Replace domain boundary condition for waLBerla boundary kernels") {
   this += Transformation("..", {
-    case _ @ IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(_, neighIdx : IR_IntegerConstant, _)), trueBody, falseBody) if inWaLBerlaBlockLoop(collector) =>
+    case _ @ IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(_, neighIdx : IR_IntegerConstant, _, _)), trueBody, falseBody) if inWaLBerlaBlockLoop(collector) =>
       val neigh = DefaultNeighbors.neighbors(neighIdx.v.toInt)
       IR_IfCondition(IR_WaLBerlaBlockForest().isAtDomainBorder(neigh.dir), trueBody, falseBody)
   })

@@ -24,11 +24,15 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
         case _ @ IR_IV_FragmentPositionBegin(dim, _) => assign.src = getBlockAABB.min(dim)
         case _ @ IR_IV_FragmentPositionEnd(dim, _)   => assign.src = getBlockAABB.max(dim)
         // fragment connectivity
-        case _ @ IR_IV_NeighborIsValid(_, neighIdx, fragmentIdx)     => assign.dest = IR_WaLBerlaNeighborIsValid(neighIdx, fragmentIdx)
-        case _ @ IR_IV_NeighborIsRemote(_, neighIdx, fragmentIdx)    => assign.dest = IR_WaLBerlaNeighborIsRemote(neighIdx, fragmentIdx)
-        case _ @ IR_IV_NeighborFragmentIdx(_, neighIdx, fragmentIdx) => assign.dest = IR_WaLBerlaNeighborFragmentIdx(neighIdx, fragmentIdx)
-        case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, fragmentIdx)  => assign.dest = IR_WaLBerlaNeighborRemoteRank(neighIdx, fragmentIdx)
-        case _                                                       =>
+        case _ @ IR_IV_NeighborIsValid(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx)     =>
+          assign.dest = IR_WaLBerlaNeighborIsValid(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
+        case _ @ IR_IV_NeighborIsRemote(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx)    =>
+          assign.dest = IR_WaLBerlaNeighborIsRemote(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
+        case _ @ IR_IV_NeighborFragmentIdx(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) =>
+          assign.dest = IR_WaLBerlaNeighborFragmentIdx(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
+        case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx)  =>
+          assign.dest = IR_WaLBerlaNeighborRemoteRank(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
+        case _                                                          =>
       }
       assign
 
@@ -45,10 +49,14 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
     case _ @ IR_IV_FragmentPositionEnd(dim, _) if inWaLBerlaBlockLoop(collector)   => getBlockAABB.max(dim)
 
     // fragment connectivity
-    case _ @ IR_IV_NeighborIsValid(_, neighIdx, fragmentIdx) if inWaLBerlaBlockLoop(collector)     => IR_WaLBerlaNeighborIsValid(neighIdx, fragmentIdx)
-    case _ @ IR_IV_NeighborIsRemote(_, neighIdx, fragmentIdx) if inWaLBerlaBlockLoop(collector)    => IR_WaLBerlaNeighborIsRemote(neighIdx, fragmentIdx)
-    case _ @ IR_IV_NeighborFragmentIdx(_, neighIdx, fragmentIdx) if inWaLBerlaBlockLoop(collector) => IR_WaLBerlaNeighborFragmentIdx(neighIdx, fragmentIdx)
-    case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, fragmentIdx) if inWaLBerlaBlockLoop(collector)  => IR_WaLBerlaNeighborRemoteRank(neighIdx, fragmentIdx)
+    case _ @ IR_IV_NeighborIsValid(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector)     =>
+      IR_WaLBerlaNeighborIsValid(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
+    case _ @ IR_IV_NeighborIsRemote(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector)    =>
+      IR_WaLBerlaNeighborIsRemote(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
+    case _ @ IR_IV_NeighborFragmentIdx(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector) =>
+      IR_WaLBerlaNeighborFragmentIdx(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
+    case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector)  =>
+      IR_WaLBerlaNeighborRemoteRank(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
 
     // refinement case
     case _ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx) if inWaLBerlaBlockLoop(collector) =>
