@@ -15,11 +15,11 @@ import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_Print
 import exastencils.util.ir.IR_Read
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlockNeighborhoodSection._
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlockNeighborhoodSection
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
-import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
-import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
 
 /// IR_WaLBerlaInitStaticRectDomain
 // only meant for static and regular domain partitioning
@@ -53,35 +53,11 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   def canHavePeriodicity = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_rect_hasPeriodicity
 
   // wb block info
-  def wbNeighDir(neighDir : Array[Int]) = IR_WaLBerlaDirection.getDirIndexFromArray(neighDir)
-  def wbNeighborHoodSectionIdx = IR_VariableAccess("neighborHoodSectionIdx", IR_SpecialDatatype("const auto"))
-  def wbNeighborHoodSectionSize = IR_VariableAccess("neighborHoodSectionSize", IR_SpecialDatatype("const auto"))
-  def wbNeighborIdx = IR_VariableAccess("neighIdx", WB_UintType)
   def wbNeighborBlockId = IR_VariableAccess("neighBlockID", IR_SpecialDatatype("const auto"))
   def wbNeighborProcess = block.getNeighborProcess(wbNeighborHoodSectionIdx, wbNeighborIdx)
 
   def hasLocalNeighbor() = IR_MemberFunctionCallArrow(block, "neighborExistsLocally", wbNeighborHoodSectionIdx, wbNeighborIdx)
   def hasRemoteNeighbor() = IR_MemberFunctionCallArrow(block, "neighborExistsRemotely", wbNeighborHoodSectionIdx, wbNeighborIdx)
-
-  def loopOverNeighborHood(neighDir : Array[Int], body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] =
-    loopOverNeighborHood(wbNeighDir(neighDir), body)
-  def loopOverNeighborHood(wbNeighDir : IR_Expression, body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-    var result = ListBuffer[IR_Statement]()
-
-    // fetch neighborhood section and its size
-    result += IR_VariableDeclaration(wbNeighborHoodSectionIdx,
-      IR_FunctionCall("blockforest::getBlockNeighborhoodSectionIndex", IR_Cast(IR_SpecialDatatype("const stencil::Direction"), wbNeighDir)))
-    result += IR_VariableDeclaration(wbNeighborHoodSectionSize,
-      IR_MemberFunctionCallArrow(block, "getNeighborhoodSectionSize", wbNeighborHoodSectionIdx))
-
-    result += IR_ForLoop(
-      IR_VariableDeclaration(wbNeighborIdx, 0),
-      IR_Lower(wbNeighborIdx, wbNeighborHoodSectionSize),
-      IR_PreIncrement(wbNeighborIdx),
-      body)
-
-    result
-  }
 
   // setup functions
   def setupFragmentPosition() = {
@@ -186,7 +162,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
             IR_VariableDeclaration(stencilDir, IR_FunctionCall(s"$commStencil::begin")),
             stencilDir Neq IR_FunctionCall(s"$commStencil::end"),
             IR_PreIncrement(stencilDir),
-            loopOverNeighborHood(IR_DerefAccess(stencilDir), fillSendBuffer))
+            IR_WaLBerlaLoopOverBlockNeighborhoodSection(IR_DerefAccess(stencilDir), fillSendBuffer))
           communicate += IR_WaLBerlaLoopOverLocalBlockArray(IR_Scope(fillBufferForNeigh), IR_ParallelizationInfo(potentiallyParallel = true))
       }
 
@@ -277,7 +253,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
           else if (canHaveLocalNeighs)
             bodyNeighborHoodLoop += IR_IfCondition(hasLocalNeighbor(), localConnect())
         }
-        statements ++= loopOverNeighborHood(neigh.dir, bodyNeighborHoodLoop)
+        statements += IR_WaLBerlaLoopOverBlockNeighborhoodSection(neigh.dir, bodyNeighborHoodLoop : _*)
 
         // wrap in scope due to local variable declarations
         connect += IR_WaLBerlaLoopOverLocalBlockArray(IR_Scope(statements), IR_ParallelizationInfo(potentiallyParallel = true))
