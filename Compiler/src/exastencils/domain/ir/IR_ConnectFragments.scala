@@ -72,7 +72,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
     }
   }
 
-  def indexOfRefinedNeighbor : Option[Int] = None // TODO: refinement index
+  def indexOfRefinedNeighbor : Option[IR_Expression] = None // TODO: refinement index
 
   def connectLocalElement(localFragmentIdx : IR_Expression, neighFragmentIdx : IR_Expression, neighIdx : Int, domain : Int) = {
     ListBuffer[IR_Statement](

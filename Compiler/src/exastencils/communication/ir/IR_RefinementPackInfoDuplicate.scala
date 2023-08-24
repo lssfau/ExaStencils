@@ -21,7 +21,7 @@ trait IR_C2FPackInfoDuplicate extends IR_C2FPackInfo with IR_RefinementPackInfoD
 /// IR_F2CPackInfoDuplicateRemoteSend
 case class IR_F2CPackInfoDuplicateRemoteSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
@@ -31,7 +31,7 @@ case class IR_F2CPackInfoDuplicateRemoteSend(
 
 case class IR_F2CPackInfoDuplicateRemoteRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
@@ -41,7 +41,7 @@ case class IR_F2CPackInfoDuplicateRemoteRecv(
 
 case class IR_F2CPackInfoDuplicateLocalSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
@@ -51,7 +51,7 @@ case class IR_F2CPackInfoDuplicateLocalSend(
 
 case class IR_F2CPackInfoDuplicateLocalRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
@@ -62,7 +62,7 @@ case class IR_F2CPackInfoDuplicateLocalRecv(
 /// IR_C2FPackInfoDuplicateRemoteSend
 case class IR_C2FPackInfoDuplicateRemoteSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
@@ -72,7 +72,7 @@ case class IR_C2FPackInfoDuplicateRemoteSend(
 
 case class IR_C2FPackInfoDuplicateRemoteRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
@@ -82,7 +82,7 @@ case class IR_C2FPackInfoDuplicateRemoteRecv(
 
 case class IR_C2FPackInfoDuplicateLocalSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
@@ -92,7 +92,7 @@ case class IR_C2FPackInfoDuplicateLocalSend(
 
 case class IR_C2FPackInfoDuplicateLocalRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,

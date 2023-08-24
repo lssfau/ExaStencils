@@ -41,7 +41,7 @@ object IR_SetupStagCellWidth {
   /// stag_cv_width   -> width of the staggered control volumes
   /// |-|   |---|   |-|
 
-  val indexOfRefinedNeighbor : Option[Int] = None
+  val indexOfRefinedNeighbor : Option[IR_Expression] = None
 
   def for_AA(level : Int, dim : Int) : ListBuffer[IR_Statement] = {
     if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to global domain")

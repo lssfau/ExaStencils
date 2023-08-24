@@ -1,13 +1,13 @@
 package exastencils.communication.ir
 
-import exastencils.base.ir.IR_Statement
+import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.domain.ir.RefinementCase
 
 trait IR_HasRefinedCommunication {
   def refinementCase : RefinementCase.Access
 
-  def getIndexOfRefinedNeighbor(packInfo : IR_PackInfo) : Option[Int] = packInfo match {
+  def getIndexOfRefinedNeighbor(packInfo : IR_PackInfo) : Option[IR_Expression] = packInfo match {
     case p : IR_RefinementPackInfo => Some(p.indexOfRefinedNeighbor)
     case _                         => None
   }

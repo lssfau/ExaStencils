@@ -56,7 +56,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     IR_Comment("Iteration offset not implemented")
   }
 
-  def indexOfRefinedNeighbor : Option[Int] = None // TODO: refinement
+  def indexOfRefinedNeighbor : Option[IR_Expression] = None // TODO: refinement
 
   def connectFragmentFromFile(neighborBlockID : IR_VariableAccess, neighborCommID : IR_VariableAccess, neighIdx : IR_VariableAccess) = {
     var stmts = new ListBuffer[IR_Statement]

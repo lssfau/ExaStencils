@@ -148,11 +148,10 @@ case class CUDA_BufferDeviceData(
     var size : IR_Expression,
     var neighIdx : IR_Expression,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
 
   override def resolveName() = s"bufferDevice_${ direction }_${ concurrencyId }" +
-    (if (indexOfRefinedNeighbor.isDefined) s"_${ indexOfRefinedNeighbor.get }" else "") +
     resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[IR_Statement] = {

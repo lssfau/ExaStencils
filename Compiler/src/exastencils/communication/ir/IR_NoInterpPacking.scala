@@ -19,7 +19,7 @@ case class IR_NoInterpPackingRemote(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   def numDims = field.layout.numDimsData
@@ -93,7 +93,7 @@ case class IR_NoInterpPackingLocal(
     var slot : IR_Expression,
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   def numDims = field.layout.numDimsData

@@ -63,7 +63,7 @@ case object IR_CommunicateFragmentOrder extends IR_FuturePlainFunction with IR_A
 
   def concurrencyId : Int = 0
 
-  def indexOfRefinedNeighbor : Option[Int] = None
+  def indexOfRefinedNeighbor : Option[IR_Expression] = None
 
   override def prettyprint_decl() : String = {
     returnType.prettyprint + ' ' + name + "( );\n"

@@ -45,7 +45,7 @@ case class IR_RemoteCommunicationStart(
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_RemoteCommunication {
 
-  override def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
+  override def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
 
@@ -57,7 +57,7 @@ case class IR_RemoteCommunicationStart(
     }
   }
 
-  override def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
+  override def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
 
@@ -88,7 +88,7 @@ case class IR_RemoteCommunicationStart(
     if (addCondition) wrapCond(Duplicate(neighbor), getIndexOfRefinedNeighbor(packInfo), ListBuffer[IR_Statement](body)) else body
   }
 
-  def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement = {
+  def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
     IR_WaitForRemoteTransfer(field, send = true, Duplicate(neighbor), concurrencyId, indexOfRefinedNeighbor)
   }
 

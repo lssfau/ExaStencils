@@ -29,7 +29,7 @@ import exastencils.prettyprinting.PpStream
 case class IR_IV_CommTrafoId(
     var domain : IR_Expression,
     var neighIdx : IR_Expression,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
@@ -43,7 +43,7 @@ case class IR_IV_CommTrafoId(
 case class IR_IV_NeighFragId(
     var domain : IR_Expression,
     var neighIdx : IR_Expression,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
@@ -57,7 +57,7 @@ case class IR_IV_NeighFragId(
 case class IR_IV_CommNeighNeighIdx(
     var domain : IR_Expression,
     var neighIdx : IR_Expression,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)

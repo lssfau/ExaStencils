@@ -33,13 +33,12 @@ case class MPI_Request(
     var send : Boolean,
     var neighIdx : IR_Expression,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable with IR_HasMessageDirection {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName() = s"mpiRequest_${ direction }_${ concurrencyId }" +
-    (if (indexOfRefinedNeighbor.isDefined) s"_${ indexOfRefinedNeighbor.get }" else "") +
     resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def resolveDatatype() = "MPI_Request"

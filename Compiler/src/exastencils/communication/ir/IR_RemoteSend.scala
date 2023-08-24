@@ -42,7 +42,7 @@ case class IR_RemoteSend(
     var numDataPoints : IR_Expression,
     var datatype : IR_Datatype,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Option[Int]) extends IR_Statement with IR_Expandable {
+    var indexOfRefinedNeighbor : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
@@ -65,7 +65,7 @@ case class IR_CopyToSendBuffer(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_HasRefinedPacking {
 
   def numDims = field.layout.numDimsData

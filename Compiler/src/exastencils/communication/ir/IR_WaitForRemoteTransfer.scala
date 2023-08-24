@@ -36,7 +36,7 @@ case class IR_WaitForRemoteTransfer(
     var send : Boolean,
     var neighbor : NeighborInfo,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Option[Int],
+    var indexOfRefinedNeighbor : Option[IR_Expression],
 ) extends IR_Statement with IR_Expandable with IR_HasMessageDirection {
 
   override def expand() : Output[IR_Statement] = {

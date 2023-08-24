@@ -1,5 +1,6 @@
 package exastencils.communication.ir
 
+import exastencils.base.ir.IR_Expression
 import exastencils.domain.ir.RefinementCase
 import exastencils.grid.ir.IR_AtCellCenter
 import exastencils.logger.Logger
@@ -31,7 +32,7 @@ trait IR_RefinementPackInfo extends IR_PackInfo {
 
   def refinementCase : RefinementCase.Access
 
-  def indexOfRefinedNeighbor : Int
+  def indexOfRefinedNeighbor : IR_Expression
 }
 
 /// IR_F2CPackInfo

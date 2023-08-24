@@ -9,11 +9,11 @@ import exastencils.fieldlike.ir.IR_FieldLike
 /// IR_RefinementPackInfoGhost
 
 trait IR_RefinementPackInfoGhost extends IR_RefinementPackInfo with IR_PackInfoGhost {
-  protected def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : Int) : (Array[IR_Expression], Array[IR_Expression])
+  protected def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression])
 
-  protected def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : Int) : (Array[IR_Expression], Array[IR_Expression])
+  protected def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression])
 
-  protected def splitPackingStartAndEndForCoarseFragment(neighDir : Array[Int], indexOfRefinedNeighbor : Int,
+  protected def splitPackingStartAndEndForCoarseFragment(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression,
       start : Array[IR_Expression], end : Array[IR_Expression]) : (Array[IR_Expression], Array[IR_Expression]) = {
 
     // fragment is coarse:
@@ -42,12 +42,12 @@ trait IR_RefinementPackInfoGhost extends IR_RefinementPackInfo with IR_PackInfoG
 trait IR_F2CPackInfoGhost extends IR_F2CPackInfo with IR_RefinementPackInfoGhost {
 
   // pack interval for sending fine fragments to a coarse one can be reused from equal-level comm (since fine fragments are sent as a whole)
-  override def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : Int) : (Array[IR_Expression], Array[IR_Expression]) =
+  override def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) =
     getGridPackingStartAndEndForSend(neighDir)
 
   // unpacking interval for receiving from fine to coarse requires adaptations (since one of received fine fragments covers only a portion of the coarse fragment)
   // -> split iteration interval of coarse fragment
-  override def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : Int) : (Array[IR_Expression], Array[IR_Expression]) = {
+  override def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
     val (start, end) = getGridPackingStartAndEndForRecv(neighDir)
 
     splitPackingStartAndEndForCoarseFragment(neighDir, indexOfRefinedNeighbor, start, end)
@@ -60,7 +60,7 @@ trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
 
   // pack interval for sending a coarse fragment to finer ones requires adaptations (a coarse block sends N messages, where N is the number of fine neighbors)
   // -> split iteration interval of coarse fragment
-  override def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : Int) : (Array[IR_Expression], Array[IR_Expression]) = {
+  override def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
     val (start, end) = getGridPackingStartAndEndForSend(neighDir)
 
     splitPackingStartAndEndForCoarseFragment(neighDir, indexOfRefinedNeighbor, start, end)
@@ -68,7 +68,7 @@ trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
 
   // pack interval for receiving from a coarse fragment into fine fragments can be reused from equal-level comm
   // (since coarse fragment already deals with iteration space splitting when sending -> just receive data as a whole)
-  override def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : Int) : (Array[IR_Expression], Array[IR_Expression]) = {
+  override def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
     getGridPackingStartAndEndForRecv(neighDir)
   }
 }
@@ -78,7 +78,7 @@ trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
 /// IR_F2CPackInfoGhostRemoteSend
 case class IR_F2CPackInfoGhostRemoteSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -92,7 +92,7 @@ case class IR_F2CPackInfoGhostRemoteSend(
 
 case class IR_F2CPackInfoGhostRemoteRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -106,7 +106,7 @@ case class IR_F2CPackInfoGhostRemoteRecv(
 
 case class IR_F2CPackInfoGhostLocalSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -122,7 +122,7 @@ case class IR_F2CPackInfoGhostLocalSend(
 
 case class IR_F2CPackInfoGhostLocalRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -139,7 +139,7 @@ case class IR_F2CPackInfoGhostLocalRecv(
 /// IR_C2FPackInfoGhostRemoteSend
 case class IR_C2FPackInfoGhostRemoteSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -153,7 +153,7 @@ case class IR_C2FPackInfoGhostRemoteSend(
 
 case class IR_C2FPackInfoGhostRemoteRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -167,7 +167,7 @@ case class IR_C2FPackInfoGhostRemoteRecv(
 
 case class IR_C2FPackInfoGhostLocalSend(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
@@ -183,7 +183,7 @@ case class IR_C2FPackInfoGhostLocalSend(
 
 case class IR_C2FPackInfoGhostLocalRecv(
     var neighbor : NeighborInfo,
-    var indexOfRefinedNeighbor : Int,
+    var indexOfRefinedNeighbor : IR_Expression,
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex

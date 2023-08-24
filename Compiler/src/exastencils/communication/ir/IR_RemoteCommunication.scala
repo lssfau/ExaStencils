@@ -32,7 +32,7 @@ import exastencils.parallelization.api.mpi.MPI_DataType
 /// IR_ApplyRemoteCommunication
 
 trait IR_ApplyRemoteCommunication {
-  def isRemoteNeighbor(refinementCase : RefinementCase.Access, domainIdx : IR_Expression, neighborIdx : IR_Expression, indexOfRefinedNeighbor : Option[Int]) = {
+  def isRemoteNeighbor(refinementCase : RefinementCase.Access, domainIdx : IR_Expression, neighborIdx : IR_Expression, indexOfRefinedNeighbor : Option[IR_Expression]) = {
     val base = IR_IV_NeighborIsValid(domainIdx, neighborIdx, indexOfRefinedNeighbor) AndAnd IR_IV_NeighborIsRemote(domainIdx, neighborIdx, indexOfRefinedNeighbor)
     if (Knowledge.refinement_enabled)
       IR_IV_NeighborRefinementCase(IR_LoopOverFragments.defIt, domainIdx, neighborIdx) EqEq refinementCase.id AndAnd base
@@ -52,14 +52,14 @@ abstract class IR_RemoteCommunication extends IR_Communication with IR_ApplyRemo
       (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)
   }
 
-  def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement
-  def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[Int] = None) : IR_Statement
+  def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement
+  def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement
 
-  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int], stmt : IR_Statement) : IR_Statement =
+  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], stmt : IR_Statement) : IR_Statement =
     IR_IfCondition(isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor),
       stmt)
 
-  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int], body : ListBuffer[IR_Statement]) : IR_Statement =
+  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], body : ListBuffer[IR_Statement]) : IR_Statement =
     IR_IfCondition(isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor),
       body)
 }

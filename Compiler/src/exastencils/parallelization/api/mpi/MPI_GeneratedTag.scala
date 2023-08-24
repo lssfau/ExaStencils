@@ -24,7 +24,7 @@ import exastencils.datastructures.Transformation.Output
 
 /// MPI_GeneratedTag
 
-case class MPI_GeneratedTag(var from : IR_Expression, var to : IR_Expression, var dirOfSend : IR_Expression, var concurrencyId : Int, var indexOfRefinedNeighbor : Option[Int]) extends IR_Expression with IR_Expandable {
+case class MPI_GeneratedTag(var from : IR_Expression, var to : IR_Expression, var dirOfSend : IR_Expression, var concurrencyId : Int, var indexOfRefinedNeighbor : Option[IR_Expression]) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
 
   def expand() : Output[IR_Expression] = {

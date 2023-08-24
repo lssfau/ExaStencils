@@ -26,7 +26,7 @@ import exastencils.prettyprinting.PpStream
 
 /// IR_IV_BoundaryConditionId
 
-case class IR_IV_BoundaryConditionId(var domain : IR_Expression, var neighIdx : IR_Expression, var indexOfRefinedNeighbor : Option[Int], var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
+case class IR_IV_BoundaryConditionId(var domain : IR_Expression, var neighIdx : IR_Expression, var indexOfRefinedNeighbor : Option[IR_Expression], var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
   override def resolveName() = s"boundaryConditionId" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
   override def baseDatatype = IR_IntegerDatatype

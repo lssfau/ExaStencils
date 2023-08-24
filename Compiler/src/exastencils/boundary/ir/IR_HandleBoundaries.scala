@@ -97,7 +97,7 @@ case class IR_HandleBoundaries(
 
   def constructLoops = {
     val layout = field.layout
-    val indexOfRefinedNeighbor : Option[Int] = None
+    val indexOfRefinedNeighbor : Option[IR_Expression] = None
 
     IR_LoopOverFragments(
       ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),

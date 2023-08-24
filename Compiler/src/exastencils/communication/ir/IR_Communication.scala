@@ -15,9 +15,9 @@ trait IR_Communication extends IR_Statement with IR_Expandable with IR_HasRefine
 
   def insideFragLoop : Boolean
 
-  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int], stmt : IR_Statement) : IR_Statement
+  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], stmt : IR_Statement) : IR_Statement
 
-  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int], body : ListBuffer[IR_Statement]) : IR_Statement
+  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], body : ListBuffer[IR_Statement]) : IR_Statement
 
   def wrapFragLoop(toWrap : IR_Statement) : IR_Statement = {
     if (insideFragLoop) {

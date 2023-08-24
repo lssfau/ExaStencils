@@ -63,7 +63,7 @@ case class IR_CommunicateFunction(
       duplicate : Boolean,
       refinementCase : RefinementCase.Access,
       curNeighbors : ListBuffer[NeighborInfo],
-      genPackInfo : (NeighborInfo, Int, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
+      genPackInfo : (NeighborInfo, IR_Expression, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
 
     // create pack infos for different cases
     def getIndexOfRefinedNeighbor(neighInfo: NeighborInfo) = {
@@ -109,7 +109,7 @@ case class IR_CommunicateFunction(
       send : Boolean,
       duplicate : Boolean,
       curNeighbors : ListBuffer[NeighborInfo],
-      genPackInfo : (NeighborInfo, Int, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
+      genPackInfo : (NeighborInfo, IR_Expression, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
 
     genRefinedPackInfosWrapper(send, duplicate, RefinementCase.F2C, curNeighbors, genPackInfo)
   }
@@ -140,7 +140,7 @@ case class IR_CommunicateFunction(
       send : Boolean,
       duplicate : Boolean,
       curNeighbors : ListBuffer[NeighborInfo],
-      genPackInfo : (NeighborInfo, Int, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
+      genPackInfo : (NeighborInfo, IR_Expression, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
 
     genRefinedPackInfosWrapper(send, duplicate, RefinementCase.C2F, curNeighbors, genPackInfo)
   }
@@ -254,7 +254,7 @@ case class IR_CommunicateFunction(
     var commStmts = ListBuffer[IR_Statement]()
 
     val refinementCase = RefinementCase.EQUAL // TODO: refinement not supported here
-    val indexOfRefinedNeighbor = None
+    val indexOfRefinedNeighbor : Option[IR_Expression] = None
 
     val domains = IR_DomainCollection.objects
 
