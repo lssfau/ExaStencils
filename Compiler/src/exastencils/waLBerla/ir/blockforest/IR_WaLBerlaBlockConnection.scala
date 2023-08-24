@@ -4,6 +4,7 @@ import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_StdArrayDatatype
+import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.domain.ir._
 import exastencils.prettyprinting.PpStream
@@ -34,6 +35,21 @@ abstract class IR_WaLBerlaBlockConnection() extends IR_WaLBerlaInterfaceMember(t
     val access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
 
     if (Knowledge.refinement_enabled) IR_ArrayAccess(access, if (indexOfRefinedNeighbor.isDefined) indexOfRefinedNeighbor.get else 0) else access
+  }
+
+  override def getCtor() : Option[IR_Statement] = {
+    if (resolveDefValue().isDefined)
+      Some(wrapInLoops(
+        IR_Scope(
+          DefaultNeighbors.neighbors.map(neighbor =>
+            IR_WaLBerlaLoopOverBlockNeighborhoodSection(
+            neighbor.dir,
+            IR_Assignment(
+              resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression),
+              resolveDefValue().get))
+          ) : _*)))
+    else
+      None
   }
 
   override def resolveDefValue() = proxy.resolveDefValue()
