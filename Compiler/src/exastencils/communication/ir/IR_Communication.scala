@@ -9,17 +9,15 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.RefinementCase
 import exastencils.fieldlike.ir.IR_FieldLike
 
-trait IR_Communication extends IR_Statement with IR_Expandable {
+trait IR_Communication extends IR_Statement with IR_Expandable with IR_HasRefinedCommunication {
 
   def field : IR_FieldLike
 
-  def refinementCase : RefinementCase.Access
-
   def insideFragLoop : Boolean
 
-  def wrapCond(neighbor : NeighborInfo, stmt : IR_Statement) : IR_Statement
+  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int], stmt : IR_Statement) : IR_Statement
 
-  def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement
+  def wrapCond(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[Int], body : ListBuffer[IR_Statement]) : IR_Statement
 
   def wrapFragLoop(toWrap : IR_Statement) : IR_Statement = {
     if (insideFragLoop) {

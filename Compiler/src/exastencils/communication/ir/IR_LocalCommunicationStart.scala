@@ -46,9 +46,9 @@ case class IR_LocalCommunicationStart(
       packInfos.map(packInfo => {
         val neighbor = packInfo.neighbor
         val neighborIdx = neighbor.index
-        val domainIdx = field.domain.index
 
         wrapCond(neighbor,
+          getIndexOfRefinedNeighbor(packInfo),
           IR_Assignment(IR_IV_LocalCommReady(field, neighborIdx), IR_BooleanConstant(true)))
       }))
   }

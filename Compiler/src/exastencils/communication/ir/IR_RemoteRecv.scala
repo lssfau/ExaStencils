@@ -48,10 +48,13 @@ case class IR_RemoteRecv(
   override def expand() : Output[StatementList] = {
 
     ListBuffer[IR_Statement](
-      IR_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domain.index, neighbor.index),
-        MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index), IR_IV_CommunicationId(),
+      IR_PotentiallyCritical(
+        MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domain.index, neighbor.index, indexOfRefinedNeighbor),
+        MPI_GeneratedTag(
+          IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index, indexOfRefinedNeighbor),
+          IR_IV_CommunicationId(),
           if (Knowledge.comm_enableCommTransformations)
-            IR_IV_CommNeighNeighIdx(field.domain.index, neighbor.index)
+            IR_IV_CommNeighNeighIdx(field.domain.index, neighbor.index, indexOfRefinedNeighbor)
           else
             DefaultNeighbors.getOpposingNeigh(neighbor.index).index,
           concurrencyId, indexOfRefinedNeighbor),
@@ -70,7 +73,7 @@ case class IR_CopyFromRecvBuffer(
     var packInfo : IR_RemotePackInfo,
     var concurrencyId : Int,
     var indexOfRefinedNeighbor : Option[Int],
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_RefinedCommunication {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_HasRefinedPacking {
 
   def numDims = field.layout.numDimsData
 

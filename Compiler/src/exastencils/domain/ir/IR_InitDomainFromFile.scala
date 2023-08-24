@@ -56,6 +56,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     IR_Comment("Iteration offset not implemented")
   }
 
+  def indexOfRefinedNeighbor : Option[Int] = None // TODO: refinement
+
   def connectFragmentFromFile(neighborBlockID : IR_VariableAccess, neighborCommID : IR_VariableAccess, neighIdx : IR_VariableAccess) = {
     var stmts = new ListBuffer[IR_Statement]
 
@@ -65,20 +67,20 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       val neigh_blockID = IR_ArrayAccess(neighborBlockID, neighIdx)
 
       def localConnect(domainIdx : Int) = ListBuffer[IR_Statement](
-        IR_Assignment(IR_IV_NeighborIsValid(domainIdx, neighIdx, defIt), true),
-        IR_Assignment(IR_IV_NeighborIsRemote(domainIdx, neighIdx, defIt), false),
-        IR_Assignment(IR_IV_NeighborFragmentIdx(domainIdx, neighIdx, defIt), neigh_commID),
+        IR_Assignment(IR_IV_NeighborIsValid(domainIdx, neighIdx, indexOfRefinedNeighbor, defIt), true),
+        IR_Assignment(IR_IV_NeighborIsRemote(domainIdx, neighIdx, indexOfRefinedNeighbor, defIt), false),
+        IR_Assignment(IR_IV_NeighborFragmentIdx(domainIdx, neighIdx, indexOfRefinedNeighbor, defIt), neigh_commID),
         setIterationOffset())
 
       def remoteConnect(domainIdx : Int) = ListBuffer[IR_Statement](
-        IR_Assignment(IR_IV_NeighborIsValid(domainIdx, neighIdx, defIt), true),
-        IR_Assignment(IR_IV_NeighborIsRemote(domainIdx, neighIdx, defIt), true),
-        IR_Assignment(IR_IV_NeighborFragmentIdx(domainIdx, neighIdx, defIt), neigh_commID),
-        IR_Assignment(IR_IV_NeighborRemoteRank(domainIdx, neighIdx, defIt), neigh_blockID),
+        IR_Assignment(IR_IV_NeighborIsValid(domainIdx, neighIdx, indexOfRefinedNeighbor, defIt), true),
+        IR_Assignment(IR_IV_NeighborIsRemote(domainIdx, neighIdx, indexOfRefinedNeighbor, defIt), true),
+        IR_Assignment(IR_IV_NeighborFragmentIdx(domainIdx, neighIdx, indexOfRefinedNeighbor, defIt), neigh_commID),
+        IR_Assignment(IR_IV_NeighborRemoteRank(domainIdx, neighIdx, indexOfRefinedNeighbor, defIt), neigh_blockID),
         setIterationOffset())
 
       IR_DomainCollection.objects.indices.foreach(d => stmts += IR_IfCondition(IR_EqEq(neigh_blockID, -1),
-        IR_Assignment(IR_IV_NeighborIsValid(d, neighIdx, defIt), false),
+        IR_Assignment(IR_IV_NeighborIsValid(d, neighIdx, indexOfRefinedNeighbor, defIt), false),
         IR_IfCondition(IR_EqEq(neigh_blockID, MPI_IV_MpiRank),
           localConnect(d),
           IR_IfCondition(IR_Neq(neigh_blockID, MPI_IV_MpiRank),
@@ -97,7 +99,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     def neighborEdge = IR_ArrayAccess(neighbor_edge, i)
 
-    def neighBoundaryId = IR_IV_CommNeighNeighIdx(domain, i)
+    def neighBoundaryId = IR_IV_CommNeighNeighIdx(domain, i, indexOfRefinedNeighbor)
 
     commStmts += IR_Assignment(neighBoundaryId, IR_IntegerConstant(-1))
 
@@ -108,7 +110,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     // neighbor does not exist
     commStmts += IR_IfCondition(IR_EqEq(neighborEdge, IR_StringConstant("X")),
       ListBuffer[IR_Statement](
-        IR_Assignment(IR_IV_CommTrafoId(domain, i), -1),
+        IR_Assignment(IR_IV_CommTrafoId(domain, i, indexOfRefinedNeighbor), -1),
         IR_Continue()
       )
     )
@@ -126,7 +128,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
       IR_IfCondition(
         and.reduce(IR_OrOr),
-        IR_Assignment(IR_IV_CommTrafoId(domain, i), id)
+        IR_Assignment(IR_IV_CommTrafoId(domain, i, indexOfRefinedNeighbor), id)
       )
     }
 
@@ -242,8 +244,8 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
     // adapt boundary points for case 1 | 3
     def adapt(neigh : NeighborInfo) = {
       IR_IfCondition(IR_OrOr(
-        IR_EqEq(IR_IV_CommTrafoId(field.domain.index, neigh.index), 1),
-        IR_EqEq(IR_IV_CommTrafoId(field.domain.index, neigh.index), 3)
+        IR_EqEq(IR_IV_CommTrafoId(field.domain.index, neigh.index, indexOfRefinedNeighbor), 1),
+        IR_EqEq(IR_IV_CommTrafoId(field.domain.index, neigh.index, indexOfRefinedNeighbor), 3)
       ),
         if (neigh.dir.sum > 0)
           changePositionForward(neigh)
@@ -320,7 +322,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       val boundary = IR_DirectFieldAccess(field, 0, genIndexBoundary(neigh))
       val interior = IR_DirectFieldAccess(field, 0, genIndexInterior(neigh))
 
-      body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
+      body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index, indexOfRefinedNeighbor)), ListBuffer[IR_Statement](
         IR_LoopOverDimensions(numDims,
           // TODO generalize this if-condition (only works for 2D so far)
           if (neigh.index < 2)
@@ -473,7 +475,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
       def nyCornerEnd = IR_Negative(txCornerEnd)
 
-      body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index)), ListBuffer[IR_Statement](
+      body += IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(0, neigh.index, indexOfRefinedNeighbor)), ListBuffer[IR_Statement](
         IR_Comment(neigh.index.toString()),
         IR_LoopOverDimensions(numDims,
           genIndexRangeBoundaryWoutCorners(neigh),
@@ -583,12 +585,12 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
         connStmts += IR_IfCondition(IR_EqEq(IR_ArrayAccess(neighborBlockID, neigh.index), IR_IntegerConstant(-1)),
           // if
           ListBuffer[IR_Statement](
-            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index)),
-            IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_IntegerConstant(-1))),
+            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index, indexOfRefinedNeighbor), IR_ArrayAccess(neighborFragID, neigh.index)),
+            IR_Assignment(IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor), IR_IntegerConstant(-1))),
           // else
           ListBuffer[IR_Statement](
-            IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index)),
-            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index), IR_IntegerConstant(0)))
+            IR_Assignment(IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor), IR_ArrayAccess(neighborFragID, neigh.index)),
+            IR_Assignment(IR_IV_BoundaryConditionId(d, neigh.index, indexOfRefinedNeighbor), IR_IntegerConstant(0)))
         )
         //connStmts += IR_Assignment(IR_IV_NeighFragId(d, neigh.index), IR_ArrayAccess(neighborFragID, neigh.index))
       }

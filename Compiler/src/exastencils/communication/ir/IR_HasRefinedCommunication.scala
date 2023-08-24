@@ -4,9 +4,16 @@ import exastencils.base.ir.IR_Statement
 import exastencils.config.Knowledge
 import exastencils.domain.ir.RefinementCase
 
-trait IR_RefinedCommunication {
+trait IR_HasRefinedCommunication {
   def refinementCase : RefinementCase.Access
 
+  def getIndexOfRefinedNeighbor(packInfo : IR_PackInfo) : Option[Int] = packInfo match {
+    case p : IR_RefinementPackInfo => Some(p.indexOfRefinedNeighbor)
+    case _                         => None
+  }
+}
+
+trait IR_HasRefinedPacking extends IR_HasRefinedCommunication {
   def equalLevelCopyLoop() : IR_Statement
   def coarseToFineCopyLoop() : IR_Statement
   def fineToCoarseCopyLoop() : IR_Statement

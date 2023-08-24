@@ -36,29 +36,33 @@ case class IR_LocalSend(
     var refinementCase : RefinementCase.Access,
     var packInfo : IR_LocalPackInfo,
     var insideFragLoop : Boolean,
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication with IR_RefinedCommunication {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication with IR_HasRefinedPacking {
 
   def numDims = field.layout.numDimsData
 
+  def indexOfRefinedNeighbor = getIndexOfRefinedNeighbor(packInfo)
+
   def equalLevelCopyLoop() : IR_Statement =
-    IR_NoInterpPackingLocal(send = true, field, slot, refinementCase, packInfo, condition)
+    IR_NoInterpPackingLocal(send = true, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
 
   def coarseToFineCopyLoop() : IR_Statement =
-    IR_QuadraticInterpPackingC2FLocal(send = true, field, slot, refinementCase, packInfo, condition)
+    IR_QuadraticInterpPackingC2FLocal(send = true, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
 
   def fineToCoarseCopyLoop() : IR_Statement =
-    IR_LinearInterpPackingF2CLocal(send = true, field, slot, refinementCase, packInfo, condition)
+    IR_LinearInterpPackingF2CLocal(send = true, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
 
   override def expand() : Output[IR_Statement] = {
     val neighbor = packInfo.neighbor
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
-    IR_IfCondition(isLocalNeighbor(refinementCase, domainIdx, neighborIdx),
+    IR_IfCondition(isLocalNeighbor(refinementCase, domainIdx, neighborIdx, indexOfRefinedNeighbor),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
-        IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-          field, DefaultNeighbors.getOpposingNeigh(neighborIdx).index, IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx)))),
+        IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(),
+          IR_AddressOf(IR_IV_LocalCommReady(field,
+            DefaultNeighbors.getOpposingNeigh(neighborIdx).index,
+            IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor)))),
         getCopyLoop(),
         // signal other threads that the data reading step is completed
         IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true))))
