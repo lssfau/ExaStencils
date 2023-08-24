@@ -72,9 +72,8 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
     }
   }
 
-  def indexOfRefinedNeighbor : Option[IR_Expression] = None // TODO: refinement index
-
-  def connectLocalElement(localFragmentIdx : IR_Expression, neighFragmentIdx : IR_Expression, neighIdx : Int, domain : Int) = {
+  // TODO: no default value for refinement index
+  def connectLocalElement(localFragmentIdx : IR_Expression, neighFragmentIdx : IR_Expression, neighIdx : Int, domain : Int, indexOfRefinedNeighbor : Option[IR_Expression] = None) = {
     ListBuffer[IR_Statement](
       IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), true),
       IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), false),
@@ -83,7 +82,8 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
       setIterationOffset(neighIdx, domain, Duplicate(localFragmentIdx)))
   }
 
-  def connectRemoteElement(localFragmentIdx : IR_Expression, localNeighIdx : IR_Expression, remoteRank : IR_Expression, neighIdx : Int, domain : Int) = {
+  // TODO: no default value for refinement index
+  def connectRemoteElement(localFragmentIdx : IR_Expression, localNeighIdx : IR_Expression, remoteRank : IR_Expression, neighIdx : Int, domain : Int, indexOfRefinedNeighbor : Option[IR_Expression] = None) = {
     ListBuffer[IR_Statement](
       IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), true),
       IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, indexOfRefinedNeighbor, Duplicate(localFragmentIdx)), true),

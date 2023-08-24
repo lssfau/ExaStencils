@@ -244,10 +244,10 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
         // compile connect calls
         def localConnect() = IR_ConnectFragments().connectLocalElement(
-          defIt, wbLocalNeighborBlockIdx, neigh.index, domainIdx)
+          defIt, wbLocalNeighborBlockIdx, neigh.index, domainIdx, Some(wbNeighborIdx))
 
         def remoteConnect() = IR_ConnectFragments().connectRemoteElement(
-          defIt, wbRemoteNeighborBlockIdx, wbNeighborProcess, neigh.index, domainIdx)
+          defIt, wbRemoteNeighborBlockIdx, wbNeighborProcess, neigh.index, domainIdx, Some(wbNeighborIdx))
 
         // assemble loop over neighbors and connect frags
         var bodyNeighborHoodLoop = ListBuffer[IR_Statement]()
