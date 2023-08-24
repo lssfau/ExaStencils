@@ -29,6 +29,12 @@ abstract class IR_IV_FragmentConnection extends IR_InternalVariable(true, true, 
   override def usesDomainArrays : Boolean = true
   override def usesNeighborArrays : Boolean = true
 
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+    val access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
+
+    if (indexOfRefinedNeighbor.isDefined) IR_ArrayAccess(access, indexOfRefinedNeighbor.get) else access
+  }
+
   def indexOfRefinedNeighbor : Option[Int]
 }
 
