@@ -39,15 +39,16 @@ abstract class IR_WaLBerlaBlockConnection() extends IR_WaLBerlaInterfaceMember(t
 
   override def getCtor() : Option[IR_Statement] = {
     if (resolveDefValue().isDefined)
-      Some(wrapInLoops(
-        IR_Scope(
-          DefaultNeighbors.neighbors.map(neighbor =>
+      Some(
+        IR_WaLBerlaLoopOverLocalBlockArray(
+          DefaultNeighbors.neighbors.zipWithIndex.map { case (neighbor, idx) => // manually unroll loop over neighbors
             IR_WaLBerlaLoopOverBlockNeighborhoodSection(
-            neighbor.dir,
-            IR_Assignment(
-              resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression),
-              resolveDefValue().get))
-          ) : _*)))
+              neighbor.dir,
+              IR_Assignment(
+                resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, idx),
+                resolveDefValue().get)).expandSpecial().inner
+          } : _*).expandSpecial().inner
+      )
     else
       None
   }

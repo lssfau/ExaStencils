@@ -4,9 +4,14 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
+import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.Transformation.OutputType
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_UintType
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDirection
+
+/// IR_WaLBerlaLoopOverBlockNeighborhoodSection
 
 object IR_WaLBerlaLoopOverBlockNeighborhoodSection {
   def apply(wbNeighDir : IR_Expression, body : IR_Statement*) = new IR_WaLBerlaLoopOverBlockNeighborhoodSection(wbNeighDir, body.to[ListBuffer])
@@ -21,8 +26,8 @@ object IR_WaLBerlaLoopOverBlockNeighborhoodSection {
   def defIt = "wbNeighborhoodIdx"
 }
 
-case class IR_WaLBerlaLoopOverBlockNeighborhoodSection(var wbNeighDir : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_ScopedStatement with IR_Expandable {
-  override def expand() : OutputType = {
+case class IR_WaLBerlaLoopOverBlockNeighborhoodSection(var wbNeighDir : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_ScopedStatement with IR_SpecialExpandable {
+  def expandSpecial() : Output[IR_Statement] = {
     import IR_WaLBerlaLoopOverBlockNeighborhoodSection._
 
     def block = IR_WaLBerlaLoopOverLocalBlocks.block
@@ -41,6 +46,15 @@ case class IR_WaLBerlaLoopOverBlockNeighborhoodSection(var wbNeighDir : IR_Expre
       IR_PreIncrement(wbNeighborIdx),
       body)
 
-    result
+    IR_Scope(result)
   }
+}
+
+/// IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection
+
+object IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection extends DefaultStrategy("Resolve loops over wb neighborhood sections") {
+  this += Transformation("..", {
+    case loop : IR_WaLBerlaLoopOverBlockNeighborhoodSection =>
+      loop.expandSpecial()
+  })
 }

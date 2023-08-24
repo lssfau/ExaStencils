@@ -11,6 +11,7 @@ import exastencils.optimization.ir.IR_GeneralSimplifyUntilDoneWrapper
 import exastencils.parallelization.api.cuda.CUDA_FunctionConversionWrapper
 import exastencils.parallelization.api.cuda.CUDA_PrepareMPICode
 import exastencils.scheduling._
+import exastencils.waLBerla.ir.blockforest.IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
 import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaAdaptKernels
 import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaHandleGPUMemory
@@ -73,6 +74,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
 
     // generate interface at last
     scheduler.appendToFirstFound(IR_HACK_TypeAliases,
+      IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection,
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
