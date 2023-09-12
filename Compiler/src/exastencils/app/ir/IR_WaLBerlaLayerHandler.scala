@@ -2,6 +2,7 @@ package exastencils.app.ir
 
 import exastencils.baseExt.ir.IR_HACK_TypeAliases
 import exastencils.baseExt.ir.IR_ResolveLoopOverFragments
+import exastencils.communication.ir.IR_ResolveRemoteTransfer
 import exastencils.communication.ir.IR_SetupCommunicationWrapper
 import exastencils.config.Knowledge
 import exastencils.fieldlike.ir.IR_ResolveFieldLikeAccess
@@ -32,6 +33,8 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // append comm replacements
     List(true, false).foreach(b => scheduler.appendToAllFound(IR_SetupCommunicationWrapper(b),
       ConditionedSingleStrategyWrapper(Knowledge.waLBerla_generateCommSchemes, IR_WaLBerlaReplaceCommunication)))
+
+    scheduler.prependToFirstFound(IR_ResolveRemoteTransfer, IR_WaLBerlaReplaceFragmentLoops)
 
     // replace accesses to geometry information
     scheduler.prependToAllFound(IR_ResolveIntegrateOnGrid,
@@ -78,7 +81,6 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaReplaceFragmentIVs,
       IR_WaLBerlaReplaceVariableAccesses,
       IR_GeneralSimplifyUntilDoneWrapper) // one last time after block loops are expanded and replacements are done
   }
