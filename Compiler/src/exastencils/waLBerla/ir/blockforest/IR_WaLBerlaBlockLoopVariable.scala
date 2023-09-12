@@ -13,9 +13,11 @@ import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 object IR_WaLBerlaBlockLoopVariable {
   // order by type
   val byTypeOrd : Ordering[IR_WaLBerlaBlockLoopVariable] = Ordering.by {
-    case _ : IR_WaLBerlaRefinementLevel      => 0
-    case _ : IR_WaLBerlaCellWidthBlockPerDim => 1
-    case _                                   => 2
+    case _ : IR_WaLBerlaRefinementLevel          => 0
+    case _ : IR_WaLBerlaCellWidthBlockPerDim     => 1
+    case _ : IR_WaLBerlaNeighborHoodSectionIndex => 2
+    case _ : IR_WaLBerlaNeighborHoodSectionSize  => 3
+    case _                                       => 4
   }
   // order by name
   val byNameOrd : Ordering[IR_WaLBerlaBlockLoopVariable] = Ordering.by { member : IR_WaLBerlaBlockLoopVariable => member.resolveName() }

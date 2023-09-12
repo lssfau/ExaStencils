@@ -15,7 +15,6 @@ import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_Print
 import exastencils.util.ir.IR_Read
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlockNeighborhoodSection._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlockNeighborhoodSection
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
@@ -53,11 +52,13 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   def canHavePeriodicity = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_rect_hasPeriodicity
 
   // wb block info
-  def wbNeighborBlockId = IR_VariableAccess("neighBlockID", IR_SpecialDatatype("const auto"))
-  def wbNeighborProcess = block.getNeighborProcess(wbNeighborHoodSectionIdx, wbNeighborIdx)
+  def wbNeighborIdx = IR_WaLBerlaLoopOverBlockNeighborhoodSection.wbNeighborIdx
 
-  def hasLocalNeighbor() = IR_MemberFunctionCallArrow(block, "neighborExistsLocally", wbNeighborHoodSectionIdx, wbNeighborIdx)
-  def hasRemoteNeighbor() = IR_MemberFunctionCallArrow(block, "neighborExistsRemotely", wbNeighborHoodSectionIdx, wbNeighborIdx)
+  def wbNeighborBlockId = IR_VariableAccess("neighBlockID", IR_SpecialDatatype("const auto"))
+
+  def hasLocalNeighbor(wbNeighSectionIdx : IR_Expression) = IR_MemberFunctionCallArrow(block, "neighborExistsLocally", wbNeighSectionIdx, wbNeighborIdx)
+
+  def hasRemoteNeighbor(wbNeighSectionIdx : IR_Expression) = IR_MemberFunctionCallArrow(block, "neighborExistsRemotely", wbNeighSectionIdx, wbNeighborIdx)
 
   // setup functions
   def setupFragmentPosition() = {
@@ -144,26 +145,21 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
       // pack map entries (i.e. BlockID and local block list index) into buffer
       if (canHaveLocalNeighs || canHaveRemoteNeighs || canHavePeriodicity) {
-          val packBufferStream = IR_VariableAccess("packBufferStream", IR_SpecialDatatype("auto &"))
-          val commStencil = Knowledge.dimensionality match {
-            case 3 => "stencil::D3Q6"
-            case 2 => "stencil::D2Q4"
-          }
-          val stencilDir = IR_VariableAccess("dir", IR_SpecialDatatype("auto"))
+        val packBufferStream = IR_VariableAccess("packBufferStream", IR_SpecialDatatype("auto &"))
 
-          var fillSendBuffer = ListBuffer[IR_Statement]()
-          fillSendBuffer += IR_IfCondition(hasRemoteNeighbor(),
-            ListBuffer[IR_Statement](
-              IR_VariableDeclaration(packBufferStream, IR_MemberFunctionCall(bufferSystem, "sendBuffer", wbNeighborProcess)),
-              IR_MemberFunctionCall(ranksToComm, "insert", wbNeighborProcess), // insert neigh process to list of comm participants
-              IR_Print(packBufferStream, block.getId(), defIt)))
+        val fillBufferForNeigh = neighbors.map(neigh => {
+          val wbNeighborHoodSectionIdx = IR_WaLBerlaNeighborHoodSectionIndex(neigh.dir)
+          val wbNeighborProcess = block.getNeighborProcess(wbNeighborHoodSectionIdx, wbNeighborIdx)
 
-          val fillBufferForNeigh = IR_ForLoop(
-            IR_VariableDeclaration(stencilDir, IR_FunctionCall(s"$commStencil::begin")),
-            stencilDir Neq IR_FunctionCall(s"$commStencil::end"),
-            IR_PreIncrement(stencilDir),
-            IR_WaLBerlaLoopOverBlockNeighborhoodSection(IR_DerefAccess(stencilDir), fillSendBuffer))
-          communicate += IR_WaLBerlaLoopOverLocalBlockArray(IR_Scope(fillBufferForNeigh), IR_ParallelizationInfo(potentiallyParallel = true))
+          IR_WaLBerlaLoopOverBlockNeighborhoodSection(neigh.dir,
+            IR_IfCondition(hasRemoteNeighbor(wbNeighborHoodSectionIdx),
+              ListBuffer[IR_Statement](
+                IR_VariableDeclaration(packBufferStream, IR_MemberFunctionCall(bufferSystem, "sendBuffer", wbNeighborProcess)),
+                IR_MemberFunctionCall(ranksToComm, "insert", wbNeighborProcess), // insert neigh process to list of comm participants
+                IR_Print(packBufferStream, block.getId(), defIt))))
+        })
+
+        communicate += IR_WaLBerlaLoopOverLocalBlockArray(IR_Scope(fillBufferForNeigh : _*), IR_ParallelizationInfo(potentiallyParallel = true))
       }
 
       // transmit list of comm participants and communicate
@@ -204,6 +200,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
         // find array index of neighbor block in local block vector
         val wbLocalNeighborBlockIdx = IR_VariableAccess("localNeighborBlockIdx", IR_IntegerDatatype)
         val compareBlockIDs = IR_Native(s"[&${ wbNeighborBlockId.name }](Block* b) { return b->getId().getID() == ${ wbNeighborBlockId.name }.getID(); }")
+
         def findLocalNeighborBlockIndex() = {
           val findEntry = IR_FunctionCall("std::find_if",
             IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "begin"), IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "end"),
@@ -216,6 +213,10 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
         // find array index of neighbor block in remote block vector
         val wbRemoteNeighborBlockIdx = IR_VariableAccess("remoteNeighborBlockIdx", IR_IntegerDatatype)
+
+        val wbNeighborHoodSectionIdx = IR_WaLBerlaNeighborHoodSectionIndex(neigh.dir)
+        val wbNeighborProcess = block.getNeighborProcess(wbNeighborHoodSectionIdx, wbNeighborIdx)
+
         def findRemoteNeighborBlockIndex() = IR_ArrayAccess(IR_WaLBerlaLocalBlockIndicesFromRemote(), wbNeighborBlockId)
 
         // compile connect calls
@@ -246,12 +247,12 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
           // connect local/remote fragments
           if (canHaveRemoteNeighs && canHaveLocalNeighs)
             bodyNeighborHoodLoop ++= ListBuffer[IR_Statement](
-              IR_IfCondition(hasLocalNeighbor(), localConnect(),
-              IR_IfCondition(hasRemoteNeighbor(), remoteConnect())))
+              IR_IfCondition(hasLocalNeighbor(wbNeighborHoodSectionIdx), localConnect(),
+                IR_IfCondition(hasRemoteNeighbor(wbNeighborHoodSectionIdx), remoteConnect())))
           else if (canHaveRemoteNeighs)
-            bodyNeighborHoodLoop += IR_IfCondition(hasRemoteNeighbor(), remoteConnect())
+            bodyNeighborHoodLoop += IR_IfCondition(hasRemoteNeighbor(wbNeighborHoodSectionIdx), remoteConnect())
           else if (canHaveLocalNeighs)
-            bodyNeighborHoodLoop += IR_IfCondition(hasLocalNeighbor(), localConnect())
+            bodyNeighborHoodLoop += IR_IfCondition(hasLocalNeighbor(wbNeighborHoodSectionIdx), localConnect())
         }
         statements += IR_WaLBerlaLoopOverBlockNeighborhoodSection(neigh.dir, bodyNeighborHoodLoop : _*)
 
