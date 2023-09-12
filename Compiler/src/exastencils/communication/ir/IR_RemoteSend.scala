@@ -22,17 +22,15 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.communication._
-import exastencils.config.Knowledge
-import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
+
+/// IR_RemoteSend
 
 case class IR_RemoteSend(
     var field : IR_FieldLike,
@@ -42,9 +40,9 @@ case class IR_RemoteSend(
     var numDataPoints : IR_Expression,
     var datatype : IR_Datatype,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+    var indexOfRefinedNeighbor : Option[IR_Expression]) extends IR_RemoteTransfer {
 
-  override def expand() : Output[StatementList] = {
+  def expandSpecial() = {
     ListBuffer[IR_Statement](
       IR_PotentiallyCritical(
         MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domain.index, neighbor.index, indexOfRefinedNeighbor),

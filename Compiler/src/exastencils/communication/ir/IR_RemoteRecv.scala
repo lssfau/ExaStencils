@@ -43,9 +43,9 @@ case class IR_RemoteRecv(
     var numDataPoints : IR_Expression,
     var datatype : IR_Datatype,
     var concurrencyId : Int,
-    var indexOfRefinedNeighbor : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+    var indexOfRefinedNeighbor : Option[IR_Expression]) extends IR_RemoteTransfer {
 
-  override def expand() : Output[StatementList] = {
+  def expandSpecial() = {
 
     ListBuffer[IR_Statement](
       IR_PotentiallyCritical(

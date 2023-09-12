@@ -130,6 +130,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(IR_AdaptTimerFunctions)
 
     scheduler.register(IR_ExpandWrapper)
+    scheduler.register(IR_ResolveRemoteTransfer)
 
     scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.experimental_compactBufferAllocation, IR_AdaptAllocateDataFunction))
 
