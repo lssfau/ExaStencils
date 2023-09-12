@@ -2,9 +2,11 @@ package exastencils.waLBerla.ir.replacements
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.datastructures.Transformation
 import exastencils.domain.ir._
 import exastencils.waLBerla.ir.blockforest._
+import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommunicationId
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementCase
 
@@ -32,7 +34,9 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
           assign.dest = IR_WaLBerlaNeighborFragmentIdx(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
         case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx)  =>
           assign.dest = IR_WaLBerlaNeighborRemoteRank(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
-        case _                                                          =>
+        case _ @ IR_IV_CommunicationId(fragmentIdx)                                          =>
+          assign.dest = IR_WaLBerlaCommunicationId(fragmentIdx)
+        case _                                                                               =>
       }
       assign
 
@@ -57,6 +61,8 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
       IR_WaLBerlaNeighborFragmentIdx(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
     case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector)  =>
       IR_WaLBerlaNeighborRemoteRank(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
+    case _ @ IR_IV_CommunicationId(fragmentIdx) if inWaLBerlaBlockLoop(collector)                                          =>
+      IR_WaLBerlaCommunicationId(fragmentIdx)
 
     // refinement case
     case _ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx) if inWaLBerlaBlockLoop(collector) =>
