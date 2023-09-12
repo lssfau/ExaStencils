@@ -48,10 +48,10 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
 
   def containingWaLBerlaBlockLoop(collector : IR_StackCollector) = {
     collector.stack.collectFirst {
-      case loop : IR_WaLBerlaLoopOverLocalBlocks                                                                                    => loop
-      case loop : IR_WaLBerlaLoopOverLocalBlockArray                                                                                => loop
-      case loop : IR_LoopOverPoints if loop.field.isInstanceOf[IR_WaLBerlaField]                                                    => loop
-      case loop : IR_LoopOverPointsInOneFragment if loop.field.isInstanceOf[IR_WaLBerlaField]                                       => loop
+      case loop : IR_WaLBerlaLoopOverLocalBlocks                                              => loop
+      case loop : IR_WaLBerlaLoopOverLocalBlockArray                                          => loop
+      case loop : IR_LoopOverPoints if loop.field.isInstanceOf[IR_WaLBerlaField]              => loop
+      case loop : IR_LoopOverPointsInOneFragment if loop.field.isInstanceOf[IR_WaLBerlaField] => loop
     }
   }
 
