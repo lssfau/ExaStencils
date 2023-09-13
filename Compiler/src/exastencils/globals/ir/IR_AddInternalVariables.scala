@@ -23,7 +23,7 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -65,7 +65,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   }
 
   this += new Transformation("Collecting buffer sizes", {
-    case buf : IR_IV_CommBuffer =>
+    case buf : IR_IV_CommBufferLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (!buf.field.layout.useFixedLayoutSizes) {
         if (bufferSizes.contains(id))
@@ -185,7 +185,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   })
 
   this += new Transformation("Updating temporary buffer allocations", {
-    case buf : IR_IV_CommBuffer =>
+    case buf : IR_IV_CommBufferLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = bufferSizes(id)
 

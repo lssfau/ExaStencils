@@ -87,7 +87,7 @@ case class CUDA_Kernel(
   var evaluatedAccesses = false
   var linearizedFieldAccesses = HashMap[String, IR_LinearizedFieldLikeAccess]()
   var writtenFieldAccesses = HashMap[String, IR_LinearizedFieldLikeAccess]()
-  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBufferLike]()
   var ivAccesses = HashMap[String, IR_InternalVariable]()
 
   var evaluatedIndexBounds = false

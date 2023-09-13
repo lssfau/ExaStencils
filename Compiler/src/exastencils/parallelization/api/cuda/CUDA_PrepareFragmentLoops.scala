@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.core.Duplicate
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -15,7 +15,7 @@ import exastencils.util.ir.IR_FragmentLoopCollector
 trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_ExecutionBranching {
 
   def fieldAccesses : mutable.Map[String, IR_IV_AbstractFieldLikeData]
-  def bufferAccesses : mutable.Map[String, IR_IV_CommBuffer]
+  def bufferAccesses : mutable.Map[String, IR_IV_CommBufferLike]
 
   def accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop]
 

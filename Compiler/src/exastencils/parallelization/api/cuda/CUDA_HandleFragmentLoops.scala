@@ -6,7 +6,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
@@ -42,7 +42,7 @@ object CUDA_HandleFragmentLoops extends DefaultStrategy("Handle synchronization 
 case class CUDA_AccessedElementsInFragmentLoop(
     var streams : ListBuffer[CUDA_Stream],
     var fieldAccesses : mutable.HashMap[String, IR_IV_AbstractFieldLikeData],
-    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer],
+    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBufferLike],
     var isLoopParallel : Boolean,
     var fromMPIStatement : Boolean,
     var estimatedHostTime : Double,

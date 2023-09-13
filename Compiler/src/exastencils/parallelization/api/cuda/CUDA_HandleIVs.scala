@@ -23,11 +23,9 @@ import scala.collection._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.IR_VariableAccess
 import exastencils.baseExt.ir.IR_InternalVariable
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.datastructures._
-import exastencils.field.ir.IR_IV_ActiveSlot
 import exastencils.field.ir.IR_SlotAccess
-import exastencils.logger.Logger
 
 /// CUDA_GatherIVs
 
@@ -35,7 +33,7 @@ object CUDA_GatherIVs extends QuietDefaultStrategy("Gather local InternalVariabl
   var ivAccesses = mutable.HashMap[String, IR_InternalVariable]()
 
   this += new Transformation("Searching", {
-    case iv : IR_IV_CommBuffer =>
+    case iv : IR_IV_CommBufferLike =>
       // skip due to separate handling
       iv
 
@@ -51,7 +49,7 @@ object CUDA_ReplaceIVs extends QuietDefaultStrategy("Replace local InternalVaria
   var ivAccesses = mutable.HashMap[String, IR_InternalVariable]()
 
   this += new Transformation("Searching", {
-    case iv : IR_IV_CommBuffer =>
+    case iv : IR_IV_CommBufferLike =>
       // skip due to separate handling
       iv
     case slot : IR_SlotAccess =>

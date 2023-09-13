@@ -24,7 +24,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -54,7 +54,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   this.onBefore = () => this.resetCollectors()
 
   var fieldAccesses = HashMap[String, IR_IV_AbstractFieldLikeData]()
-  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBufferLike]()
 
   var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
 

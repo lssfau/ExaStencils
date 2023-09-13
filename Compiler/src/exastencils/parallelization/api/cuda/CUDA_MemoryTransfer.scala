@@ -146,7 +146,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_AbstractFieldLikeData, st
 
 /// CUDA_UpdateHostBufferData
 
-case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBufferLike, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = buffer.field
     val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx))
@@ -171,7 +171,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
 
 /// CUDA_UpdateDeviceData
 
-case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBufferLike, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = buffer.field
     val isDirty = CUDA_HostBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx))

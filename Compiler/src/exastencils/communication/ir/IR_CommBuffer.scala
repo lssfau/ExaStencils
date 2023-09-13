@@ -29,7 +29,7 @@ import exastencils.prettyprinting.PpStream
 
 /// IR_IV_AbstractCommBuffer
 
-abstract class IR_IV_AbstractCommBuffer extends IR_IV_CommVariable with IR_HasMessageDirection {
+abstract class IR_IV_AbstractCommBuffer extends IR_IV_CommVariable with IR_IV_AbstractCommBufferLike {
   var field : IR_FieldLike
   var send : Boolean
   var size : IR_Expression
@@ -91,7 +91,8 @@ case class IR_IV_CommBuffer(
     override var neighIdx : IR_Expression,
     override var concurrencyId : Int,
     override var indexOfRefinedNeighbor : Option[IR_Expression],
-    override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
+    override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer with IR_IV_CommBufferLike {
+
   def basePtr = IR_IV_CommBufferBasePtr(field, send, size, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx)
 
   override def resolveName() = s"buffer_${ direction }_${ concurrencyId }" +

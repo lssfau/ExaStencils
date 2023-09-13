@@ -24,7 +24,7 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -52,7 +52,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   this.onBefore = () => this.resetCollectors()
 
   var fieldAccesses = HashMap[String, IR_IV_AbstractFieldLikeData]()
-  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBufferLike]()
 
   var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
 
@@ -127,7 +127,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     fieldAccesses.put(identifier, fieldData)
   }
 
-  def mapBuffer(buffer : IR_IV_CommBuffer, inWriteOp : Boolean) = {
+  def mapBuffer(buffer : IR_IV_CommBufferLike, inWriteOp : Boolean) = {
     var identifier = buffer.resolveName()
     val neighIdx = buffer.neighIdx
 
@@ -140,7 +140,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     expr match {
       case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, false)
       case field : IR_IV_AbstractFieldLikeData => mapFieldPtrAccess(field, false)
-      case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, false)
+      case buffer : IR_IV_CommBufferLike       => mapBuffer(buffer, false)
       case IR_PointerOffset(base, _)       => processRead(base)
 
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
@@ -154,7 +154,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     expr match {
       case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, true)
       case field : IR_IV_AbstractFieldLikeData => mapFieldPtrAccess(field, true)
-      case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, true)
+      case buffer : IR_IV_CommBufferLike       => mapBuffer(buffer, true)
       case IR_PointerOffset(base, _)       => processWrite(base)
 
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
@@ -236,7 +236,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
             case fieldData : IR_IV_AbstractFieldLikeData =>
               CUDA_FieldDeviceData(fieldData.field, fieldData.slot, fieldData.fragmentIdx)
 
-            case buffer : IR_IV_CommBuffer =>
+            case buffer : IR_IV_CommBufferLike =>
               CUDA_BufferDeviceData(buffer.field, buffer.send, buffer.size, buffer.neighIdx,
                 buffer.concurrencyId, buffer.indexOfRefinedNeighbor, buffer.fragmentIdx)
           })
