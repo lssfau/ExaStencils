@@ -30,11 +30,13 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
 
     /* extend schedule of default IR layer handler */
 
-    // append comm replacements
+    // add comm replacements
     List(true, false).foreach(b => scheduler.appendToAllFound(IR_SetupCommunicationWrapper(b),
       ConditionedSingleStrategyWrapper(Knowledge.waLBerla_generateCommSchemes, IR_WaLBerlaReplaceCommunication)))
 
-    scheduler.prependToFirstFound(IR_ResolveRemoteTransfer, IR_WaLBerlaReplaceFragmentLoops)
+    scheduler.prependToFirstFound(IR_ResolveRemoteTransfer,
+      IR_WaLBerlaReplaceCommIVs,
+      IR_WaLBerlaReplaceFragmentLoops)
 
     // replace accesses to geometry information
     scheduler.prependToAllFound(IR_ResolveIntegrateOnGrid,

@@ -27,8 +27,6 @@ abstract class IR_WaLBerlaAbstractCommBuffer extends IR_WaLBerlaInterfaceMember(
 
   override def isPrivate : Boolean = true
 
-  override def name : String = resolveName()
-
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
@@ -69,7 +67,7 @@ case class IR_WaLBerlaCommBufferBasePtr(
     override var indexOfRefinedNeighbor : Option[IR_Expression],
     override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaAbstractCommBuffer {
 
-  override def resolveName() = s"wbBuffer_${ direction }_${ concurrencyId }" +
+  override def name = s"wbBuffer_${ direction }_${ concurrencyId }" +
     resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint) + "_base"
 }
 
@@ -83,9 +81,10 @@ case class IR_WaLBerlaCommBuffer(
     override var concurrencyId : Int,
     override var indexOfRefinedNeighbor : Option[IR_Expression],
     override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaAbstractCommBuffer with IR_IV_CommBufferLike {
+
   def basePtr = IR_WaLBerlaCommBufferBasePtr(field, send, size, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx)
 
-  override def resolveName() = s"wbBuffer_${ direction }_${ concurrencyId }" +
+  override def name = s"wbBuffer_${ direction }_${ concurrencyId }" +
     resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[IR_Statement] = {
@@ -119,10 +118,11 @@ case class IR_WaLBerlaCommBufferIterator(
 
   override def isPrivate : Boolean = true
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
-
   override def name = s"wbTmpBufferIndex_${ direction }_${ concurrencyId }" +
     resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
+
   override def resolveDatatype() = IR_IntegerDatatype
   override def resolveDefValue() = Some(0)
 }

@@ -9,6 +9,10 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommBuffer
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommBufferBasePtr
+import exastencils.waLBerla.ir.communication.IR_WaLBerlaMPIRequest
+import exastencils.waLBerla.ir.communication.IR_WaLBerlaMPIRequestNoField
+import exastencils.waLBerla.ir.communication.IR_WaLBerlaRemoteReqOutstanding
+import exastencils.waLBerla.ir.communication.IR_WaLBerlaRemoteReqOutstandingNoField
 import exastencils.waLBerla.ir.field._
 
 abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStrategy(name) {
@@ -40,12 +44,26 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
       case fAcc : IR_IV_WaLBerlaFieldData                                             =>
         found = true
         fAcc
+
       case bAcc : IR_WaLBerlaCommBuffer                                               =>
         found = true
         bAcc
       case bAcc : IR_WaLBerlaCommBufferBasePtr                                        =>
         found = true
         bAcc
+
+      case rAcc : IR_WaLBerlaMPIRequest        =>
+        found = true
+        rAcc
+      case rAcc : IR_WaLBerlaMPIRequestNoField =>
+        found = true
+        rAcc
+      case rAcc : IR_WaLBerlaRemoteReqOutstanding        =>
+        found = true
+        rAcc
+      case rAcc : IR_WaLBerlaRemoteReqOutstandingNoField =>
+        found = true
+        rAcc
     })
   }
 
