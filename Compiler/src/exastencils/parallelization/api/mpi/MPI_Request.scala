@@ -52,6 +52,8 @@ case class MPI_RequestNoField(
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
 ) extends IR_InternalVariable(true, false, false, false, true) with IR_HasMessageDirection {
 
+  // TODO: indexOfRefinedNeighbor
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
 
   override def resolveName() = s"mpiRequestNoField_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
