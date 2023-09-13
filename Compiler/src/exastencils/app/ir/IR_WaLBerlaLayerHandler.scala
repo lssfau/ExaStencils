@@ -41,6 +41,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       ConditionedStrategyContainerWrapper(!Knowledge.waLBerla_useGridPartFromExa,
         IR_WaLBerlaReplaceFragmentLoops,
         IR_WaLBerlaReplaceVirtualFieldAccesses,
+        IR_WaLBerlaReplaceCommIVs,
         IR_WaLBerlaReplaceFragmentIVs,
         IR_WaLBerlaReplaceDomainBoundaryConditions))
 
@@ -81,7 +82,9 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
+      IR_WaLBerlaReplaceCommIVs,
       IR_WaLBerlaReplaceVariableAccesses,
+      IR_WaLBerlaReplaceAllocateData,
       IR_GeneralSimplifyUntilDoneWrapper) // one last time after block loops are expanded and replacements are done
   }
 

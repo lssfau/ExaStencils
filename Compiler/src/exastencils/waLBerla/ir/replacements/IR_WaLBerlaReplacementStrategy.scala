@@ -7,6 +7,8 @@ import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
+import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommBuffer
+import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommBufferBasePtr
 import exastencils.waLBerla.ir.field._
 
 abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStrategy(name) {
@@ -38,6 +40,12 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
       case fAcc : IR_IV_WaLBerlaFieldData                                             =>
         found = true
         fAcc
+      case bAcc : IR_WaLBerlaCommBuffer                                               =>
+        found = true
+        bAcc
+      case bAcc : IR_WaLBerlaCommBufferBasePtr                                        =>
+        found = true
+        bAcc
     })
   }
 
