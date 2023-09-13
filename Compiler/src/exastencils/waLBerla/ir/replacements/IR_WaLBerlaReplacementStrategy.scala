@@ -41,21 +41,24 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
       case fAcc : IR_IV_WaLBerlaGetField                                              =>
         found = true
         fAcc
+      case fAcc : IR_IV_WaLBerlaGetFieldData                                          =>
+        found = true
+        fAcc
       case fAcc : IR_IV_WaLBerlaFieldData                                             =>
         found = true
         fAcc
 
-      case bAcc : IR_WaLBerlaCommBuffer                                               =>
+      case bAcc : IR_WaLBerlaCommBuffer        =>
         found = true
         bAcc
-      case bAcc : IR_WaLBerlaCommBufferBasePtr                                        =>
+      case bAcc : IR_WaLBerlaCommBufferBasePtr =>
         found = true
         bAcc
 
-      case rAcc : IR_WaLBerlaMPIRequest        =>
+      case rAcc : IR_WaLBerlaMPIRequest                  =>
         found = true
         rAcc
-      case rAcc : IR_WaLBerlaMPIRequestNoField =>
+      case rAcc : IR_WaLBerlaMPIRequestNoField           =>
         found = true
         rAcc
       case rAcc : IR_WaLBerlaRemoteReqOutstanding        =>

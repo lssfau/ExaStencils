@@ -24,10 +24,7 @@ object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("R
   })
 
   this += Transformation("Replace", {
-    case loopOverFrags : IR_LoopOverFragments =>
-      if (containsWaLBerlaFieldAccesses(loopOverFrags) || fragmentLoopsToReplace.contains(loopOverFrags))
-        IR_WaLBerlaLoopOverLocalBlocks(loopOverFrags.body, loopOverFrags.parallelization)
-      else
-        loopOverFrags
+    case loopOverFrags : IR_LoopOverFragments if containsWaLBerlaFieldAccesses(loopOverFrags) || fragmentLoopsToReplace.contains(loopOverFrags) =>
+      IR_WaLBerlaLoopOverLocalBlocks(loopOverFrags.body, loopOverFrags.parallelization)
   })
 }

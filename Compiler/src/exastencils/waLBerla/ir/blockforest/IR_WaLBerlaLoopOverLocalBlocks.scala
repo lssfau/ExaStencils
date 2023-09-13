@@ -58,7 +58,7 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
     // collect fields accessed per level in loop
     var fieldsAccessed = ListBuffer[IR_MultiDimWaLBerlaFieldAccess]()
     IR_WaLBerlaCollectAccessedFields.applyStandalone(body)
-    fieldsAccessed ++= Duplicate(IR_WaLBerlaCollectAccessedFields.wbFieldAccesses)
+    fieldsAccessed ++= IR_WaLBerlaCollectAccessedFields.wbFieldAccesses.map(fAcc => Duplicate(fAcc))
       .groupBy(wbf => (wbf.name, wbf.fragIdx, wbf.level)).map(_._2.head) // distinctBy name, fragIdx and level
 
     // ensure consistency of data flow between wb and exa fields
