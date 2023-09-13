@@ -20,10 +20,7 @@ package exastencils.communication.ir
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_LoopOverDomains
 import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.baseExt.ir.IR_LoopOverNeighbors
-import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_IV_FragmentConnection
 import exastencils.prettyprinting.PpStream
 
@@ -62,22 +59,6 @@ case class IR_IV_CommNeighNeighIdx(
     var neighIdx : IR_Expression,
     var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
-
-  override def getCtor() : Option[IR_Statement] = {
-    if (Knowledge.refinement_enabled) {
-      def proxy(idxOfRefinedNeigh : Int) = IR_IV_CommNeighNeighIdx(domain, neighIdx, Some(idxOfRefinedNeigh), fragmentIdx)
-
-      Some(wrapInLoops(
-        IR_Scope(
-          (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i =>
-            IR_Assignment(proxy(i).resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_NullExpression, IR_NullExpression, IR_LoopOverNeighbors.defIt),
-              resolveDefValue().get)
-          ) : _*
-        )))
-    } else {
-      super.getCtor()
-    }
-  }
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
   override def resolveName() = s"commNeighIdx" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
