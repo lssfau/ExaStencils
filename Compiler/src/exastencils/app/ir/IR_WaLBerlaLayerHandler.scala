@@ -35,8 +35,9 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       ConditionedSingleStrategyWrapper(Knowledge.waLBerla_generateCommSchemes, IR_WaLBerlaReplaceCommunication)))
 
     scheduler.prependToFirstFound(IR_ResolveRemoteTransfer,
-      IR_WaLBerlaReplaceCommIVs,
-      IR_WaLBerlaReplaceFragmentLoops)
+      IR_WaLBerlaReplaceFragmentLoops,
+      ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
+      IR_WaLBerlaReplaceCommIVs)
 
     // replace accesses to geometry information
     scheduler.prependToAllFound(IR_ResolveIntegrateOnGrid,
@@ -63,11 +64,13 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // resolve block loops before fragment loops are resolved
     scheduler.prependToAllFound(IR_ResolveLoopOverFragments,
       IR_WaLBerlaReplaceFragmentLoops,
+      ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
       IR_WaLBerlaResolveLoopOverBlocks)
 
     // resolve block loops before fieldlike accesses are resolved
     scheduler.prependToFirstFound(IR_ResolveFieldLikeAccess,
-      IR_WaLBerlaResolveLoopOverBlocks)
+      IR_WaLBerlaReplaceCommIVs,
+      ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs))
 
     // also add walberla IVs ...
     scheduler.prependToFirstFound(IR_AddInternalVariables,
