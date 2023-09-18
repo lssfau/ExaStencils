@@ -20,8 +20,8 @@ case class IR_WaLBerlaMPIRequest(
     var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaInterfaceMember(true, false, true) with IR_HasMessageDirection {
 
-  override def name : String = s"wbMpiRequest_${ direction }_${ concurrencyId }" +
-    resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def name : String = s"wbMpiRequest_${ direction }_${ concurrencyId }"
+
   override def isPrivate : Boolean = true
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
@@ -37,7 +37,8 @@ case class IR_WaLBerlaMPIRequestNoField(
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
 ) extends IR_WaLBerlaInterfaceMember(true, false,true) with IR_HasMessageDirection {
 
-  override def name : String = s"wbMpiRequestNoField_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
+  override def name : String = s"wbMpiRequestNoField_$direction"
+
   override def isPrivate : Boolean = true
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
@@ -55,8 +56,7 @@ case class IR_WaLBerlaRemoteReqOutstanding(
     var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaInterfaceMember(true, false, true) with IR_HasMessageDirection {
 
-  override def name : String = s"wbRemoteReqOutstanding_${ direction }_${ concurrencyId }" +
-    resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def name : String = s"wbRemoteReqOutstanding_${ direction }_${ concurrencyId }"
   override def isPrivate : Boolean = true
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
@@ -75,8 +75,7 @@ case class IR_WaLBerlaRemoteReqOutstandingNoField(
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
 ) extends IR_WaLBerlaInterfaceMember(true, false, true) with IR_HasMessageDirection {
 
-  override def name : String = s"wbRemoteReqOutstandingNoField_${ direction }_${ concurrencyId }" +
-    resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
+  override def name : String = s"wbRemoteReqOutstandingNoField_${ direction }_${ concurrencyId }"
   override def isPrivate : Boolean = true
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)

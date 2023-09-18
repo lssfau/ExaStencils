@@ -42,7 +42,7 @@ abstract class IR_WaLBerlaAbstractCommBuffer extends IR_WaLBerlaInterfaceMember(
     else
       IR_PointerDatatype(field.resolveBaseDatatype)
 
-    if (Knowledge.refinement_enabled) IR_ArrayDatatype(baseDatatype, Knowledge.refinement_maxFineNeighborsForCommAxis) else baseDatatype
+    if (Knowledge.refinement_enabled) IR_StdArrayDatatype(baseDatatype, Knowledge.refinement_maxFineNeighborsForCommAxis) else baseDatatype
   }
   override def resolveDefValue() = Some(0)
 
@@ -53,6 +53,20 @@ abstract class IR_WaLBerlaAbstractCommBuffer extends IR_WaLBerlaInterfaceMember(
         ListBuffer[IR_Statement](
           IR_ArrayFree(ptrExpr),
           IR_Assignment(ptrExpr, 0)))))
+  }
+
+  override def getCtor() : Option[IR_Statement] = {
+    if (Knowledge.refinement_enabled) {
+      def resolveAccess(i : Int) : IR_Expression = {
+        val access = super.resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_NullExpression, IR_NullExpression, IR_LoopOverNeighbors.defIt)
+
+        IR_ArrayAccess(access, i)
+      }
+
+      Some(wrapInLoops(IR_Scope((0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i => IR_Assignment(resolveAccess(i), resolveDefValue().get)) : _*)))
+    } else {
+      super.getCtor()
+    }
   }
 }
 
@@ -67,8 +81,7 @@ case class IR_WaLBerlaCommBufferBasePtr(
     override var indexOfRefinedNeighbor : Option[IR_Expression],
     override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaAbstractCommBuffer {
 
-  override def name = s"wbBuffer_${ direction }_${ concurrencyId }" +
-    resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint) + "_base"
+  override def name = s"wbBuffer_${ direction }_${ concurrencyId }" + "_base"
 }
 
 /// IR_WaLBerlaCommBuffer
@@ -84,8 +97,7 @@ case class IR_WaLBerlaCommBuffer(
 
   def basePtr = IR_WaLBerlaCommBufferBasePtr(field, send, size, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx)
 
-  override def name = s"wbBuffer_${ direction }_${ concurrencyId }" +
-    resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def name = s"wbBuffer_${ direction }_${ concurrencyId }"
 
   override def getDtor() : Option[IR_Statement] = {
     if (Knowledge.data_alignTmpBufferPointers) {
@@ -97,9 +109,7 @@ case class IR_WaLBerlaCommBuffer(
   }
 
   override def registerIV(declarations : mutable.AbstractMap[String, IR_VariableDeclaration], ctors : mutable.AbstractMap[String, IR_Statement], dtors : mutable.AbstractMap[String, IR_Statement]) = {
-    declarations += (resolveName -> getDeclaration)
-    ctors += (resolveName -> getCtor().get)
-    dtors += (resolveName -> getDtor().get)
+    super.registerIV(declarations, ctors, dtors)
 
     if (Knowledge.data_alignTmpBufferPointers)
       basePtr.registerIV(declarations, ctors, dtors)
@@ -118,8 +128,7 @@ case class IR_WaLBerlaCommBufferIterator(
 
   override def isPrivate : Boolean = true
 
-  override def name = s"wbTmpBufferIndex_${ direction }_${ concurrencyId }" +
-    resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def name = s"wbTmpBufferIndex_${ direction }_${ concurrencyId }"
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
