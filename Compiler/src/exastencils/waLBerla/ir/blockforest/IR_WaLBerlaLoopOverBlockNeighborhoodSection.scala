@@ -15,9 +15,7 @@ object IR_WaLBerlaLoopOverBlockNeighborhoodSection {
 
   def apply(neighDir : Array[Int], body : IR_Statement*) = new IR_WaLBerlaLoopOverBlockNeighborhoodSection(neighDir, body.to[ListBuffer])
 
-  def wbNeighborIdx : IR_VariableAccess = IR_VariableAccess("neighIdx", WB_UintType)
-
-  def defIt = "wbNeighborhoodIdx"
+  def defIt = IR_VariableAccess("wbNeighborhoodIdx", WB_UintType)
 }
 
 case class IR_WaLBerlaLoopOverBlockNeighborhoodSection(var wbNeighDir : Array[Int], var body : ListBuffer[IR_Statement]) extends IR_ScopedStatement with IR_SpecialExpandable {
@@ -30,9 +28,9 @@ case class IR_WaLBerlaLoopOverBlockNeighborhoodSection(var wbNeighDir : Array[In
     var result = ListBuffer[IR_Statement]()
 
     result += IR_ForLoop(
-      IR_VariableDeclaration(wbNeighborIdx, 0),
-      IR_Lower(wbNeighborIdx, wbNeighborHoodSectionSize),
-      IR_PreIncrement(wbNeighborIdx),
+      IR_VariableDeclaration(defIt, 0),
+      IR_Lower(defIt, wbNeighborHoodSectionSize),
+      IR_PreIncrement(defIt),
       body)
 
     IR_Scope(result)

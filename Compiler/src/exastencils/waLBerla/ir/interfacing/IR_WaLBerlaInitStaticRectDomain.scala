@@ -52,7 +52,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   def canHavePeriodicity = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_rect_hasPeriodicity
 
   // wb block info
-  def wbNeighborIdx = IR_WaLBerlaLoopOverBlockNeighborhoodSection.wbNeighborIdx
+  def wbNeighborIdx = IR_WaLBerlaLoopOverBlockNeighborhoodSection.defIt
 
   def wbNeighborBlockId = IR_VariableAccess("neighBlockID", IR_SpecialDatatype("const auto"))
 
