@@ -3,6 +3,7 @@ package exastencils.waLBerla.ir.blockforest
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir.IR_LoopOverNeighbors
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
@@ -38,19 +39,17 @@ abstract class IR_WaLBerlaBlockConnection() extends IR_WaLBerlaInterfaceMember(t
   }
 
   override def getCtor() : Option[IR_Statement] = {
-    if (resolveDefValue().isDefined)
-      Some(
-        IR_WaLBerlaLoopOverLocalBlockArray(
-          DefaultNeighbors.neighbors.zipWithIndex.map { case (neighbor, idx) => // manually unroll loop over neighbors
-            IR_WaLBerlaLoopOverBlockNeighborhoodSection(
-              neighbor.dir,
-              IR_Assignment(
-                resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, idx),
-                resolveDefValue().get)).expandSpecial().inner
-          } : _*).expandSpecial().inner
-      )
-    else
+    if (resolveDefValue().isDefined) {
+      def resolveAccess(i : Int) : IR_Expression = {
+        val access = super.resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverNeighbors.defIt)
+
+        IR_ArrayAccess(access, i)
+      }
+
+      Some(wrapInLoops(IR_Scope((0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i => IR_Assignment(resolveAccess(i), resolveDefValue().get)) : _*)))
+    } else {
       None
+    }
   }
 
   override def resolveDefValue() = proxy.resolveDefValue()
