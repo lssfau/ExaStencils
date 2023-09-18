@@ -14,6 +14,7 @@ import exastencils.waLBerla.ir.communication.IR_WaLBerlaMPIRequestNoField
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaRemoteReqOutstanding
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaRemoteReqOutstandingNoField
 import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaFunction
 
 abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStrategy(name) {
   var collector = new IR_StackCollector
@@ -85,4 +86,8 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
   }
 
   def inWaLBerlaBlockLoop(collector : IR_StackCollector) : Boolean = containingWaLBerlaBlockLoop(collector).isDefined
+
+  def inWaLBerlaFunction(collector: IR_StackCollector) : Boolean = collector.stack.exists(_.isInstanceOf[IR_WaLBerlaFunction])
+
+  def inWaLBerlaScope(collector: IR_StackCollector) : Boolean = inWaLBerlaFunction(collector) || inWaLBerlaBlockLoop(collector)
 }

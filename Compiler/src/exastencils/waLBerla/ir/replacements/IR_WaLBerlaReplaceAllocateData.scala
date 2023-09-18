@@ -20,7 +20,7 @@ object IR_WaLBerlaReplaceAllocateData extends IR_WaLBerlaReplacementStrategy("Mo
   }
 
   this += Transformation("Collect", {
-    case node : IR_Node if inWaLBerlaBlockLoop(collector) && inAllocateDataFunction(collector) =>
+    case node : IR_Node if inWaLBerlaScope(collector) && inAllocateDataFunction(collector) =>
       potentialBlockLoops += containingWaLBerlaBlockLoop(collector).get
       node
   })

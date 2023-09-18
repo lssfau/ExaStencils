@@ -15,11 +15,11 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
 
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
 
-  this += Transformation("Replace", {
+  this += Transformation("Replace non-recursive", {
 
     /* assignments */
 
-    case assign @ IR_Assignment(fragIV, _, "=") if inWaLBerlaBlockLoop(collector) =>
+    case assign @ IR_Assignment(fragIV, _, "=") if inWaLBerlaScope(collector) =>
       fragIV match {
         // fragment positions
         case _ @ IR_IV_FragmentPosition(dim, _)      => assign.src = getBlockAABB.center(dim)
@@ -41,34 +41,39 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
       assign
 
     // refinement case
-    case assign @ IR_Assignment(_ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx), _, "=") if inWaLBerlaBlockLoop(collector) =>
+    case assign @ IR_Assignment(_ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx), _, "=") if inWaLBerlaScope(collector) =>
       assign.dest = IR_WaLBerlaRefinementCase(fragIdx, neighIdx)
       assign
 
     /* accesses */
 
     // fragment positions
-    case _ @ IR_IV_FragmentPosition(dim, _) if inWaLBerlaBlockLoop(collector)      => getBlockAABB.center(dim)
-    case _ @ IR_IV_FragmentPositionBegin(dim, _) if inWaLBerlaBlockLoop(collector) => getBlockAABB.min(dim)
-    case _ @ IR_IV_FragmentPositionEnd(dim, _) if inWaLBerlaBlockLoop(collector)   => getBlockAABB.max(dim)
+    case _ @ IR_IV_FragmentPosition(dim, _) if inWaLBerlaScope(collector)      => getBlockAABB.center(dim)
+    case _ @ IR_IV_FragmentPositionBegin(dim, _) if inWaLBerlaScope(collector) => getBlockAABB.min(dim)
+    case _ @ IR_IV_FragmentPositionEnd(dim, _) if inWaLBerlaScope(collector)   => getBlockAABB.max(dim)
+
+  }, recursive = false)
+
+  this += Transformation("Replace recursive", {
+
+    /* accesses */
 
     // fragment connectivity
-    case _ @ IR_IV_NeighborIsValid(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector)     =>
+    case _ @ IR_IV_NeighborIsValid(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaScope(collector)     =>
       IR_WaLBerlaNeighborIsValid(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
-    case _ @ IR_IV_NeighborIsRemote(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector)    =>
+    case _ @ IR_IV_NeighborIsRemote(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaScope(collector)    =>
       IR_WaLBerlaNeighborIsRemote(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
-    case _ @ IR_IV_NeighborFragmentIdx(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector) =>
+    case _ @ IR_IV_NeighborFragmentIdx(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaScope(collector) =>
       IR_WaLBerlaNeighborFragmentIdx(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
-    case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaBlockLoop(collector)  =>
+    case _ @ IR_IV_NeighborRemoteRank(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaScope(collector)  =>
       IR_WaLBerlaNeighborRemoteRank(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
-    case _ @ IR_IV_CommunicationId(fragmentIdx) if inWaLBerlaBlockLoop(collector)                                          =>
+    case _ @ IR_IV_CommunicationId(fragmentIdx) if inWaLBerlaScope(collector)                                          =>
       IR_WaLBerlaCommunicationId(fragmentIdx)
 
     // refinement case
-    case _ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx) if inWaLBerlaBlockLoop(collector) =>
+    case _ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx) if inWaLBerlaScope(collector) =>
       IR_WaLBerlaRefinementCase(fragIdx, neighIdx)
 
     /* conditions */
-
-  }, recursive = false)
+  })
 }
