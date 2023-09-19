@@ -31,7 +31,7 @@ case class IR_WaLBerlaRefinementExclusion2D() extends IR_WaLBerlaWrapperFunction
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
     body += IR_VariableDeclaration(parentAABB,
-      IR_MemberFunctionCallArrowWithDt(IR_MemberAccess(setupBlock.access, "getFather"), "getAABB", IR_WaLBerlaAABB.datatype))
+      IR_MemberFunctionCallArrowWithDt(IR_MemberFunctionCall(setupBlock.access, "getFather"), "getAABB", IR_WaLBerlaAABB.datatype))
     body += IR_VariableDeclaration(childAABB,
       IR_MemberFunctionCallWithDt(setupBlock.access, "getAABB", IR_WaLBerlaAABB.datatype))
 
