@@ -12,6 +12,8 @@ case class IR_WaLBerlaRefinementCase(
 
   private def resolveAccess() : IR_Expression = resolveAccess(resolveMemberBaseAccess(), fragmentIdx, IR_NullExpression, neighIdx)
 
+  override def resolveDefValue() : Option[IR_Expression] = Some(IR_IntegerConstant(-1))
+
   override def name : String = "wbRefinementCase"
   override def resolveDatatype() : IR_Datatype = IR_IntegerDatatype
   override def isPrivate : Boolean = true
