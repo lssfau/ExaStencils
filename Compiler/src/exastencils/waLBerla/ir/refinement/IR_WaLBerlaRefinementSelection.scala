@@ -31,7 +31,7 @@ case class IR_WaLBerlaRefinementExclusion2D() extends IR_WaLBerlaWrapperFunction
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
     body += IR_VariableDeclaration(parentAABB,
-      IR_MemberFunctionCallArrowWithDt(IR_MemberAccess(setupBlock.access, "getFather"), "getAABB", IR_WaLBerlaAABB.datatype))
+      IR_MemberFunctionCallArrowWithDt(IR_MemberFunctionCall(setupBlock.access, "getFather"), "getAABB", IR_WaLBerlaAABB.datatype))
     body += IR_VariableDeclaration(childAABB,
       IR_MemberFunctionCallWithDt(setupBlock.access, "getAABB", IR_WaLBerlaAABB.datatype))
 
@@ -44,6 +44,6 @@ case class IR_WaLBerlaRefinementExclusion2D() extends IR_WaLBerlaWrapperFunction
     IR_WaLBerlaPlainFunction(name, IR_BooleanDatatype, ListBuffer(setupBlock), body)
   }
   override def isInterfaceFunction : Boolean = false
-  override def inlineIncludeImplementation : Boolean = true
+  override def inlineIncludeImplementation : Boolean = false
   override def name : String = "refinementExclusionSelection2D"
 }
