@@ -39,7 +39,7 @@ abstract class IR_WaLBerlaBlockConnection() extends IR_WaLBerlaInterfaceMember(t
   }
 
   override def getCtor() : Option[IR_Statement] = {
-    if (resolveDefValue().isDefined) {
+    if (Knowledge.refinement_enabled && resolveDefValue().isDefined) {
       def resolveAccess(i : Int) : IR_Expression = {
         val access = super.resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverNeighbors.defIt)
 
@@ -48,7 +48,7 @@ abstract class IR_WaLBerlaBlockConnection() extends IR_WaLBerlaInterfaceMember(t
 
       Some(wrapInLoops(IR_Scope((0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i => IR_Assignment(resolveAccess(i), resolveDefValue().get)) : _*)))
     } else {
-      None
+      super.getCtor()
     }
   }
 

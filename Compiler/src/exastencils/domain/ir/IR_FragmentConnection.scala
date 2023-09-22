@@ -39,7 +39,7 @@ abstract class IR_IV_FragmentConnection extends IR_InternalVariable(true, true, 
   }
 
   override def getCtor() : Option[IR_Statement] = {
-    if (Knowledge.refinement_enabled) {
+    if (Knowledge.refinement_enabled && resolveDefValue().isDefined) {
       def resolveAccess(i : Int) : IR_Expression = {
         val access = super.resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_NullExpression, IR_NullExpression, IR_LoopOverNeighbors.defIt)
 
