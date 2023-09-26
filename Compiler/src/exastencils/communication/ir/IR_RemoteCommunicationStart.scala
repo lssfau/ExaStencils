@@ -62,7 +62,15 @@ case class IR_RemoteCommunicationStart(
     val indices = packInfo.getPackInterval()
 
     val body = {
-      val maxCnt = Duplicate(indices).getTotalSize
+      val totalPackInterval = Duplicate(indices).getTotalSize
+      val maxCnt =
+        if (refinementCase == RefinementCase.C2F) // actual size after extrapolation
+          totalPackInterval * Knowledge.refinement_maxFineNeighborsPerDim
+        else if (refinementCase == RefinementCase.F2C) // actual size after interpolation
+          totalPackInterval / Knowledge.refinement_maxFineNeighborsPerDim
+        else
+          totalPackInterval
+
       val cnt = if (condition.isDefined && Knowledge.comm_compactPackingForConditions)
         IR_IV_CommBufferIterator(field, send = true, neighbor.index, concurrencyId, indexOfRefinedNeighbor)
       else
@@ -123,9 +131,9 @@ case class IR_RemoteCommunicationStart(
             wrapCond(packInfo.neighbor,
               getIndexOfRefinedNeighbor(packInfo),
               ListBuffer(
-              if (start) genCopy(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,
-              if (start) genTransfer(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,
-              if (end) genWait(packInfo.neighbor, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement))
+                if (start) genCopy(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,
+                if (start) genTransfer(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,
+                if (end) genWait(packInfo.neighbor, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement))
           })))
   }
 }
