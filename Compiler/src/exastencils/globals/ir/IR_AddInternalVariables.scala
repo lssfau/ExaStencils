@@ -66,16 +66,41 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : IR_IV_CommBufferLike =>
-      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      if (!buf.field.layout.useFixedLayoutSizes) {
-        if (bufferSizes.contains(id))
-          bufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
-        else
-          bufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
+      val defaultId = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint()
+      val ids : ListBuffer[String] = ListBuffer()
+      if (buf.indexOfRefinedNeighbor.isDefined) {
+        IR_SimplifyExpression.simplifyIntegralExpr(buf.indexOfRefinedNeighbor.get) match {
+          case _ : IR_IntegerConstant =>
+            ids += defaultId
+          case _                      =>
+            def modifyAndPrettyprintAccess(i : Int) : String = {
+              val tmp = Duplicate(buf)
+              tmp.indexOfRefinedNeighbor = Some(i)
+
+              tmp.resolveAccess(tmp.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, tmp.field.index, tmp.field.level, tmp.neighIdx).prettyprint()
+            }
+
+            for (d <- 0 until Knowledge.refinement_maxFineNeighborsForCommAxis)
+              ids += modifyAndPrettyprintAccess(d)
+        }
       } else {
-        val size = IR_SimplifyExpression.evalIntegral(buf.size)
-        bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
+        ids += defaultId
       }
+
+      def adaptBufferSizesForId(id : String) : Unit = {
+        if (!buf.field.layout.useFixedLayoutSizes) {
+          if (bufferSizes.contains(id))
+            bufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
+          else
+            bufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
+        } else {
+          val size = IR_SimplifyExpression.evalIntegral(buf.size)
+          bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
+        }
+      }
+
+      ids.foreach(adaptBufferSizesForId)
+
       buf
 
     case field : IR_IV_FieldData =>
@@ -186,27 +211,49 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
   this += new Transformation("Updating temporary buffer allocations", {
     case buf : IR_IV_CommBufferLike =>
-      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      val size = bufferSizes(id)
+      val defaultId = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val ids : ListBuffer[String] = ListBuffer()
+      if (buf.indexOfRefinedNeighbor.isDefined) {
+        IR_SimplifyExpression.simplifyIntegralExpr(buf.indexOfRefinedNeighbor.get) match {
+          case _ : IR_IntegerConstant =>
+            ids += defaultId
+          case _                      =>
+            def modifyAndPrettyprintAccess(i : Int) : String = {
+              val tmp = Duplicate(buf)
+              tmp.indexOfRefinedNeighbor = Some(i)
 
-      if (Knowledge.data_alignTmpBufferPointers) {
-        counter += 1
-        bufferAllocs += (id -> IR_LoopOverFragments(ListBuffer[IR_Statement](
-          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-            Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
-          IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
-          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-            Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
-          IR_Assignment(buf, buf.basePtr + s"offset_$counter")),
-          IR_ParallelizationInfo(potentiallyParallel = true)))
+              tmp.resolveAccess(tmp.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, tmp.field.index, tmp.field.level, tmp.neighIdx).prettyprint()
+            }
+
+            for (d <- 0 until Knowledge.refinement_maxFineNeighborsForCommAxis)
+              ids += modifyAndPrettyprintAccess(d)
+        }
       } else {
-        bufferAllocs += (id -> IR_LoopOverFragments(
-          IR_ArrayAllocation(
-            buf,
-            if (buf.field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) buf.field.layout.datatype
-            else IR_RealDatatype,
-            size
-          ), IR_ParallelizationInfo(potentiallyParallel = true)))
+        ids += defaultId
+      }
+
+      for (id <- ids) {
+        val size = bufferSizes(id)
+
+        if (Knowledge.data_alignTmpBufferPointers) {
+          counter += 1
+          bufferAllocs += (id -> IR_LoopOverFragments(ListBuffer[IR_Statement](
+            IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+              Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
+            IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
+            IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+              Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
+            IR_Assignment(buf, buf.basePtr + s"offset_$counter")),
+            IR_ParallelizationInfo(potentiallyParallel = true)))
+        } else {
+          bufferAllocs += (id -> IR_LoopOverFragments(
+            IR_ArrayAllocation(
+              buf,
+              if (buf.field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) buf.field.layout.datatype
+              else IR_RealDatatype,
+              size
+            ), IR_ParallelizationInfo(potentiallyParallel = true)))
+        }
       }
 
       buf
