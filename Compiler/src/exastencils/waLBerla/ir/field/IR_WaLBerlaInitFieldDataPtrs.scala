@@ -23,7 +23,14 @@ object IR_WaLBerlaInitFieldDataPtrs {
 
     val initVal = if (wbf.layout.useFixedLayoutSizes) {
       // get ptr without offset -> referenceOffset handled by ExaStencils
-      val ptr = new IR_MemberFunctionCallArrowWithDt(getField, "data", ListBuffer())
+      val ptr = if (Knowledge.dimensionality == 3) {
+        new IR_MemberFunctionCallArrowWithDt(getField, "data", ListBuffer())
+      } else {
+        // wb always allocates memory in a 3d fashion -> 2D fields can have 3 (1 inner + 2 gl) slices
+        // -> offset to innermost slice
+        new IR_MemberFunctionCallArrowWithDt(getField, "dataAt",
+          Knowledge.dimensions.map(d => -wbf.layout.layoutsPerDim(d).numGhostLayersLeft : IR_Expression).padTo(4, 0 : IR_Expression).to[ListBuffer])
+      }
       if (onGPU) // TODO: offset for pitched pointers?
         IR_Cast(IR_PointerDatatype(getFieldData.baseDatatype()), ptr) // "data" function of GPU fields returns void*
       else
