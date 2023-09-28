@@ -19,14 +19,10 @@ object LinearInterpPackingF2CHelper {
 
   private val shifts = LinearBaseShifts()
 
-  def generateInterpExpr(field : IR_FieldLike, slot : IR_Expression, packInfo : IR_PackInfo) : IR_Expression = {
+  def generateInterpExpr(field : IR_FieldLike, origin : IR_ExpressionIndex, slot : IR_Expression, packInfo : IR_PackInfo) : IR_Expression = {
     def level : Int = field.level
 
     def localization = field.localization
-
-    def numDims : Int = field.layout.numDimsData
-
-    def defIt : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(numDims)
 
     def commDir : Array[Int] = packInfo.neighDir
 
@@ -43,9 +39,9 @@ object LinearInterpPackingF2CHelper {
 
     // calculate linear interpolations on orthogonal (fine) neighbor cells in upwind dir
     val linearInterpResult : Array[(IR_Expression, IR_Expression)] = crossSumUpwindOrthogonals.distinct.map(offset => {
-      val basePositionsOrtho = getBasePositions(level, localization, upwindCommDir, defIt + IR_ExpressionIndex(offset), shifts)
-      val baseValuesOrtho = getBaseValues(field, slot, upwindCommDir, defIt + IR_ExpressionIndex(offset), shifts)
-      val pos = 0.5 * getCellWidth(level, getDimFromDir(upwindCommDir), defIt + IR_ExpressionIndex(offset))
+      val basePositionsOrtho = getBasePositions(level, localization, upwindCommDir, origin + IR_ExpressionIndex(offset), shifts)
+      val baseValuesOrtho = getBaseValues(field, slot, upwindCommDir, origin + IR_ExpressionIndex(offset), shifts)
+      val pos = 0.5 * getCellWidth(level, getDimFromDir(upwindCommDir), origin + IR_ExpressionIndex(offset))
 
       pos -> interpolate1D(pos, basePositionsOrtho, baseValuesOrtho)
     }).toArray
@@ -111,7 +107,7 @@ case class IR_LinearInterpPackingF2CRemote(
     ret += IR_Assignment(it, 0)
 
     if (send)
-      innerStmts += IR_Assignment(tmpBufAccess, generateInterpExpr(field, slot, packInfo))
+      innerStmts += IR_Assignment(tmpBufAccess, generateInterpExpr(field, defIt, slot, packInfo))
     else
       innerStmts += IR_Assignment(IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt), tmpBufAccess)
 
@@ -150,7 +146,7 @@ case class IR_LinearInterpPackingF2CLocal(
       Logger.error("Conditions for refined communication are not supported yet.")
 
     // TODO: pull scheme for local comm, only push implemented
-    if (!Knowledge.comm_pushLocalData)
+    if (!send)
       Logger.warn("Pull comm scheme is not yet implemented for linear F2C interp.")
 
     val packIntervalDest = packInfo.getPackIntervalDest()
@@ -160,19 +156,26 @@ case class IR_LinearInterpPackingF2CLocal(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
+    val originSrc = IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims).indices.zipWithIndex.map { case (idx, i) =>
+      if (getDimFromDir(neighbor.dir) != i)
+        Knowledge.refinement_maxFineNeighborsPerDim * idx
+      else
+        idx
+    })
+
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
 
     // push result to destination
     innerStmts += IR_Assignment(
       IR_DirectFieldLikeAccess(field, Duplicate(slot),
         IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
-        IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
-      generateInterpExpr(field, slot, packInfo))
+        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _)),
+      generateInterpExpr(field, IR_ExpressionIndex(originSrc, packIntervalDest.begin, _ + _), slot, packInfo))
 
     // fine neighbor cells (2 in 2D, 4 in 3D) are linearly interpolated and the result is sent to the coarse neighbor
     val stride = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1))
 
-    val loop = new IR_LoopOverDimensions(numDims, packIntervalSrc, innerStmts, stride, condition = condition)
+    val loop = new IR_LoopOverDimensions(numDims, packIntervalSrc, innerStmts, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
     loop
