@@ -22,13 +22,13 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.communication._
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.logger.Logger
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
 
 /// IR_LocalCommunicationFinish
@@ -69,10 +69,19 @@ case class IR_LocalCommunicationFinish(
     if (!Knowledge.domain_canHaveLocalNeighs) return output // nothing to do
 
     // wait until all neighbors signal that they are finished
-    if (!Knowledge.comm_pushLocalData)
-      output ++= waitForLocalComm(sendPackInfos)
-    else
+    if (Knowledge.refinement_enabled) {
+      // TODO: implement pull scheme
+      if (!Knowledge.comm_pushLocalData)
+        Logger.warn("Pull scheme is not available for communication with mesh refinement")
+
+      // default to push scheme
       output ++= waitForLocalComm(recvPackInfos)
+    } else {
+      if (!Knowledge.comm_pushLocalData)
+        output ++= waitForLocalComm(sendPackInfos)
+      else
+        output ++= waitForLocalComm(recvPackInfos)
+    }
 
     output
   }

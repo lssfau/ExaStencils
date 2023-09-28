@@ -29,6 +29,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.logger.Logger
 
 /// IR_LocalCommunicationStart
 
@@ -59,23 +60,43 @@ case class IR_LocalCommunicationStart(
     if (!Knowledge.domain_canHaveLocalNeighs) return output // nothing to do
 
     // set LocalCommReady to signal neighbors readiness for communication
-    if (!Knowledge.comm_pushLocalData)
-      output ++= setLocalCommReady(sendPackInfos)
-    else
-      output ++= setLocalCommReady(recvPackInfos)
+    if (Knowledge.refinement_enabled) {
+      // TODO: implement pull scheme
+      if (!Knowledge.comm_pushLocalData)
+        Logger.warn("Pull scheme is not available for communication with mesh refinement")
 
-    if (Knowledge.comm_pushLocalData) {
-      // distribute this fragment's data - if enabled
+      output ++= setLocalCommReady(recvPackInfos)
+    } else {
+      if (!Knowledge.comm_pushLocalData)
+        output ++= setLocalCommReady(sendPackInfos)
+      else
+        output ++= setLocalCommReady(recvPackInfos)
+    }
+
+    if (Knowledge.refinement_enabled) {
+      // TODO: implement pull scheme
+      if (!Knowledge.comm_pushLocalData)
+        Logger.warn("Pull scheme is not available for communication with mesh refinement")
+
+      // distribute this fragment's data
       output += wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           sendPackInfos.map(packInfo =>
             IR_LocalSend(field, Duplicate(slot), refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
     } else {
-      // pull data for this fragment - otherwise
-      output += wrapFragLoop(
-        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
-          recvPackInfos.map(packInfo =>
-            IR_LocalRecv(field, Duplicate(slot), refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
+      if (Knowledge.comm_pushLocalData) {
+        // distribute this fragment's data - if enabled
+        output += wrapFragLoop(
+          IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+            sendPackInfos.map(packInfo =>
+              IR_LocalSend(field, Duplicate(slot), refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
+      } else {
+        // pull data for this fragment - otherwise
+        output += wrapFragLoop(
+          IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
+            recvPackInfos.map(packInfo =>
+              IR_LocalRecv(field, Duplicate(slot), refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
+      }
     }
 
     output

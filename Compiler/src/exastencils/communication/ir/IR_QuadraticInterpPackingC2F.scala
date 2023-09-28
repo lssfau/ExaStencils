@@ -436,7 +436,7 @@ case class IR_QuadraticInterpPackingC2FLocal(
       Logger.error("Conditions for refined communication are not supported yet.")
 
     // TODO: pull scheme for local comm, only push implemented
-    if (!Knowledge.comm_pushLocalData)
+    if (!send)
       Logger.warn("Pull comm scheme is not yet implemented for quadratic C2F interp.")
 
     val packIntervalDest = packInfo.getPackIntervalDest()
