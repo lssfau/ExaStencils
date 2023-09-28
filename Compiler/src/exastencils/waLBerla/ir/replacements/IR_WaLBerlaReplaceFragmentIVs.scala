@@ -9,6 +9,7 @@ import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommunicationId
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementCase
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementIndexForCoarseNeighbor
 
 object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Replace frag info accesses with accesses to waLBerla block info") {
   def block = IR_WaLBerlaLoopOverLocalBlocks.block
@@ -40,9 +41,13 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
       }
       assign
 
-    // refinement case
+    // refinement info
     case assign @ IR_Assignment(_ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx), _, "=") if inWaLBerlaScope(collector) =>
       assign.dest = IR_WaLBerlaRefinementCase(fragIdx, neighIdx)
+      assign
+
+    case assign @ IR_Assignment(_ @ IR_RefinementIndexForCoarseNeighbor(fragIdx, _, neighIdx), _, "=") if inWaLBerlaScope(collector) =>
+      assign.dest = IR_WaLBerlaRefinementIndexForCoarseNeighbor(fragIdx, neighIdx)
       assign
 
     /* accesses */
@@ -70,9 +75,11 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
     case _ @ IR_IV_CommunicationId(fragmentIdx) if inWaLBerlaScope(collector)                                          =>
       IR_WaLBerlaCommunicationId(fragmentIdx)
 
-    // refinement case
+    // refinement info
     case _ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx) if inWaLBerlaScope(collector) =>
       IR_WaLBerlaRefinementCase(fragIdx, neighIdx)
+    case _ @ IR_RefinementIndexForCoarseNeighbor(fragIdx, _, neighIdx) if inWaLBerlaScope(collector) =>
+      IR_WaLBerlaRefinementIndexForCoarseNeighbor(fragIdx, neighIdx)
 
     /* conditions */
   })

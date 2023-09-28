@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_Linearization
 import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
@@ -17,7 +18,9 @@ import exastencils.util.ir.IR_Print
 import exastencils.util.ir.IR_Read
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlockNeighborhoodSection
 import exastencils.waLBerla.ir.blockforest._
+import exastencils.waLBerla.ir.grid.IR_WaLBerlaAABB
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
+import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementIndexForCoarseNeighbor
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 
 /// IR_WaLBerlaInitStaticRectDomain
@@ -243,6 +246,33 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
             IR_IfCondition(refLevel > neighborRefLevel,
               IR_Assignment(IR_IV_NeighborRefinementCase(defIt, domainIdx, neigh.index), RefinementCase.F2C.id),
               IR_Assignment(IR_IV_NeighborRefinementCase(defIt, domainIdx, neigh.index), RefinementCase.EQUAL.id)))
+
+          // init refinement index of coarse neighbor with geometry info
+          // 1. compare coarse/fine block AABBs (0 if current block aabb center is smaller than neighbor in current dim)
+          // 2. disregard comm dir
+          // 3. linearize index with [maxFineNeighborsPerDim, ..., maxFineNeighborsPerDim, 1]
+          val neighAABB = IR_VariableAccess("neighAABB", IR_WaLBerlaAABB.datatype)
+          val dimFromDir = neigh.dir.indexWhere(_ != 0)
+          val refinementIndexOffsetPerDim = Knowledge.dimensions.filter(d => d != dimFromDir).map(d =>
+            IR_VariableDeclaration(IR_IntegerDatatype, s"refIdxOff_$d",
+              IR_TernaryCondition(
+                IR_Lower(
+                  getBlockAABB.center(d),
+                  IR_ArrayAccess(IR_MemberFunctionCall(neighAABB, "center"), d)),
+                0,
+                1)))
+          val stride : Seq[IR_Expression] = ((0 until Knowledge.dimensionality - 1).map(_ => Knowledge.refinement_maxFineNeighborsPerDim) :+ 1).map(IR_IntegerConstant(_))
+
+          bodyNeighborHoodLoop += IR_IfCondition(refLevel > neighborRefLevel,
+            ListBuffer[IR_Statement](
+              IR_VariableDeclaration(neighAABB),
+              blockForest.getAABBFromBlockId(neighAABB, wbNeighborBlockId)) ++ (
+              refinementIndexOffsetPerDim :+
+              IR_Assignment(IR_WaLBerlaRefinementIndexForCoarseNeighbor(defIt, neigh.index),
+                IR_Linearization.linearizeIndex(
+                  IR_ExpressionIndex(refinementIndexOffsetPerDim.map(IR_VariableAccess(_)) : _*),
+                  IR_ExpressionIndex(stride : _*))))
+          )
 
           // connect local/remote fragments
           if (canHaveRemoteNeighs && canHaveLocalNeighs)
