@@ -4,6 +4,9 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
+import exastencils.prettyprinting.PpStream
+
+/// IR_RefinementInfo
 
 abstract class IR_RefinementInfo(
     canBePerFragment : Boolean,
@@ -58,4 +61,21 @@ abstract class IR_RefinementInfo(
 
     super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
+}
+
+/// IR_RefinementIndexForCoarseNeighbor
+
+case class IR_RefinementIndexForCoarseNeighbor(
+    var neighIdx : IR_Expression,
+    var domainIdx : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, true, false, false, true) {
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domainIdx, IR_NullExpression, IR_NullExpression, neighIdx)
+
+  override def resolveName() : String = "refIndexForCoarseNeighbor_" +
+    resolvePostfix(fragmentIdx.prettyprint, "", "", "", neighIdx.prettyprint)
+
+  override def resolveDatatype() = IR_IntegerDatatype
+
+  override def resolveDefValue() = Some(0)
 }
