@@ -12,8 +12,9 @@ trait IR_IV_AbstractCommBufferLike extends IR_InternalVariableLike with IR_HasMe
   def size : IR_Expression
   def neighIdx : IR_Expression
   def concurrencyId : Int
-  def indexOfRefinedNeighbor : Option[IR_Expression]
   def fragmentIdx : IR_Expression
+
+  var indexOfRefinedNeighbor : Option[IR_Expression]
 }
 
 /// IR_IV_CommBufferLike
@@ -24,8 +25,9 @@ trait IR_IV_CommBufferLike extends IR_IV_AbstractCommBufferLike {
   def size : IR_Expression
   def neighIdx : IR_Expression
   def concurrencyId : Int
-  def indexOfRefinedNeighbor : Option[IR_Expression]
   def fragmentIdx : IR_Expression
 
   def basePtr : IR_Expression
+
+  var indexOfRefinedNeighbor : Option[IR_Expression]
 }
