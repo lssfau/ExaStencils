@@ -44,6 +44,9 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     }
   }
 
+  // add variables from WaLBerlaVars sections as public members
+  publicMemberDeclarationMap ++= IR_WaLBerlaCollection.get.variables.map(decl => decl.name -> decl)
+
   // call init functions responsible for setting up exa data structures
   val initFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaInitExaWrapperFunctions.functions)
     .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))

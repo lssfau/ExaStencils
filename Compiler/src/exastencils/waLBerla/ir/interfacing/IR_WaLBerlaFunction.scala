@@ -113,6 +113,11 @@ object IR_WaLBerlaSetupFunctions extends DefaultStrategy("Transform functions ac
     case iv : IR_IV_WaLBerlaFieldData                                           =>
       findEnclosingFunction(stackCollector.stack)
       iv
+    case acc @ IR_VariableAccess(name, dt) if IR_WaLBerlaCollection.get.variables.exists { decl : IR_VariableDeclaration =>
+      decl.name == name && decl.datatype == dt
+    }                                                                           =>
+      findEnclosingFunction(stackCollector.stack)
+      acc
   })
 
   // find functions that call one of the candidates and make them candidates as well
