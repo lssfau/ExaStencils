@@ -76,7 +76,7 @@ case class IR_PackInfoGhostRemoteSend(
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
-) extends IR_RemotePackInfoGhost {
+) extends IR_RemotePackInfoGhost with IR_EqualLevelPackInfo {
 
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
     getGridPackingStartAndEndForSend(neighDir)
@@ -90,7 +90,7 @@ case class IR_PackInfoGhostRemoteRecv(
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
-) extends IR_RemotePackInfoGhost {
+) extends IR_RemotePackInfoGhost with IR_EqualLevelPackInfo {
 
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
     getGridPackingStartAndEndForRecv(neighDir)
@@ -104,7 +104,7 @@ case class IR_PackInfoGhostLocalSend(
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
-) extends IR_LocalPackInfoGhost {
+) extends IR_LocalPackInfoGhost with IR_EqualLevelPackInfo {
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
     getGridPackingStartAndEndForSend(neighDir)
 
@@ -120,7 +120,7 @@ case class IR_PackInfoGhostLocalRecv(
     var field : IR_FieldLike,
     var ghostLayerBegin : IR_ExpressionIndex,
     var ghostLayerEnd : IR_ExpressionIndex
-) extends IR_LocalPackInfoGhost {
+) extends IR_LocalPackInfoGhost with IR_EqualLevelPackInfo {
 
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
     getGridPackingStartAndEndForRecv(neighDir)

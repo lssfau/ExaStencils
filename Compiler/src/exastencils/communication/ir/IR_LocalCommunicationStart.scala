@@ -36,7 +36,6 @@ import exastencils.logger.Logger
 case class IR_LocalCommunicationStart(
     var field : IR_FieldLike,
     var slot : IR_Expression,
-    var refinementCase : RefinementCase.Access,
     var sendPackInfos : ListBuffer[IR_LocalPackInfo],
     var recvPackInfos : ListBuffer[IR_LocalPackInfo],
     var insideFragLoop : Boolean,
@@ -48,7 +47,9 @@ case class IR_LocalCommunicationStart(
         val neighbor = packInfo.neighbor
         val neighborIdx = neighbor.index
 
-        wrapCond(neighbor,
+        wrapCond(
+          packInfo.refinementCase,
+          neighbor,
           getIndexOfRefinedNeighbor(packInfo),
           IR_Assignment(IR_IV_LocalCommReady(field, neighborIdx), IR_BooleanConstant(true)))
       }))
@@ -82,20 +83,20 @@ case class IR_LocalCommunicationStart(
       output += wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
           sendPackInfos.map(packInfo =>
-            IR_LocalSend(field, Duplicate(slot), refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
+            IR_LocalSend(field, Duplicate(slot), packInfo.refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
     } else {
       if (Knowledge.comm_pushLocalData) {
         // distribute this fragment's data - if enabled
         output += wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
             sendPackInfos.map(packInfo =>
-              IR_LocalSend(field, Duplicate(slot), refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
+              IR_LocalSend(field, Duplicate(slot), packInfo.refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
       } else {
         // pull data for this fragment - otherwise
         output += wrapFragLoop(
           IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
             recvPackInfos.map(packInfo =>
-              IR_LocalRecv(field, Duplicate(slot), refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
+              IR_LocalRecv(field, Duplicate(slot), packInfo.refinementCase, packInfo, insideFragLoop, Duplicate(cond)) : IR_Statement)))
       }
     }
 

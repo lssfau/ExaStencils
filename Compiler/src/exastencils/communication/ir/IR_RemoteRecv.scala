@@ -89,7 +89,7 @@ case class IR_CopyFromRecvBuffer(
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()
 
-    ret += getCopyLoop()
+    ret += getCopyLoop(packInfo.refinementCase)
 
     ret
   }

@@ -95,7 +95,7 @@ case class IR_LocalRecv(
         IR_AddressOf(IR_IV_LocalCommReady(field,
           DefaultNeighbors.getOpposingNeigh(neighborIdx).index,
           IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor))))
-      ifCondStmts += getCopyLoop()
+      ifCondStmts += getCopyLoop(packInfo.refinementCase)
     }
     // signal other threads that the data reading step is completed
     ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true)) // TODO here too

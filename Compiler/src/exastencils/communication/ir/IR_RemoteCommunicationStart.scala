@@ -38,7 +38,6 @@ import exastencils.parallelization.api.mpi.MPI_DataType
 case class IR_RemoteCommunicationStart(
     var field : IR_FieldLike,
     var slot : IR_Expression,
-    var refinementCase : RefinementCase.Access,
     var packInfos : ListBuffer[IR_RemotePackInfo],
     var start : Boolean, var end : Boolean,
     var concurrencyId : Int,
@@ -48,10 +47,11 @@ case class IR_RemoteCommunicationStart(
   override def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
+    val refinementCase = packInfo.refinementCase
 
     if (requiresPacking(refinementCase, indices, condition)) {
       val body = IR_CopyToSendBuffer(field, Duplicate(slot), refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, Duplicate(condition))
-      if (addCondition) wrapCond(Duplicate(neighbor), getIndexOfRefinedNeighbor(packInfo), ListBuffer[IR_Statement](body)) else body
+      if (addCondition) wrapCond(refinementCase, Duplicate(neighbor), getIndexOfRefinedNeighbor(packInfo), ListBuffer[IR_Statement](body)) else body
     } else {
       IR_NullStatement
     }
@@ -60,6 +60,7 @@ case class IR_RemoteCommunicationStart(
   override def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
+    val refinementCase = packInfo.refinementCase
 
     val body = {
       val totalPackInterval = Duplicate(indices).getTotalSize
@@ -93,7 +94,7 @@ case class IR_RemoteCommunicationStart(
           cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
       }
     }
-    if (addCondition) wrapCond(Duplicate(neighbor), getIndexOfRefinedNeighbor(packInfo), ListBuffer[IR_Statement](body)) else body
+    if (addCondition) wrapCond(refinementCase, Duplicate(neighbor), getIndexOfRefinedNeighbor(packInfo), ListBuffer[IR_Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
@@ -128,7 +129,8 @@ case class IR_RemoteCommunicationStart(
       ListBuffer(wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
           packInfos.map { packInfo =>
-            wrapCond(packInfo.neighbor,
+            wrapCond(packInfo.refinementCase,
+              packInfo.neighbor,
               getIndexOfRefinedNeighbor(packInfo),
               ListBuffer(
                 if (start) genCopy(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,

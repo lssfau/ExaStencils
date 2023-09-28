@@ -188,26 +188,25 @@ case class IR_CommunicateFunction(
 
   def genCommStatements(
       concurrencyId : Int,
-      refinementCase : RefinementCase.Access,
       remoteSendPackInfos : ListBuffer[IR_RemotePackInfo], remoteRecvPackInfos : ListBuffer[IR_RemotePackInfo],
       localSendPackInfos : ListBuffer[IR_LocalPackInfo], localRecvPackInfos : ListBuffer[IR_LocalPackInfo]) : ListBuffer[IR_Statement] = {
 
     var body = ListBuffer[IR_Statement]()
 
     if (begin) {
-      body += IR_RemoteCommunicationStart(field, Duplicate(slot), refinementCase, remoteSendPackInfos,
+      body += IR_RemoteCommunicationStart(field, Duplicate(slot), remoteSendPackInfos,
         start = true, end = false, concurrencyId, insideFragLoop, condition)
-      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), refinementCase, remoteRecvPackInfos,
+      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), remoteRecvPackInfos,
         start = true, end = false, concurrencyId, insideFragLoop, condition)
-      body += IR_LocalCommunicationStart(field, Duplicate(slot), refinementCase, localSendPackInfos, localRecvPackInfos,
+      body += IR_LocalCommunicationStart(field, Duplicate(slot), localSendPackInfos, localRecvPackInfos,
         insideFragLoop, condition)
     }
     if (finish) {
-      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), refinementCase, remoteRecvPackInfos,
+      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), remoteRecvPackInfos,
         start = false, end = true, concurrencyId, insideFragLoop, condition)
-      body += IR_RemoteCommunicationStart(field, Duplicate(slot), refinementCase, remoteSendPackInfos,
+      body += IR_RemoteCommunicationStart(field, Duplicate(slot), remoteSendPackInfos,
         start = false, end = true, concurrencyId, insideFragLoop, condition)
-      body += IR_LocalCommunicationFinish(field, Duplicate(slot), refinementCase, localSendPackInfos, localRecvPackInfos,
+      body += IR_LocalCommunicationFinish(field, Duplicate(slot), localSendPackInfos, localRecvPackInfos,
         insideFragLoop, condition)
     }
 
@@ -217,7 +216,7 @@ case class IR_CommunicateFunction(
   // equal level
 
   def genDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-    val ret = genCommStatements(concurrencyId, RefinementCase.EQUAL,
+    val ret = genCommStatements(concurrencyId,
       genPackInfosDuplicateRemoteSend(sendNeighbors), genPackInfosDuplicateRemoteRecv(recvNeighbors),
       genPackInfosDuplicateLocalSend(sendNeighbors), genPackInfosDuplicateLocalRecv(recvNeighbors))
 
@@ -230,7 +229,7 @@ case class IR_CommunicateFunction(
   }
 
   def genGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-    val ret = genCommStatements(concurrencyId, RefinementCase.EQUAL,
+    val ret = genCommStatements(concurrencyId,
       genPackInfosGhostRemoteSend(curNeighbors), genPackInfosGhostRemoteRecv(curNeighbors),
       genPackInfosGhostLocalSend(curNeighbors), genPackInfosGhostLocalRecv(curNeighbors))
 
@@ -245,34 +244,33 @@ case class IR_CommunicateFunction(
   // fine-to-coarse
 
   def genF2CDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-    genCommStatements(concurrencyId, RefinementCase.F2C,
-      genF2CPackInfosDuplicateRemoteSend(sendNeighbors), genF2CPackInfosDuplicateRemoteRecv(recvNeighbors),
-      genF2CPackInfosDuplicateLocalSend(sendNeighbors), genF2CPackInfosDuplicateLocalRecv(recvNeighbors))
+    genCommStatements(concurrencyId,
+      genF2CPackInfosDuplicateRemoteSend(sendNeighbors), genC2FPackInfosDuplicateRemoteRecv(recvNeighbors),
+      genF2CPackInfosDuplicateLocalSend(sendNeighbors), genC2FPackInfosDuplicateLocalRecv(recvNeighbors))
   }
 
   def genF2CGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-    genCommStatements(concurrencyId, RefinementCase.F2C,
-      genF2CPackInfosGhostRemoteSend(curNeighbors), genF2CPackInfosGhostRemoteRecv(curNeighbors),
-      genF2CPackInfosGhostLocalSend(curNeighbors), genF2CPackInfosGhostLocalRecv(curNeighbors))
+    genCommStatements(concurrencyId,
+      genF2CPackInfosGhostRemoteSend(curNeighbors), genC2FPackInfosGhostRemoteRecv(curNeighbors),
+      genF2CPackInfosGhostLocalSend(curNeighbors), genC2FPackInfosGhostLocalRecv(curNeighbors))
   }
 
   // coarse-to-fine
   def genC2FDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-    genCommStatements(concurrencyId, RefinementCase.C2F,
-      genC2FPackInfosDuplicateRemoteSend(sendNeighbors), genC2FPackInfosDuplicateRemoteRecv(recvNeighbors),
-      genC2FPackInfosDuplicateLocalSend(sendNeighbors), genC2FPackInfosDuplicateLocalRecv(recvNeighbors))
+    genCommStatements(concurrencyId,
+      genC2FPackInfosDuplicateRemoteSend(sendNeighbors), genF2CPackInfosDuplicateRemoteRecv(recvNeighbors),
+      genC2FPackInfosDuplicateLocalSend(sendNeighbors), genF2CPackInfosDuplicateLocalRecv(recvNeighbors))
   }
 
   def genC2FGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-    genCommStatements(concurrencyId, RefinementCase.C2F,
-      genC2FPackInfosGhostRemoteSend(curNeighbors), genC2FPackInfosGhostRemoteRecv(curNeighbors),
-      genC2FPackInfosGhostLocalSend(curNeighbors), genC2FPackInfosGhostLocalRecv(curNeighbors))
+    genCommStatements(concurrencyId,
+      genC2FPackInfosGhostRemoteSend(curNeighbors), genF2CPackInfosGhostRemoteRecv(curNeighbors),
+      genC2FPackInfosGhostLocalSend(curNeighbors), genF2CPackInfosGhostLocalRecv(curNeighbors))
   }
 
   def compileTransformedDuplicateComm(sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo], concurrencyId : Int) : ListBuffer[IR_Statement] = {
     var commStmts = ListBuffer[IR_Statement]()
 
-    val refinementCase = RefinementCase.EQUAL // TODO: refinement not supported here
     val indexOfRefinedNeighbor : Option[IR_Expression] = None
 
     val domains = IR_DomainCollection.objects
@@ -287,7 +285,7 @@ case class IR_CommunicateFunction(
               IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
             else
               IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
-            IR_RemoteCommunicationStart(field, Duplicate(slot), refinementCase, genPackInfosDuplicateRemoteSend(ListBuffer(neigh)),
+            IR_RemoteCommunicationStart(field, Duplicate(slot), genPackInfosDuplicateRemoteSend(ListBuffer(neigh)),
               start = true, end = false, concurrencyId, insideFragLoop = true, condition)
           )
         }
@@ -300,7 +298,7 @@ case class IR_CommunicateFunction(
               IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
             else
               IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
-            IR_RemoteCommunicationFinish(field, Duplicate(slot), refinementCase, genPackInfosDuplicateRemoteRecv(ListBuffer(neigh)),
+            IR_RemoteCommunicationFinish(field, Duplicate(slot), genPackInfosDuplicateRemoteRecv(ListBuffer(neigh)),
               start = true, end = false, concurrencyId, insideFragLoop = true, condition)
           )
         }
@@ -327,7 +325,7 @@ case class IR_CommunicateFunction(
         }
 
         localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
-          IR_LocalCommunicationStart(field, Duplicate(slot), refinementCase, genPackInfosDuplicateLocalSend(sendNeighs), genPackInfosDuplicateLocalRecv(recvNeighs),
+          IR_LocalCommunicationStart(field, Duplicate(slot), genPackInfosDuplicateLocalSend(sendNeighs), genPackInfosDuplicateLocalRecv(recvNeighs),
             insideFragLoop = true, condition)
         )
 
@@ -349,7 +347,7 @@ case class IR_CommunicateFunction(
               IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
             else
               IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
-            IR_RemoteCommunicationFinish(field, Duplicate(slot), refinementCase, genPackInfosDuplicateRemoteRecv(ListBuffer(neigh)),
+            IR_RemoteCommunicationFinish(field, Duplicate(slot), genPackInfosDuplicateRemoteRecv(ListBuffer(neigh)),
               start = false, end = true, concurrencyId, insideFragLoop = true, condition)
           )
         }
@@ -362,7 +360,7 @@ case class IR_CommunicateFunction(
               IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
             else
               IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
-            IR_RemoteCommunicationStart(field, Duplicate(slot), refinementCase, genPackInfosDuplicateRemoteSend(ListBuffer(neigh)),
+            IR_RemoteCommunicationStart(field, Duplicate(slot), genPackInfosDuplicateRemoteSend(ListBuffer(neigh)),
               start = false, end = true, concurrencyId, insideFragLoop = true, condition)
           )
         }
@@ -389,7 +387,7 @@ case class IR_CommunicateFunction(
         }
 
         localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
-          IR_LocalCommunicationFinish(field, Duplicate(slot), refinementCase, genPackInfosDuplicateLocalSend(sendNeighs), genPackInfosDuplicateLocalRecv(recvNeighs),
+          IR_LocalCommunicationFinish(field, Duplicate(slot), genPackInfosDuplicateLocalSend(sendNeighs), genPackInfosDuplicateLocalRecv(recvNeighs),
             insideFragLoop = true, condition)
         )
 

@@ -36,7 +36,6 @@ import exastencils.parallelization.api.omp.OMP_WaitForFlag
 case class IR_LocalCommunicationFinish(
     var field : IR_FieldLike,
     var slot : IR_Expression,
-    var refinementCase : RefinementCase.Access,
     var sendPackInfos : ListBuffer[IR_LocalPackInfo],
     var recvPackInfos : ListBuffer[IR_LocalPackInfo],
     var insideFragLoop : Boolean,
@@ -50,16 +49,18 @@ case class IR_LocalCommunicationFinish(
         val domainIdx = field.domain.index
         val indexOfRefinedNeighbor = getIndexOfRefinedNeighbor(packInfo)
 
-        wrapCond(neighbor,
+        wrapCond(
+          packInfo.refinementCase,
+          neighbor,
           indexOfRefinedNeighbor,
           ListBuffer[IR_Statement](
             IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(),
               IR_AddressOf(IR_IV_LocalCommDone(field,
-              if (Knowledge.comm_enableCommTransformations)
-                IR_IV_CommNeighNeighIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor)
-              else
-                DefaultNeighbors.getOpposingNeigh(neighbor).index,
-              IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor))))))
+                if (Knowledge.comm_enableCommTransformations)
+                  IR_IV_CommNeighNeighIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor)
+                else
+                  DefaultNeighbors.getOpposingNeigh(neighbor).index,
+                IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor))))))
       }))
   }
 

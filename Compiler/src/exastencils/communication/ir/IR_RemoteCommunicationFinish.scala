@@ -39,7 +39,6 @@ import exastencils.parallelization.api.mpi.MPI_DataType
 case class IR_RemoteCommunicationFinish(
     var field : IR_FieldLike,
     var slot : IR_Expression,
-    var refinementCase : RefinementCase.Access,
     var packInfos : ListBuffer[IR_RemotePackInfo],
     var start : Boolean, var end : Boolean,
     var concurrencyId : Int,
@@ -49,10 +48,11 @@ case class IR_RemoteCommunicationFinish(
   override def genCopy(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
     val neighbor = packInfo.neighbor
     val indices = packInfo.getPackInterval()
+    val refinementCase = packInfo.refinementCase
 
     if (requiresPacking(refinementCase, indices, condition)) {
       val body = IR_CopyFromRecvBuffer(field, Duplicate(slot), refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, Duplicate(condition))
-      if (addCondition) wrapCond(Duplicate(neighbor), indexOfRefinedNeighbor, ListBuffer[IR_Statement](body)) else body
+      if (addCondition) wrapCond(packInfo.refinementCase, Duplicate(neighbor), indexOfRefinedNeighbor, ListBuffer[IR_Statement](body)) else body
     } else {
       IR_NullStatement
     }
@@ -83,7 +83,7 @@ case class IR_RemoteCommunicationFinish(
           cnt, MPI_DataType.determineInnerMPIDatatype(field), concurrencyId, indexOfRefinedNeighbor)
       }
     }
-    if (addCondition) wrapCond(Duplicate(neighbor), indexOfRefinedNeighbor, ListBuffer[IR_Statement](body)) else body
+    if (addCondition) wrapCond(packInfo.refinementCase, Duplicate(neighbor), indexOfRefinedNeighbor, ListBuffer[IR_Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
@@ -118,7 +118,8 @@ case class IR_RemoteCommunicationFinish(
       ListBuffer(wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(domainIdx),
           packInfos.map(packInfo =>
-            wrapCond(packInfo.neighbor,
+            wrapCond(packInfo.refinementCase,
+              packInfo.neighbor,
               getIndexOfRefinedNeighbor(packInfo),
               ListBuffer(
                 if (start) genTransfer(packInfo, addCondition = false, getIndexOfRefinedNeighbor(packInfo)) else IR_NullStatement,

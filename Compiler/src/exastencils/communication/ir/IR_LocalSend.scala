@@ -63,7 +63,7 @@ case class IR_LocalSend(
           IR_AddressOf(IR_IV_LocalCommReady(field,
             DefaultNeighbors.getOpposingNeigh(neighborIdx).index,
             IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor)))),
-        getCopyLoop(),
+        getCopyLoop(packInfo.refinementCase),
         // signal other threads that the data reading step is completed
         IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true))))
   }

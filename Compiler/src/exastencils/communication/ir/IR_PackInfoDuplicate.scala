@@ -61,7 +61,7 @@ case class IR_PackInfoDuplicateRemoteSend(
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
-) extends IR_RemotePackInfoDuplicate
+) extends IR_RemotePackInfoDuplicate with IR_EqualLevelPackInfo
 
 /// IR_PackInfoDuplicateRemoteRecv
 // remote recv pack interval for duplicate layers
@@ -71,7 +71,7 @@ case class IR_PackInfoDuplicateRemoteRecv(
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
-) extends IR_RemotePackInfoDuplicate
+) extends IR_RemotePackInfoDuplicate with IR_EqualLevelPackInfo
 
 /// IR_PackInfoDuplicateLocalSend
 // local send pack intervals for duplicate layers
@@ -81,7 +81,7 @@ case class IR_PackInfoDuplicateLocalSend(
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
-) extends IR_LocalPackInfoDuplicate
+) extends IR_LocalPackInfoDuplicate with IR_EqualLevelPackInfo
 
 /// IR_PackInfoDuplicateLocalRecv
 // local send pack intervals for duplicate layers
@@ -91,4 +91,4 @@ case class IR_PackInfoDuplicateLocalRecv(
     var field : IR_FieldLike,
     var dupLayerBegin : IR_ExpressionIndex,
     var dupLayerEnd : IR_ExpressionIndex,
-) extends IR_LocalPackInfoDuplicate
+) extends IR_LocalPackInfoDuplicate with IR_EqualLevelPackInfo

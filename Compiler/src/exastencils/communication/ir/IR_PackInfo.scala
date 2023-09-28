@@ -4,6 +4,7 @@ import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.base.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.datastructures.Node
+import exastencils.domain.ir.RefinementCase
 import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_PackInfo
@@ -15,6 +16,8 @@ trait IR_PackInfo extends Node {
   def neighDir : Array[Int] = neighbor.dir
 
   def inverseNeighDir : Array[Int] = neighbor.dir.map(-1 * _)
+
+  def refinementCase : RefinementCase.Access
 
   protected def getPackingIntervalFromStartAndEnd(start : Array[IR_Expression], end : Array[IR_Expression]) =
     IR_ExpressionIndexRange(IR_ExpressionIndex(start), IR_ExpressionIndex(end))
@@ -34,6 +37,12 @@ trait IR_PackInfo extends Node {
   protected def numDimsGrid : Int = field.layout.numDimsGrid
   protected def numDimsData : Int = field.layout.numDimsData
   protected def resolveIndex(indexId : String, dim : Int) : IR_Expression = field.layout.idxById(indexId, dim)
+}
+
+/// IR_EqualLevelPackInfo
+
+trait IR_EqualLevelPackInfo {
+  def refinementCase = RefinementCase.EQUAL
 }
 
 /// IR_RemotePackInfo
