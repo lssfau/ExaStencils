@@ -17,7 +17,7 @@ trait IR_RefinementPackInfo extends IR_PackInfo {
     case _               => Logger.error("Mesh refinement is currently only available for cell-centered discretizations.")
   }
 
-  if ((0 until numDimsGrid).exists(dim => field.layout.layoutsPerDim(dim).numInnerLayers < 4))
+  if (field.layout.useFixedLayoutSizes && (0 until numDimsGrid).exists(dim => field.layout.layoutsPerDim(dim).numInnerLayers < 4))
     Logger.error(s"Number of inner layers of ${field.codeName} per dim must be >= 4 when using mesh refinement.")
 
   // total layout size per dim is divisible by two
