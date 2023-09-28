@@ -73,6 +73,8 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   // aabb
   def getCellAABB(idx : IR_ExpressionIndex) = IR_WaLBerlaCellAABB(this, idx)
 
+  def getAABBFromBlockId(inAABB : IR_Expression, id : IR_Expression) = IR_MemberFunctionCallArrow(resolveAccess(), "getAABBFromBlockId", inAABB, id)
+
   // domain border
   def isAtDomainBorder(dirArr : Array[Int]) = {
     val dir = IR_WaLBerlaDirection.getDirIndexFromArray(dirArr)
