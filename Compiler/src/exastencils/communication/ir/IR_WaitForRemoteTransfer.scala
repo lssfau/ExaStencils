@@ -37,13 +37,14 @@ case class IR_WaitForRemoteTransfer(
     var neighbor : NeighborInfo,
     var concurrencyId : Int,
     var indexOfRefinedNeighbor : Option[IR_Expression],
-) extends IR_Statement with IR_Expandable with IR_HasMessageDirection {
+) extends IR_RemoteTransfer with IR_HasMessageDirection {
 
-  override def expand() : Output[IR_Statement] = {
-    IR_IfCondition(
-      IR_IV_RemoteReqOutstanding(field, send, neighbor.index, concurrencyId, indexOfRefinedNeighbor),
-      ListBuffer[IR_Statement](
-        IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_Request(field, send, neighbor.index, concurrencyId, indexOfRefinedNeighbor))),
-        IR_Assignment(IR_IV_RemoteReqOutstanding(field, send, neighbor.index, concurrencyId, indexOfRefinedNeighbor), false)))
+  def expandSpecial() : ListBuffer[IR_Statement] = {
+    ListBuffer[IR_Statement](
+      IR_IfCondition(
+        IR_IV_RemoteReqOutstanding(field, send, neighbor.index, concurrencyId, indexOfRefinedNeighbor),
+        ListBuffer[IR_Statement](
+          IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_Request(field, send, neighbor.index, concurrencyId, indexOfRefinedNeighbor))),
+          IR_Assignment(IR_IV_RemoteReqOutstanding(field, send, neighbor.index, concurrencyId, indexOfRefinedNeighbor), false))))
   }
 }

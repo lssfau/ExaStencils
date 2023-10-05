@@ -23,6 +23,12 @@ object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("R
       transfer
   })
 
+  this += Transformation("Find remote wait calls with accesses to wb fields", {
+    case wait : IR_WaitForRemoteTransfer if wait.field.isInstanceOf[IR_WaLBerlaField] =>
+      fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
+      wait
+  })
+
   this += Transformation("Replace", {
     case loopOverFrags : IR_LoopOverFragments if containsWaLBerlaFieldAccesses(loopOverFrags) || fragmentLoopsToReplace.contains(loopOverFrags) =>
       IR_WaLBerlaLoopOverLocalBlocks(loopOverFrags.body, loopOverFrags.parallelization)

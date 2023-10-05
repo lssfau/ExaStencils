@@ -9,7 +9,7 @@ import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_RemoteTransfer
 
-trait IR_RemoteTransfer extends  IR_Statement with IR_SpecialExpandable {
+trait IR_RemoteTransfer extends IR_Statement with IR_SpecialExpandable {
   def field : IR_FieldLike
 
   def expandSpecial() : ListBuffer[IR_Statement]
