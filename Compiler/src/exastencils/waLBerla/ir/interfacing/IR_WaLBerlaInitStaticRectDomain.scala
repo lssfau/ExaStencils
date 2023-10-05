@@ -268,7 +268,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
               IR_VariableDeclaration(neighAABB),
               blockForest.getAABBFromBlockId(neighAABB, wbNeighborBlockId)) ++ (
               refinementIndexOffsetPerDim :+
-              IR_Assignment(IR_WaLBerlaRefinementIndexForCoarseNeighbor(defIt, neigh.index),
+              IR_Assignment(IR_WaLBerlaRefinementIndexForCoarseNeighbor(neigh.index, defIt),
                 IR_Linearization.linearizeIndex(
                   IR_ExpressionIndex(refinementIndexOffsetPerDim.map(IR_VariableAccess(_)) : _*),
                   IR_ExpressionIndex(stride : _*))))

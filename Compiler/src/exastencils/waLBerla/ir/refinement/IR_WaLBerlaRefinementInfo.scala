@@ -24,8 +24,9 @@ case class IR_WaLBerlaRefinementCase(
 /// IR_WaLBerlaRefinementIndexForCoarseNeighbor
 
 case class IR_WaLBerlaRefinementIndexForCoarseNeighbor(
+    var neighIdx : IR_Expression,
     var fragmentIdx : IR_Expression,
-    var neighIdx : IR_Expression) extends IR_WaLBerlaInterfaceMember(true, false, true) {
+) extends IR_WaLBerlaInterfaceMember(true, false, true) {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
 

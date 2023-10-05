@@ -46,8 +46,8 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
       assign.dest = IR_WaLBerlaRefinementCase(fragIdx, neighIdx)
       assign
 
-    case assign @ IR_Assignment(_ @ IR_RefinementIndexForCoarseNeighbor(fragIdx, _, neighIdx), _, "=") if inWaLBerlaScope(collector) =>
-      assign.dest = IR_WaLBerlaRefinementIndexForCoarseNeighbor(fragIdx, neighIdx)
+    case assign @ IR_Assignment(_ @ IR_RefinementIndexForCoarseNeighbor(neighIdx, _, fragIdx), _, "=") if inWaLBerlaScope(collector) =>
+      assign.dest = IR_WaLBerlaRefinementIndexForCoarseNeighbor(neighIdx, fragIdx)
       assign
 
     /* accesses */
@@ -78,8 +78,8 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
     // refinement info
     case _ @ IR_IV_NeighborRefinementCase(fragIdx, _, neighIdx) if inWaLBerlaScope(collector) =>
       IR_WaLBerlaRefinementCase(fragIdx, neighIdx)
-    case _ @ IR_RefinementIndexForCoarseNeighbor(fragIdx, _, neighIdx) if inWaLBerlaScope(collector) =>
-      IR_WaLBerlaRefinementIndexForCoarseNeighbor(fragIdx, neighIdx)
+    case _ @ IR_RefinementIndexForCoarseNeighbor(neighIdx, _, fragIdx) if inWaLBerlaScope(collector) =>
+      IR_WaLBerlaRefinementIndexForCoarseNeighbor(neighIdx, fragIdx)
 
     /* conditions */
   })
