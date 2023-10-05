@@ -9,6 +9,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.prettyprinting.PpStream
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLocalBlocks
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
@@ -139,7 +140,14 @@ case class IR_IV_WaLBerlaFieldData(
 
   // CPU/GPU execution information not incorporated in class -> we need to make sure it is initialized in the correct mode (see IR_WaLBerlaLoopOverBlocks)
   def initInBlockLoop(onGPU : Boolean) : ListBuffer[IR_Statement] = {
-    def getFieldDataPtr(slotIt : IR_Expression) = IR_IV_WaLBerlaGetFieldData(field, slotIt, onGPU, fragmentIdx)
+    def getFieldDataPtr(slotIt : IR_Expression) = {
+      val dataPtr = IR_IV_WaLBerlaGetFieldData(field, slotIt, onGPU, fragmentIdx)
+
+      if (fragmentIdxName != IR_WaLBerlaLoopOverLocalBlocks.defIt.name)
+        IR_TernaryCondition(fragmentIdx >= 0 AndAnd fragmentIdx < IR_WaLBerlaLocalBlocks().size(), dataPtr, IR_VariableAccess("nullptr", IR_UnknownDatatype))
+      else
+        dataPtr
+    }
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
