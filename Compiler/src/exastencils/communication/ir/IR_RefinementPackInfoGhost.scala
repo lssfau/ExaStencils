@@ -43,12 +43,12 @@ trait IR_F2CPackInfoGhost extends IR_F2CPackInfo with IR_RefinementPackInfoGhost
 
   // pack interval for sending fine fragments to a coarse one can be reused from equal-level comm (since fine fragments are sent as a whole)
   override def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) =
-    getGridPackingStartAndEndForSend(neighDir)
+    getGridPackingStartAndEndForSend(allowGhostSync = false, neighDir)
 
   // unpacking interval for receiving from fine to coarse requires adaptations (since one of received fine fragments covers only a portion of the coarse fragment)
   // -> split iteration interval of coarse fragment
   override def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
-    val (start, end) = getGridPackingStartAndEndForRecv(neighDir)
+    val (start, end) = getGridPackingStartAndEndForRecv(allowGhostSync = false, neighDir)
 
     splitPackingStartAndEndForCoarseFragment(neighDir, indexOfRefinedNeighbor, start, end)
   }
@@ -61,7 +61,7 @@ trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
   // pack interval for sending a coarse fragment to finer ones requires adaptations (a coarse block sends N messages, where N is the number of fine neighbors)
   // -> split iteration interval of coarse fragment
   override def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
-    val (start, end) = getGridPackingStartAndEndForSend(neighDir)
+    val (start, end) = getGridPackingStartAndEndForSend(allowGhostSync = false, neighDir)
 
     splitPackingStartAndEndForCoarseFragment(neighDir, indexOfRefinedNeighbor, start, end)
   }
@@ -69,7 +69,7 @@ trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
   // pack interval for receiving from a coarse fragment into fine fragments can be reused from equal-level comm
   // (since coarse fragment already deals with iteration space splitting when sending -> just receive data as a whole)
   override def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
-    getGridPackingStartAndEndForRecv(neighDir)
+    getGridPackingStartAndEndForRecv(allowGhostSync = false, neighDir)
   }
 }
 

@@ -10,12 +10,12 @@ trait IR_PackInfoGhost extends IR_PackInfo {
   def ghostLayerBegin : IR_ExpressionIndex
   def ghostLayerEnd : IR_ExpressionIndex
 
-  def getGridPackingStartAndEndForSend(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
+  def getGridPackingStartAndEndForSend(allowGhostSync : Boolean, neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
     (
       // start
       (0 until numDimsGrid).toArray.map {
         case i if neighDir(i) == 0 =>
-          if (Knowledge.comm_syncGhostData)
+          if (allowGhostSync && Knowledge.comm_syncGhostData)
             resolveIndex("GLB", i)
           else
             resolveIndex("DLB", i)
@@ -25,7 +25,7 @@ trait IR_PackInfoGhost extends IR_PackInfo {
       // end
       (0 until numDimsGrid).toArray.map {
         case i if neighDir(i) == 0 =>
-          if (Knowledge.comm_syncGhostData)
+          if (allowGhostSync && Knowledge.comm_syncGhostData)
             resolveIndex("GRE", i)
           else
             resolveIndex("DRE", i)
@@ -34,12 +34,12 @@ trait IR_PackInfoGhost extends IR_PackInfo {
       })
   }
 
-  def getGridPackingStartAndEndForRecv(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
+  def getGridPackingStartAndEndForRecv(allowGhostSync : Boolean, neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
     (
       // start
       (0 until numDimsGrid).toArray.map {
         case i if neighDir(i) == 0 =>
-          if (Knowledge.comm_syncGhostData)
+          if (allowGhostSync && Knowledge.comm_syncGhostData)
             resolveIndex("GLB", i)
           else
             resolveIndex("DLB", i)
@@ -49,7 +49,7 @@ trait IR_PackInfoGhost extends IR_PackInfo {
       // end
       (0 until numDimsGrid).toArray.map {
         case i if neighDir(i) == 0 =>
-          if (Knowledge.comm_syncGhostData)
+          if (allowGhostSync && Knowledge.comm_syncGhostData)
             resolveIndex("GRE", i)
           else
             resolveIndex("DRE", i)
@@ -79,7 +79,7 @@ case class IR_PackInfoGhostRemoteSend(
 ) extends IR_RemotePackInfoGhost with IR_EqualLevelPackInfo {
 
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getGridPackingStartAndEndForSend(neighDir)
+    getGridPackingStartAndEndForSend(allowGhostSync = true, neighDir)
 }
 
 /// IR_PackInfoGhostRemoteRecv
@@ -93,7 +93,7 @@ case class IR_PackInfoGhostRemoteRecv(
 ) extends IR_RemotePackInfoGhost with IR_EqualLevelPackInfo {
 
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getGridPackingStartAndEndForRecv(neighDir)
+    getGridPackingStartAndEndForRecv(allowGhostSync = true, neighDir)
 }
 
 /// IR_PackInfoGhostLocalSend
@@ -106,10 +106,10 @@ case class IR_PackInfoGhostLocalSend(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_EqualLevelPackInfo {
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getGridPackingStartAndEndForSend(neighDir)
+    getGridPackingStartAndEndForSend(allowGhostSync = true, neighDir)
 
   override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getGridPackingStartAndEndForRecv(inverseNeighDir)
+    getGridPackingStartAndEndForRecv(allowGhostSync = true, inverseNeighDir)
 }
 
 /// IR_PackInfoGhostLocalRecv
@@ -123,9 +123,9 @@ case class IR_PackInfoGhostLocalRecv(
 ) extends IR_LocalPackInfoGhost with IR_EqualLevelPackInfo {
 
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getGridPackingStartAndEndForRecv(neighDir)
+    getGridPackingStartAndEndForRecv(allowGhostSync = true, neighDir)
 
   override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getGridPackingStartAndEndForSend(inverseNeighDir)
+    getGridPackingStartAndEndForSend(allowGhostSync = true, inverseNeighDir)
 
 }
