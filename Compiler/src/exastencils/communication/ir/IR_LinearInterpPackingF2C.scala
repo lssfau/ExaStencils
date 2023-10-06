@@ -26,7 +26,7 @@ object LinearInterpPackingF2CHelper {
 
     def commDir : Array[Int] = packInfo.neighDir
 
-    def upwindCommDir : Array[Int] = if (isUpwindDir(commDir)) commDir else commDir.map(_ * -1)
+    def invCommDir : Array[Int] = commDir.map(_ * -1)
 
     // fetch upwind orthogonal directions and their cross sum
     val upwindOrthogonals = getOrthogonalNeighborDirs(commDir).filter(isUpwindDir)
@@ -39,9 +39,9 @@ object LinearInterpPackingF2CHelper {
 
     // calculate linear interpolations on orthogonal (fine) neighbor cells in upwind dir
     val linearInterpResult : Array[(IR_Expression, IR_Expression)] = crossSumUpwindOrthogonals.distinct.map(offset => {
-      val basePositionsOrtho = getBasePositions(level, localization, upwindCommDir, origin + IR_ExpressionIndex(offset), shifts)
-      val baseValuesOrtho = getBaseValues(field, slot, upwindCommDir, origin + IR_ExpressionIndex(offset), shifts)
-      val pos = 0.5 * getCellWidth(level, getDimFromDir(upwindCommDir), origin + IR_ExpressionIndex(offset))
+      val basePositionsOrtho = getBasePositions(level, localization, invCommDir, origin + IR_ExpressionIndex(offset), shifts)
+      val baseValuesOrtho = getBaseValues(field, slot, invCommDir, origin + IR_ExpressionIndex(offset), shifts)
+      val pos = 0.5 * getCellWidth(level, getDimFromDir(invCommDir), origin + IR_ExpressionIndex(offset))
 
       pos -> interpolate1D(pos, basePositionsOrtho, baseValuesOrtho)
     }).toArray
@@ -156,11 +156,11 @@ case class IR_LinearInterpPackingF2CLocal(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
-    val originSrc = IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims).indices.zipWithIndex.map { case (idx, i) =>
+    val originDest = IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims).indices.zipWithIndex.map { case (idx, i) =>
       if (getDimFromDir(neighbor.dir) != i)
-        Knowledge.refinement_maxFineNeighborsPerDim * idx
+        packIntervalDest.begin(i) + (Knowledge.refinement_maxFineNeighborsPerDim * (idx - packIntervalSrc.begin(i)))
       else
-        idx
+        packIntervalDest.begin(i) + idx - packIntervalSrc.begin(i)
     })
 
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
@@ -170,7 +170,7 @@ case class IR_LinearInterpPackingF2CLocal(
       IR_DirectFieldLikeAccess(field, Duplicate(slot),
         IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
         IR_LoopOverDimensions.defIt(numDims)),
-      generateInterpExpr(field, IR_ExpressionIndex(IR_ExpressionIndex(originSrc, packIntervalDest.begin, _ + _), packIntervalSrc.begin, _ - _), slot, packInfo))
+      generateInterpExpr(field, originDest, slot, packInfo))
 
     val loop = new IR_LoopOverDimensions(numDims, packIntervalSrc, innerStmts, condition = condition)
     loop.polyOptLevel = 1
