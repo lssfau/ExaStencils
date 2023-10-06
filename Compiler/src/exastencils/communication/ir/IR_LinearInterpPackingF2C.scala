@@ -169,11 +169,8 @@ case class IR_LinearInterpPackingF2CLocal(
     innerStmts += IR_Assignment(
       IR_DirectFieldLikeAccess(field, Duplicate(slot),
         IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
-        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _)),
-      generateInterpExpr(field, IR_ExpressionIndex(originSrc, packIntervalDest.begin, _ + _), slot, packInfo))
-
-    // fine neighbor cells (2 in 2D, 4 in 3D) are linearly interpolated and the result is sent to the coarse neighbor
-    val stride = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1))
+        IR_LoopOverDimensions.defIt(numDims)),
+      generateInterpExpr(field, IR_ExpressionIndex(IR_ExpressionIndex(originSrc, packIntervalDest.begin, _ + _), packIntervalSrc.begin, _ - _), slot, packInfo))
 
     val loop = new IR_LoopOverDimensions(numDims, packIntervalSrc, innerStmts, condition = condition)
     loop.polyOptLevel = 1
