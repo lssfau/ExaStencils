@@ -220,14 +220,33 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
         val wbNeighborHoodSectionIdx = IR_WaLBerlaNeighborHoodSectionIndex(neigh.dir)
         val wbNeighborProcess = block.getNeighborProcess(wbNeighborHoodSectionIdx, wbNeighborIdx)
 
+        val refLevel = IR_WaLBerlaRefinementLevel()
+        val neighborRefLevel = blockForest.getLevelFromBlockId(wbNeighborBlockId)
+
         def findRemoteNeighborBlockIndex() = IR_ArrayAccess(IR_WaLBerlaLocalBlockIndicesFromRemote(), wbNeighborBlockId)
 
         // compile connect calls
-        def localConnect() = IR_ConnectFragments().connectLocalElement(
-          defIt, wbLocalNeighborBlockIdx, neigh.index, domainIdx, Some(wbNeighborIdx))
+        def localConnect() = {
+          IR_IfCondition(refLevel > neighborRefLevel,
+            // F2C: mark all potential refinement indices as valid
+            (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).flatMap(d =>
+              IR_ConnectFragments().connectLocalElement(
+                defIt, wbLocalNeighborBlockIdx, neigh.index, domainIdx, Some(d))).to[ListBuffer],
+            // else: mark neighbor section index as valid
+            IR_ConnectFragments().connectLocalElement(
+              defIt, wbLocalNeighborBlockIdx, neigh.index, domainIdx, Some(wbNeighborIdx)))
+        }
 
-        def remoteConnect() = IR_ConnectFragments().connectRemoteElement(
-          defIt, wbRemoteNeighborBlockIdx, wbNeighborProcess, neigh.index, domainIdx, Some(wbNeighborIdx))
+        def remoteConnect() = {
+          IR_IfCondition(refLevel > neighborRefLevel,
+            // F2C: mark all potential refinement indices as valid
+            (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).flatMap(d =>
+              IR_ConnectFragments().connectRemoteElement(
+                defIt, wbRemoteNeighborBlockIdx, wbNeighborProcess, neigh.index, domainIdx, Some(d))).to[ListBuffer],
+            // else: mark neighbor section index as valid
+            IR_ConnectFragments().connectRemoteElement(
+              defIt, wbRemoteNeighborBlockIdx, wbNeighborProcess, neigh.index, domainIdx, Some(wbNeighborIdx)))
+        }
 
         // assemble loop over neighbors and connect frags
         var bodyNeighborHoodLoop = ListBuffer[IR_Statement]()
@@ -239,17 +258,26 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
           bodyNeighborHoodLoop += IR_VariableDeclaration(wbRemoteNeighborBlockIdx, findRemoteNeighborBlockIndex())
 
           // determine (static) refinement case per block and neighbor dir
-          val refLevel = IR_WaLBerlaRefinementLevel()
-          val neighborRefLevel = blockForest.getLevelFromBlockId(wbNeighborBlockId)
           bodyNeighborHoodLoop += IR_IfCondition(refLevel < neighborRefLevel,
             IR_Assignment(IR_IV_NeighborRefinementCase(defIt, domainIdx, neigh.index), RefinementCase.C2F.id),
             IR_IfCondition(refLevel > neighborRefLevel,
               IR_Assignment(IR_IV_NeighborRefinementCase(defIt, domainIdx, neigh.index), RefinementCase.F2C.id),
               IR_Assignment(IR_IV_NeighborRefinementCase(defIt, domainIdx, neigh.index), RefinementCase.EQUAL.id)))
 
+          // connect local/remote fragments
+          if (canHaveRemoteNeighs && canHaveLocalNeighs)
+            bodyNeighborHoodLoop ++= ListBuffer[IR_Statement](
+              IR_IfCondition(hasLocalNeighbor(wbNeighborHoodSectionIdx), localConnect(),
+                IR_IfCondition(hasRemoteNeighbor(wbNeighborHoodSectionIdx), remoteConnect())))
+          else if (canHaveRemoteNeighs)
+            bodyNeighborHoodLoop += IR_IfCondition(hasRemoteNeighbor(wbNeighborHoodSectionIdx), remoteConnect())
+          else if (canHaveLocalNeighs)
+            bodyNeighborHoodLoop += IR_IfCondition(hasLocalNeighbor(wbNeighborHoodSectionIdx), localConnect())
+
+          /* fine-to-coarse case */
           // init refinement index of coarse neighbor with geometry info
           // 1. compare coarse/fine block AABBs (0 if current block aabb center is smaller than neighbor in current dim)
-          // 2. disregard comm dir
+          // 2. disregard comm dir in AABB comparison
           // 3. linearize index with [maxFineNeighborsPerDim, ..., maxFineNeighborsPerDim, 1]
           val neighAABB = IR_VariableAccess("neighAABB", IR_WaLBerlaAABB.datatype)
           val dimFromDir = neigh.dir.indexWhere(_ != 0)
@@ -268,21 +296,10 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
               IR_VariableDeclaration(neighAABB),
               blockForest.getAABBFromBlockId(neighAABB, wbNeighborBlockId)) ++ (
               refinementIndexOffsetPerDim :+
-              IR_Assignment(IR_WaLBerlaRefinementIndexForCoarseNeighbor(neigh.index, defIt),
-                IR_Linearization.linearizeIndex(
-                  IR_ExpressionIndex(refinementIndexOffsetPerDim.map(IR_VariableAccess(_)) : _*),
-                  IR_ExpressionIndex(stride : _*))))
-          )
-
-          // connect local/remote fragments
-          if (canHaveRemoteNeighs && canHaveLocalNeighs)
-            bodyNeighborHoodLoop ++= ListBuffer[IR_Statement](
-              IR_IfCondition(hasLocalNeighbor(wbNeighborHoodSectionIdx), localConnect(),
-                IR_IfCondition(hasRemoteNeighbor(wbNeighborHoodSectionIdx), remoteConnect())))
-          else if (canHaveRemoteNeighs)
-            bodyNeighborHoodLoop += IR_IfCondition(hasRemoteNeighbor(wbNeighborHoodSectionIdx), remoteConnect())
-          else if (canHaveLocalNeighs)
-            bodyNeighborHoodLoop += IR_IfCondition(hasLocalNeighbor(wbNeighborHoodSectionIdx), localConnect())
+                IR_Assignment(IR_WaLBerlaRefinementIndexForCoarseNeighbor(neigh.index, defIt),
+                  IR_Linearization.linearizeIndex(
+                    IR_ExpressionIndex(refinementIndexOffsetPerDim.map(IR_VariableAccess(_)) : _*),
+                    IR_ExpressionIndex(stride : _*)))))
         }
         statements += IR_WaLBerlaLoopOverBlockNeighborhoodSection(neigh.dir, bodyNeighborHoodLoop : _*)
 
