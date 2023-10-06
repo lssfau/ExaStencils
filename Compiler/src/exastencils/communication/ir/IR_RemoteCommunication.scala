@@ -56,10 +56,16 @@ abstract class IR_RemoteCommunication extends IR_Communication with IR_ApplyRemo
   def genTransfer(packInfo : IR_RemotePackInfo, addCondition : Boolean, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement
 
   def wrapCond(refinementCase : RefinementCase.Access, neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], stmt : IR_Statement) : IR_Statement =
-    IR_IfCondition(isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor),
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor)),
       stmt)
 
   def wrapCond(refinementCase : RefinementCase.Access, neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], body : ListBuffer[IR_Statement]) : IR_Statement =
-    IR_IfCondition(isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor),
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isRemoteNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor)),
       body)
 }

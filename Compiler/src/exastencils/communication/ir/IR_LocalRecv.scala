@@ -100,7 +100,10 @@ case class IR_LocalRecv(
     // signal other threads that the data reading step is completed
     ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true)) // TODO here too
 
-    IR_IfCondition(isLocalNeighbor(refinementCase, domainIdx, neighborIdx, indexOfRefinedNeighbor),
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isLocalNeighbor(refinementCase, domainIdx, neighborIdx, indexOfRefinedNeighbor)),
       ifCondStmts)
   }
 }

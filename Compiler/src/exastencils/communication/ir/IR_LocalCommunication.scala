@@ -50,10 +50,16 @@ abstract class IR_LocalCommunication extends IR_Communication with IR_ApplyLocal
   def recvPackInfos : ListBuffer[IR_LocalPackInfo]
 
   def wrapCond(refinementCase : RefinementCase.Access, neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], stmt : IR_Statement) : IR_Statement =
-    IR_IfCondition(isLocalNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor),
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isLocalNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor)),
       stmt)
 
   def wrapCond(refinementCase : RefinementCase.Access, neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], body : ListBuffer[IR_Statement]) : IR_Statement =
-    IR_IfCondition(isLocalNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor),
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isLocalNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor)),
       body)
 }

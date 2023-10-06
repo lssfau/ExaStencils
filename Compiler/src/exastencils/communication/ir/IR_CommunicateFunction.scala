@@ -74,8 +74,9 @@ case class IR_CommunicateFunction(
         // F2C: the current fragment is finer than the neighbor
         if (send) {
           // send: pack info per receiving neighbor (i.e. coarse neighbor receives 1 buffer from this fragment)
-          // -> use IV with index for corresponding (spatial) section in coarse block
-          List(IR_RefinementIndexForCoarseNeighbor(neighInfo.index, field.domain.index))
+          // -> generate multiple pack infos for the corresponding (spatial) sections in coarse block
+          // -> check with IV variable to select the section belonging to the current fragment
+          (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(IR_IntegerConstant(_)).toList
         } else {
           // recv: pack info per sending neighbor (i.e. this fragment receives 1 buffer from the coarse neighbor)
           // no refined neighbor index required -> default to 0

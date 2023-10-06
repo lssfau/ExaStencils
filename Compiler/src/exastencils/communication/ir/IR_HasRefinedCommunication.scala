@@ -1,7 +1,10 @@
 package exastencils.communication.ir
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
+import exastencils.domain.ir.IR_RefinementIndexForCoarseNeighbor
 import exastencils.domain.ir.RefinementCase
 
 trait IR_HasRefinedCommunication {
@@ -10,6 +13,12 @@ trait IR_HasRefinedCommunication {
     case p : IR_RefinementPackInfo => Some(p.indexOfRefinedNeighbor)
     case _                         => None
   }
+
+  def isCurrentFineNeighbor(refinementCase : RefinementCase.Access, domainIdx : IR_Expression, neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression]) =
+    if (refinementCase == RefinementCase.F2C && indexOfRefinedNeighbor.isDefined)
+      IR_EqEq(indexOfRefinedNeighbor.get, IR_RefinementIndexForCoarseNeighbor(neighbor.index, domainIdx))
+    else
+      IR_BooleanConstant(true)
 }
 
 trait IR_HasRefinedPacking extends IR_HasRefinedCommunication {

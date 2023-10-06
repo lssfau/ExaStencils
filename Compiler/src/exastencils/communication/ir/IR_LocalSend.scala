@@ -56,7 +56,10 @@ case class IR_LocalSend(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
-    IR_IfCondition(isLocalNeighbor(refinementCase, domainIdx, neighborIdx, indexOfRefinedNeighbor),
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isLocalNeighbor(refinementCase, domainIdx, neighborIdx, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
         IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(),
