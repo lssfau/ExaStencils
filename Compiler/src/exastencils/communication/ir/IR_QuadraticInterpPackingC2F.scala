@@ -446,6 +446,8 @@ case class IR_QuadraticInterpPackingC2FLocal(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
+    val commDir = packInfo.neighDir
+
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
 
     // store final interp results for fine ghost neighbor cells (2 in 2D, 4 in 3D)
@@ -460,11 +462,12 @@ case class IR_QuadraticInterpPackingC2FLocal(
     innerStmts ++= QuadraticInterpPackingC2FHelper.generateInterpStmts(interpResults, field, slot, packInfo)
 
     // push result to destination
-    for (res <- interpResults) {
+    for ((res, i) <- interpResults.zipWithIndex) {
+      val offset = getCrossSumOfUpwindOrthogonals(commDir)(i) // store each result at a different field index (offset in upwind ortho dir)
       innerStmts += IR_Assignment(
         IR_DirectFieldLikeAccess(field, Duplicate(slot),
           IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
-          IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _)),
+          IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _) + IR_ExpressionIndex(offset)),
         res)
     }
 

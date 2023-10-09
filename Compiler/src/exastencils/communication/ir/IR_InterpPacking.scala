@@ -27,6 +27,17 @@ object IR_InterpPackingHelper {
     DefaultNeighbors.neighbors.map(_.dir).filter(dir => !(dir sameElements commDir) && !(dir sameElements commDir.map(_ * -1)))
   }
 
+  // fetch upwind orthogonal directions and their cross sum
+  def getCrossSumOfUpwindOrthogonals(commDir : Array[Int]) : ListBuffer[Array[Int]] = {
+    val upwindOrthogonals = getOrthogonalNeighborDirs(commDir).filter(isUpwindDir)
+    Knowledge.dimensionality match {
+      case 2 =>
+        ListBuffer(Array.fill(3)(0), upwindOrthogonals(0))
+      case 3 =>
+        ListBuffer(Array.fill(3)(0), upwindOrthogonals(0), upwindOrthogonals(1), dirSum(upwindOrthogonals(0), upwindOrthogonals(1)))
+    }
+  }
+
   // get dimension that a unit vector points to
   def getDimFromDir(dir : Array[Int]) : Int = {
     if (dir.map(math.abs).sum != 1)
