@@ -463,18 +463,25 @@ case class IR_QuadraticInterpPackingC2FLocal(
 
     // push result to destination
     for ((res, i) <- interpResults.zipWithIndex) {
-      val offset = getCrossSumOfUpwindOrthogonals(commDir)(i) // store each result at a different field index (offset in upwind ortho dir)
+      // store each result at a different field index (offset in upwind ortho dir)
+      val offset = IR_ExpressionIndex(getCrossSumOfUpwindOrthogonals(commDir)(i))
+
+      // index mapping between the (local) fine/coarse iteration space
+      val originSrc = IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims).indices.zipWithIndex.map { case (idx, i) =>
+        if (getDimFromDir(neighbor.dir) != i)
+          packIntervalSrc.begin(i) + (Knowledge.refinement_maxFineNeighborsPerDim * (idx - packIntervalDest.begin(i))) + offset(i) : IR_Expression
+        else
+          packIntervalSrc.begin(i) + idx - packIntervalDest.begin(i) + offset(i) : IR_Expression
+      })
+
       innerStmts += IR_Assignment(
         IR_DirectFieldLikeAccess(field, Duplicate(slot),
           IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
-          IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _) + IR_ExpressionIndex(offset)),
+          originSrc),
         res)
     }
 
-    // 2 values per dim written from coarse neighbor to fine receiver
-    val stride = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(packInfo.neighDir), 1))
-
-    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, innerStmts, stride, condition = condition)
+    val loop = new IR_LoopOverDimensions(numDims, packIntervalDest, innerStmts, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 

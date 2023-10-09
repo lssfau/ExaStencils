@@ -147,6 +147,7 @@ case class IR_LinearInterpPackingF2CLocal(
     val domainIdx = field.domain.index
     val neighborIdx = neighbor.index
 
+    // index mapping between the (local) fine/coarse iteration space
     val originDest = IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims).indices.zipWithIndex.map { case (idx, i) =>
       if (getDimFromDir(neighbor.dir) != i)
         packIntervalDest.begin(i) + (Knowledge.refinement_maxFineNeighborsPerDim * (idx - packIntervalSrc.begin(i)))
