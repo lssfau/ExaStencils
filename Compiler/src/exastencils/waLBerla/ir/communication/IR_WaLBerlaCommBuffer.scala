@@ -16,7 +16,7 @@ import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 
 /// IR_WaLBerlaAbstractCommBuffer
 
-abstract class IR_WaLBerlaAbstractCommBuffer extends IR_WaLBerlaInterfaceMember(true, false, true) with IR_IV_AbstractCommBufferLike {
+abstract class IR_WaLBerlaAbstractCommBuffer extends IR_WaLBerlaCommVariable with IR_IV_AbstractCommBufferLike {
   var field : IR_FieldLike
   var send : Boolean
   var size : IR_Expression
@@ -29,21 +29,12 @@ abstract class IR_WaLBerlaAbstractCommBuffer extends IR_WaLBerlaInterfaceMember(
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
-    val access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
+  // IR_ComplexDatatype should be a base datatype on one level with IR_DoubleDatatype
+  override def baseDatatype : IR_Datatype = if (field.layout.datatype.isInstanceOf[IR_ComplexDatatype])
+    IR_PointerDatatype(field.layout.datatype)
+  else
+    IR_PointerDatatype(field.resolveBaseDatatype)
 
-    if (Knowledge.refinement_enabled) IR_ArrayAccess(access, if (indexOfRefinedNeighbor.isDefined) indexOfRefinedNeighbor.get else 0) else access
-  }
-
-  override def resolveDatatype() = {
-    // IR_ComplexDatatype should be a base datatype on one level with IR_DoubleDatatype
-    val baseDatatype = if (field.layout.datatype.isInstanceOf[IR_ComplexDatatype])
-      IR_PointerDatatype(field.layout.datatype)
-    else
-      IR_PointerDatatype(field.resolveBaseDatatype)
-
-    if (Knowledge.refinement_enabled) IR_StdArrayDatatype(baseDatatype, Knowledge.refinement_maxFineNeighborsForCommAxis) else baseDatatype
-  }
   override def resolveDefValue() = Some(0)
 
   override def getDtor() : Option[IR_Statement] = {
@@ -53,20 +44,6 @@ abstract class IR_WaLBerlaAbstractCommBuffer extends IR_WaLBerlaInterfaceMember(
         ListBuffer[IR_Statement](
           IR_ArrayFree(ptrExpr),
           IR_Assignment(ptrExpr, 0)))))
-  }
-
-  override def getCtor() : Option[IR_Statement] = {
-    if (Knowledge.refinement_enabled && resolveDefValue().isDefined) {
-      def resolveAccess(i : Int) : IR_Expression = {
-        val access = super.resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_NullExpression, IR_NullExpression, IR_LoopOverNeighbors.defIt)
-
-        IR_ArrayAccess(access, i)
-      }
-
-      Some(wrapInLoops(IR_Scope((0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i => IR_Assignment(resolveAccess(i), resolveDefValue().get)) : _*)))
-    } else {
-      super.getCtor()
-    }
   }
 }
 
@@ -124,7 +101,7 @@ case class IR_WaLBerlaCommBufferIterator(
     var neighIdx : IR_Expression,
     var concurrencyId : Int,
     var indexOfRefinedNeighbor : Option[IR_Expression],
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaInterfaceMember(true, false, true) with IR_HasMessageDirection {
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaCommVariable {
 
   override def isPrivate : Boolean = true
 
@@ -132,6 +109,7 @@ case class IR_WaLBerlaCommBufferIterator(
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveDatatype() = IR_IntegerDatatype
+  override def baseDatatype : IR_Datatype = IR_IntegerDatatype
+
   override def resolveDefValue() = Some(0)
 }
