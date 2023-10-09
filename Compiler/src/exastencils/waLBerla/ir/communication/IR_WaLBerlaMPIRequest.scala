@@ -34,6 +34,7 @@ case class IR_WaLBerlaMPIRequest(
 case class IR_WaLBerlaMPIRequestNoField(
     var send : Boolean,
     var neighIdx : IR_Expression,
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
 ) extends IR_WaLBerlaInterfaceMember(true, false,true) with IR_HasMessageDirection {
 

@@ -18,8 +18,8 @@ object IR_WaLBerlaReplaceCommIVs extends IR_WaLBerlaReplacementStrategy("Replace
 
     case _ @ MPI_Request(field, send, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaScope(collector) =>
       IR_WaLBerlaMPIRequest(field, send, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx)
-    case _ @ MPI_RequestNoField(send, neighIdx, fragmentIdx) if inWaLBerlaScope(collector)                                        =>
-      IR_WaLBerlaMPIRequestNoField(send, neighIdx, fragmentIdx)
+    case _ @ MPI_RequestNoField(send, neighIdx, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaScope(collector)                                        =>
+      IR_WaLBerlaMPIRequestNoField(send, neighIdx, indexOfRefinedNeighbor, fragmentIdx)
 
     case _ @ IR_IV_RemoteReqOutstanding(field, send, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx) if inWaLBerlaScope(collector) =>
       IR_WaLBerlaRemoteReqOutstanding(field, send, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx)
