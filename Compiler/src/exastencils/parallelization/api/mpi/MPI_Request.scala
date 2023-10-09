@@ -49,10 +49,9 @@ case class MPI_Request(
 case class MPI_RequestNoField(
     var send : Boolean,
     var neighIdx : IR_Expression,
+    var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
 ) extends IR_InternalVariable(true, false, false, false, true) with IR_HasMessageDirection {
-
-  // TODO: indexOfRefinedNeighbor
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, neighIdx)
 
