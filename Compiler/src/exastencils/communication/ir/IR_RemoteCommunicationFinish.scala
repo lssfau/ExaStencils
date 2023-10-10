@@ -65,13 +65,7 @@ case class IR_RemoteCommunicationFinish(
 
     val body = {
       val totalPackInterval = Duplicate(indices).getTotalSize
-      val maxCnt =
-        if (refinementCase == RefinementCase.C2F) // actual size of recv message after interpolation from neighbor
-          totalPackInterval / Knowledge.refinement_maxFineNeighborsPerDim
-        else if (refinementCase == RefinementCase.F2C) // actual size of recv message after extrapolation of neighbor
-          totalPackInterval * Knowledge.refinement_maxFineNeighborsPerDim
-        else
-          totalPackInterval
+      val maxCnt = totalPackInterval
 
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
       if (field.layout.useFixedLayoutSizes && IR_SimplifyExpression.evalIntegral(cnt) <= 0) {

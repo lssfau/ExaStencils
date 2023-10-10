@@ -61,8 +61,8 @@ object QuadraticInterpPackingC2FHelper {
 
     def isAtBlockCornerForDir3D(commDir : Array[Int], orthoDir : Array[Int], min : Boolean) : IR_Expression = {
       val ival = packInfo match {
-        case rp : IR_RemotePackInfo => rp.getPackInterval()
-        case lp : IR_LocalPackInfo  => lp.getPackIntervalSrc()
+        case rp : IR_RefinementPackInfoGhost => rp.unsplitPackIntervalSend(commDir)
+        case _                               => Logger.error("Unsupported PackInfo type used in (cell-based) quadratic C2F interp")
       }
 
       val commDirDim = getDimFromDir(commDir)
@@ -74,8 +74,8 @@ object QuadraticInterpPackingC2FHelper {
 
     def isAtBlockCornerForDir2D(orthoDir : Array[Int]) : IR_Expression = {
       val ival = packInfo match {
-        case rp : IR_RemotePackInfo => rp.getPackInterval()
-        case lp : IR_LocalPackInfo  => lp.getPackIntervalSrc()
+        case rp : IR_RefinementPackInfoGhost => rp.unsplitPackIntervalSend(commDir)
+        case _                               => Logger.error("Unsupported PackInfo type used in (cell-based) quadratic C2F interp")
       }
 
       val dim = getDimFromDir(orthoDir)

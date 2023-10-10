@@ -2,6 +2,7 @@ package exastencils.communication.ir
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
 import exastencils.fieldlike.ir.IR_FieldLike
@@ -9,9 +10,37 @@ import exastencils.fieldlike.ir.IR_FieldLike
 /// IR_RefinementPackInfoGhost
 
 trait IR_RefinementPackInfoGhost extends IR_RefinementPackInfo with IR_PackInfoGhost {
-  protected def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression])
 
-  protected def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression])
+  def splitSpaceForSend : Boolean
+
+  def splitSpaceForRecv : Boolean
+
+  def unsplitPackIntervalSend(neighDir : Array[Int]) : IR_ExpressionIndexRange =
+    extendWithDataPackInterval(getPackingIntervalFromStartAndEndTuple(unsplitGridPackingStartAndEndForSend(neighDir)))
+
+  def unsplitPackIntervalRecv(neighDir : Array[Int]) : IR_ExpressionIndexRange =
+    extendWithDataPackInterval(getPackingIntervalFromStartAndEndTuple(unsplitGridPackingStartAndEndForRecv(neighDir)))
+
+  protected def unsplitGridPackingStartAndEndForSend(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
+    getGridPackingStartAndEndForSend(allowGhostSync = false, neighDir)
+
+  protected def unsplitGridPackingStartAndEndForRecv(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
+    getGridPackingStartAndEndForRecv(allowGhostSync = false, neighDir)
+
+  protected def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
+    splitIntervalOnDemand(unsplitGridPackingStartAndEndForSend(neighDir), splitSpaceForSend)
+  }
+
+  protected def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) = {
+    splitIntervalOnDemand(unsplitGridPackingStartAndEndForRecv(neighDir), splitSpaceForRecv)
+  }
+
+  protected def splitIntervalOnDemand(interval : (Array[IR_Expression], Array[IR_Expression]), splitSpace : Boolean) : (Array[IR_Expression], Array[IR_Expression]) = {
+    if (splitSpace)
+      splitPackingStartAndEndForCoarseFragment(neighDir, indexOfRefinedNeighbor, interval._1, interval._2)
+    else
+      interval
+  }
 
   protected def splitPackingStartAndEndForCoarseFragment(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression,
       start : Array[IR_Expression], end : Array[IR_Expression]) : (Array[IR_Expression], Array[IR_Expression]) = {
@@ -41,17 +70,8 @@ trait IR_RefinementPackInfoGhost extends IR_RefinementPackInfo with IR_PackInfoG
 
 trait IR_F2CPackInfoGhost extends IR_F2CPackInfo with IR_RefinementPackInfoGhost {
 
-  // pack interval for sending fine fragments to a coarse one can be reused from equal-level comm (since fine fragments are sent as a whole)
-  override def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) =
-    getGridPackingStartAndEndForSend(allowGhostSync = false, neighDir)
-
-  // unpacking interval for receiving from fine to coarse requires adaptations (since one of received fine fragments covers only a portion of the coarse fragment)
-  // -> split iteration interval of coarse fragment
-  override def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
-    val (start, end) = getGridPackingStartAndEndForRecv(allowGhostSync = false, neighDir)
-
-    splitPackingStartAndEndForCoarseFragment(neighDir, indexOfRefinedNeighbor, start, end)
-  }
+  // pack interval for sending fine fragments to a coarse one can be reused from equal-level comm (since ghost layers from fine fragments are sent as a whole)
+  override def splitSpaceForSend : Boolean = false
 }
 
 /// IR_C2FPackInfoGhost
@@ -60,17 +80,7 @@ trait IR_C2FPackInfoGhost extends IR_C2FPackInfo with IR_RefinementPackInfoGhost
 
   // pack interval for sending a coarse fragment to finer ones requires adaptations (a coarse block sends N messages, where N is the number of fine neighbors)
   // -> split iteration interval of coarse fragment
-  override def getRefinedGridPackingStartAndEndForSend(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
-    val (start, end) = getGridPackingStartAndEndForSend(allowGhostSync = false, neighDir)
-
-    splitPackingStartAndEndForCoarseFragment(neighDir, indexOfRefinedNeighbor, start, end)
-  }
-
-  // pack interval for receiving from a coarse fragment into fine fragments can be reused from equal-level comm
-  // (since coarse fragment already deals with iteration space splitting when sending -> just receive data as a whole)
-  override def getRefinedGridPackingStartAndEndForRecv(neighDir : Array[Int], indexOfRefinedNeighbor : IR_Expression) : (Array[IR_Expression], Array[IR_Expression]) = {
-    getGridPackingStartAndEndForRecv(allowGhostSync = false, neighDir)
-  }
+  override def splitSpaceForSend : Boolean = true
 }
 
 /* fine-to-coarse */
@@ -84,8 +94,11 @@ case class IR_F2CPackInfoGhostRemoteSend(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_F2CPackInfoGhost {
 
+  // we receive one message from a coarse neighbor, filling up all ghost layers values
+  override def splitSpaceForRecv : Boolean = false
+
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForSend(neighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForSend(neighDir)
 }
 
 /// IR_F2CPackInfoGhostRemoteRecv
@@ -98,8 +111,11 @@ case class IR_F2CPackInfoGhostRemoteRecv(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_F2CPackInfoGhost {
 
+  // we receive one message from a coarse neighbor, filling up all ghost layers values
+  override def splitSpaceForRecv : Boolean = false
+
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForRecv(neighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForRecv(neighDir)
 }
 
 /// IR_F2CPackInfoGhostLocalSend
@@ -112,10 +128,14 @@ case class IR_F2CPackInfoGhostLocalSend(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_F2CPackInfoGhost {
 
+  // receiver is coarse -> split up its iteration space
+  override def splitSpaceForRecv : Boolean = true
+
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForSend(neighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForSend(neighDir)
+
   override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForRecv(inverseNeighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForRecv(inverseNeighDir)
 }
 
 /// IR_F2CPackInfoGhostLocalRecv
@@ -128,10 +148,14 @@ case class IR_F2CPackInfoGhostLocalRecv(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_F2CPackInfoGhost {
 
+  // receiver is coarse -> split up its iteration space
+  override def splitSpaceForRecv : Boolean = true
+
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForRecv(neighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForRecv(neighDir)
+
   override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForSend(inverseNeighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForSend(inverseNeighDir)
 }
 
 /* coarse-to-fine */
@@ -145,8 +169,11 @@ case class IR_C2FPackInfoGhostRemoteSend(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_C2FPackInfoGhost {
 
+  // we receive N messages from N fine neighbors -> split iteration space
+  override def splitSpaceForRecv : Boolean = true
+
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForSend(neighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForSend(neighDir)
 }
 
 /// IR_C2FPackInfoGhostRemoteRecv
@@ -159,8 +186,11 @@ case class IR_C2FPackInfoGhostRemoteRecv(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_RemotePackInfoGhost with IR_C2FPackInfoGhost {
 
+  // we receive N messages from N fine neighbors -> split iteration space
+  override def splitSpaceForRecv : Boolean = true
+
   override protected def getGridPackingStartAndEnd(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForRecv(neighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForRecv(neighDir)
 }
 
 /// IR_C2FPackInfoGhostLocalSend
@@ -173,10 +203,14 @@ case class IR_C2FPackInfoGhostLocalSend(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_C2FPackInfoGhost {
 
+  // receiver is fine -> no iteration space splitting
+  override def splitSpaceForRecv : Boolean = false
+
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForSend(neighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForSend(neighDir)
+
   override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForRecv(inverseNeighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForRecv(inverseNeighDir)
 }
 
 /// IR_C2FPackInfoGhostLocalRecv
@@ -189,8 +223,12 @@ case class IR_C2FPackInfoGhostLocalRecv(
     var ghostLayerEnd : IR_ExpressionIndex
 ) extends IR_LocalPackInfoGhost with IR_C2FPackInfoGhost {
 
+  // receiver is fine -> no iteration space splitting
+  override def splitSpaceForRecv : Boolean = false
+
   override protected def getGridPackingStartAndEndDest(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForRecv(neighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForRecv(neighDir)
+
   override protected def getGridPackingStartAndEndSrc(neighDir : Array[Int]) : (Array[IR_Expression], Array[IR_Expression]) =
-    getRefinedGridPackingStartAndEndForSend(inverseNeighDir, indexOfRefinedNeighbor)
+    getRefinedGridPackingStartAndEndForSend(inverseNeighDir)
 }
