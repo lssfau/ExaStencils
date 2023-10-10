@@ -66,32 +66,35 @@ case class IR_CommunicateFunction(
       genPackInfo : (NeighborInfo, IR_Expression, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
 
     // create pack infos for different cases
-    def getIndexOfRefinedNeighbor(neighInfo : NeighborInfo) : List[IR_Expression] = refinementCase match {
-      case c : RefinementCase.Access if c == RefinementCase.EQUAL =>
-        // no refined neighbor index required -> default to 0
-        List(0)
-      case c : RefinementCase.Access if c == RefinementCase.F2C   =>
-        // F2C: the current fragment is finer than the neighbor
-        if (send) {
-          // send: pack info per receiving neighbor (i.e. coarse neighbor receives one buffer from this fragment)
+    def getIndexOfRefinedNeighbor(neighInfo : NeighborInfo) : List[IR_Expression] = {
+      val allRefinementIndexCandidates = (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(IR_IntegerConstant(_)).toList
+
+      refinementCase match {
+        case c : RefinementCase.Access if c == RefinementCase.EQUAL =>
+          // no refined neighbor index required -> default to 0
+          List(0)
+        case c : RefinementCase.Access if c == RefinementCase.F2C   =>
+          // F2C: the current fragment is finer than the neighbor
           // actually only needs one pack info but for improved readability we:
           // -> generate multiple pack infos for the corresponding (spatial) sections in coarse block
           // -> check with IV variable to select the section belonging to the current fragment
-          (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(IR_IntegerConstant(_)).toList
-        } else {
-          // recv: pack info per sending neighbor (i.e. this fragment receives one buffer from the coarse neighbor)
-          // no refined neighbor index required -> default to 0
-          List(0)
-        }
-      case c : RefinementCase.Access if c == RefinementCase.C2F   =>
-        // C2F: the current fragment is coarser than the neighbor
-        if (send) {
-          // send: pack info per receiving neighbor (i.e. in 2D, 2 fine blocks receive one buffer each from this fragment)
-          (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(IR_IntegerConstant(_)).toList
-        } else {
-          // recv: pack info per sending neighbor (i.e. in 2D, this fragment receives one buffer from two fine neighbor)
-          (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(IR_IntegerConstant(_)).toList
-        }
+          if (send) {
+            // send: pack info per receiving neighbor (i.e. coarse neighbor receives one buffer from this fragment)
+            allRefinementIndexCandidates
+          } else {
+            // recv: pack info per sending neighbor (i.e. this fragment receives one buffer from the coarse neighbor)
+            allRefinementIndexCandidates
+          }
+        case c : RefinementCase.Access if c == RefinementCase.C2F   =>
+          // C2F: the current fragment is coarser than the neighbor
+          if (send) {
+            // send: pack info per receiving neighbor (i.e. in 2D, 2 fine blocks receive one buffer each from this fragment)
+            allRefinementIndexCandidates
+          } else {
+            // recv: pack info per sending neighbor (i.e. in 2D, this fragment receives one buffer from two fine neighbor)
+            allRefinementIndexCandidates
+          }
+      }
     }
 
     val layerBegin = if (duplicate) dupLayerBegin else ghostLayerBegin
