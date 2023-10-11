@@ -51,6 +51,20 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
           if (lvlDiff > 0) IR_RightShift(IR_ArrayAccess(cells, d), lvlDiff)
           else IR_LeftShift(IR_ArrayAccess(cells, d), lvlDiff))
       }
+    } else if (Knowledge.waLBerla_useFixedLayoutsFromExa) {
+      // check if (passed) number of cells coincides with expected value
+      val someWbField = IR_WaLBerlaBlockForest().maxLevelWaLBerlaField
+
+      val expectedCellsPerBlock = if (someWbField.isDefined)
+        (0 until 3).map(d => someWbField.get.layout.layoutsPerDim(d).numInnerLayers)
+      else
+        (0 until 3).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level))
+
+      val check = (0 until 3).map(d => IR_ArrayAccess(cells, d) EqEq expectedCellsPerBlock(d) : IR_Expression).reduce(_ AndAnd _)
+      body += IR_Assert(check,
+        ListBuffer(IR_StringConstant("Number of cells per block do not coincide with expected numbers for " +
+          "fixed-size layouts with sizes on the finest level: [" + expectedCellsPerBlock.mkString(",") + "]")),
+        IR_FunctionCall("exit", 1))
     }
 
     body += IR_Return(cells)
