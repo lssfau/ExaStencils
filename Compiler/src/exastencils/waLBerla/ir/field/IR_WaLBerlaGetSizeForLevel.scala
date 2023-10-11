@@ -36,7 +36,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
-    body += IR_ObjectInstantiation(cells, (0 until 3).map(d => blockForest.getNumberOfCells(d, block)) : _*)
+    body += IR_ObjectInstantiation(cells, (0 until 3).map(d => blockForest.getNumberOfCellsForBlock(d, block)) : _*)
 
     if (level != maxLevel) {
       val lvlDiff = maxLevel - level
