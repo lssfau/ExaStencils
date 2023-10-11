@@ -78,7 +78,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     bufferAccesses ++= gatherBuffers.bufferAccesses
   }
 
-  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream: CUDA_Stream) = {
+  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream : CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
 
@@ -102,7 +102,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   }
 
   // extract estimated times for host/device from performance evaluation strategy (zero if estimation doesn't exist)
-  def getTimeEstimation(loop: IR_LoopOverDimensions, host: Boolean) =
+  def getTimeEstimation(loop : IR_LoopOverDimensions, host : Boolean) =
     loop.getAnnotation(if (host) "perf_timeEstimate_host" else "perf_timeEstimate_device").getOrElse(0.0).asInstanceOf[Double]
 
   // use condWrapper to prevent automatic removal of branching from simplification strategies
@@ -127,6 +127,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   // replace orig enclosing fragment loop with handled fragment loop structure
   this += new Transformation("Create overlapping fragment loop structure", {
     case loop : IR_LoopOverFragments                                                                                     =>
+      createFragLoopHandler(loop)
+    case loop : IR_LoopOverProcessLocalBlocks                                                                            =>
       createFragLoopHandler(loop)
     case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
       createFragLoopHandler(loop)

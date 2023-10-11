@@ -86,7 +86,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
           processRead(reduce.recvbuf)
         else
           processRead(reduce.sendbuf)
-      case _ =>
+      case _                   =>
     }
   }
 
@@ -141,7 +141,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, false)
       case field : IR_IV_AbstractFieldLikeData => mapFieldPtrAccess(field, false)
       case buffer : IR_IV_CommBufferLike       => mapBuffer(buffer, false)
-      case IR_PointerOffset(base, _)       => processRead(base)
+      case IR_PointerOffset(base, _)           => processRead(base)
 
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
       case IR_VariableAccess("timesToPrint", _)                             => // ignore
@@ -155,7 +155,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, true)
       case field : IR_IV_AbstractFieldLikeData => mapFieldPtrAccess(field, true)
       case buffer : IR_IV_CommBufferLike       => mapBuffer(buffer, true)
-      case IR_PointerOffset(base, _)       => processWrite(base)
+      case IR_PointerOffset(base, _)           => processWrite(base)
 
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
       case IR_VariableAccess("timesToPrint", _)                             => // ignore
@@ -190,7 +190,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
   this += new Transformation("Collect accessed elements for fragment loop handling", {
-    case mpiStmt : MPI_Statement      =>
+    case mpiStmt : MPI_Statement =>
       collectAccessedElementsFragmentLoop(ListBuffer(mpiStmt), fragLoopCollector, commKernelCollector,
         isParallel = true, fromMPIStatement = true, estimatedHostTime = 0.0, estimatedDeviceTime = 0.0)
       mpiStmt
@@ -199,6 +199,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   // replace orig enclosing fragment loop with handled fragment loop structure
   this += new Transformation("Create overlapping fragment loop structure", {
     case loop : IR_LoopOverFragments                                                                                     =>
+      createFragLoopHandler(loop)
+    case loop : IR_LoopOverProcessLocalBlocks                                                                            =>
       createFragLoopHandler(loop)
     case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
       createFragLoopHandler(loop)

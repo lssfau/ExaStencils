@@ -4,6 +4,7 @@ import scala.collection.mutable
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
 import exastencils.core.StateManager
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
@@ -31,6 +32,9 @@ class IR_CommunicationKernelCollector extends Collector {
   override def enter(node : Node) : Unit = {
     node match {
       case loop : IR_LoopOverFragments =>
+        fragmentLoopStack ::= loop
+
+      case loop : IR_LoopOverProcessLocalBlocks =>
         fragmentLoopStack ::= loop
 
       case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
