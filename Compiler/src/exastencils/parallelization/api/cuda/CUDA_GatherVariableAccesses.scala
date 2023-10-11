@@ -22,6 +22,7 @@ import scala.collection.mutable
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir.IR_ProcessLocalBlockLoopVariable
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -120,6 +121,10 @@ object CUDA_GatherVariableAccesses extends QuietDefaultStrategy("Gather local Va
 
     case vAcc : IR_VariableAccess if !ignoredAccesses.contains(vAcc.name) && !ignoredArrayVariableAccesses.contains(vAcc.name) =>
       evaluableAccesses.put(vAcc.name, (vAcc, vAcc.datatype))
+      vAcc
+
+    case vAcc : IR_ProcessLocalBlockLoopVariable if !ignoredAccesses.contains(vAcc.resolveName()) && !ignoredArrayVariableAccesses.contains(vAcc.resolveName()) =>
+      evaluableAccesses.put(vAcc.resolveName(), (vAcc, vAcc.datatype))
       vAcc
 
     // same phenomenon: fragmentIdx is required by CudaReductionBuffer, but not present in loop body
