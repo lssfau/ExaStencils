@@ -56,9 +56,9 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
       val someWbField = IR_WaLBerlaBlockForest().maxLevelWaLBerlaField
 
       val expectedCellsPerBlock = if (someWbField.isDefined)
-        (0 until 3).map(d => someWbField.get.layout.layoutsPerDim(d).numInnerLayers)
+        Knowledge.dimensions.map(d => someWbField.get.layout.layoutsPerDim(d).numInnerLayers).padTo(3, 1)
       else
-        (0 until 3).map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level))
+        Knowledge.dimensions.map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level)).padTo(3, 1)
 
       val check = (0 until 3).map(d => IR_ArrayAccess(cells, d) EqEq expectedCellsPerBlock(d) : IR_Expression).reduce(_ AndAnd _)
       body += IR_Assert(check,
