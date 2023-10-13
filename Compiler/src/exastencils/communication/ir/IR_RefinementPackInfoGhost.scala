@@ -49,13 +49,16 @@ trait IR_RefinementPackInfoGhost extends IR_RefinementPackInfo with IR_PackInfoG
     // - split coarse iteration space of coarse neighbor into equally spaced sections
     // - splitting is done in non-commAxis direction
     val sectionsPerDim = Knowledge.refinement_maxFineNeighborsPerDim
+    var stride = 1
     val (coarseNeighborStart, coarseNeighborEnd) = (0 until numDimsGrid).map {
       case i if neighDir(i) == 0 =>
         val fullInterval = end(i) - start(i)
 
         // go over grid dimensions in x -> y -> z order and assign each fine neighbor a section of the coarse iteration space
-        val s = start(i) + (indexOfRefinedNeighbor Mod sectionsPerDim) * (fullInterval / sectionsPerDim)
-        val e = end(i) - ((indexOfRefinedNeighbor + 1) Mod sectionsPerDim) * (fullInterval / sectionsPerDim)
+        val s = start(i) + ((indexOfRefinedNeighbor / stride) Mod sectionsPerDim) * (fullInterval / sectionsPerDim)
+        val e = end(i) - (((indexOfRefinedNeighbor / stride) + 1) Mod sectionsPerDim) * (fullInterval / sectionsPerDim)
+
+        stride = sectionsPerDim
 
         (s, e)
       case i                     =>
