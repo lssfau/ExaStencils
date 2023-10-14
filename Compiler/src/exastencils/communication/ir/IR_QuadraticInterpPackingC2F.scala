@@ -19,6 +19,7 @@ import exastencils.logger.Logger
 // helper for generating statements with quadratic interp for local/remote comm
 
 object QuadraticInterpPackingC2FHelper {
+
   import IR_InterpPackingHelper._
   import IR_InterpPackingBaseHelper._
 
@@ -59,31 +60,36 @@ object QuadraticInterpPackingC2FHelper {
     def getBasePositionsForInterpolation(dir : Array[Int], origin : IR_ExpressionIndex) : BasePositions =
       getBasePositions(level, localization, dir, origin, CenteredBasesShifts)
 
+    def getSplitPackInterval() = packInfo match {
+      case rp : IR_RemotePackInfo => rp.getPackInterval()
+      case lp : IR_LocalPackInfo  => lp.getPackIntervalSrc()
+      case _                      => Logger.error("Unsupported PackInfo type used in (cell-based) quadratic C2F interp")
+    }
+
+    def getUnsplitPackInterval() = packInfo match {
+      case rp : IR_RefinementPackInfoGhost => rp.unsplitPackIntervalSend(commDir)
+      case _                               => Logger.error("Unsupported PackInfo type used in (cell-based) quadratic C2F interp")
+    }
+
     def isAtBlockCornerForDir3D(commDir : Array[Int], orthoDir : Array[Int], min : Boolean) : IR_Expression = {
-      val ival = packInfo match {
-        case rp : IR_RefinementPackInfoGhost => rp.unsplitPackIntervalSend(commDir)
-        case _                               => Logger.error("Unsupported PackInfo type used in (cell-based) quadratic C2F interp")
-      }
+      val unsplitIval = getUnsplitPackInterval()
 
       val commDirDim = getDimFromDir(commDir)
       val orthoDirDim = getDimFromDir(orthoDir)
       val remainingDim = ((0 until 3).toSet diff Set(commDirDim, orthoDirDim)).head
 
-      isAtBlockCornerForDir2D(orthoDir) AndAnd (defIt(remainingDim) EqEq (if (min) ival.begin(remainingDim) else (ival.end(remainingDim) - 1)))
+      isAtBlockCornerForDir2D(orthoDir) AndAnd (defIt(remainingDim) EqEq (if (min) unsplitIval.begin(remainingDim) else (unsplitIval.end(remainingDim) - 1)))
     }
 
     def isAtBlockCornerForDir2D(orthoDir : Array[Int]) : IR_Expression = {
-      val ival = packInfo match {
-        case rp : IR_RefinementPackInfoGhost => rp.unsplitPackIntervalSend(commDir)
-        case _                               => Logger.error("Unsupported PackInfo type used in (cell-based) quadratic C2F interp")
-      }
+      val unsplitIval = getUnsplitPackInterval()
 
       val dim = getDimFromDir(orthoDir)
 
       if (isUpwindDir(orthoDir))
-        defIt(dim) EqEq (ival.end(dim) - 1)
+        defIt(dim) EqEq (unsplitIval.end(dim) - 1)
       else
-        defIt(dim) EqEq ival.begin(dim)
+        defIt(dim) EqEq unsplitIval.begin(dim)
     }
 
     def commDir : Array[Int] = packInfo.neighDir
@@ -187,7 +193,7 @@ object QuadraticInterpPackingC2FHelper {
 
     def fetchOrAddExtrapBase(extrapExpr : IR_Expression) : IR_VariableAccess = {
       if (!commonExtrapBases.contains(extrapExpr)) {
-        val ret = Duplicate(extrapExpr) -> IR_VariableAccess(s"f0_neighbor2D_${commonExtrapBases.size}_ext", IR_RealDatatype)
+        val ret = Duplicate(extrapExpr) -> IR_VariableAccess(s"f0_neighbor2D_${ commonExtrapBases.size }_ext", IR_RealDatatype)
         commonExtrapBases += ret
         ret._2
       } else {
