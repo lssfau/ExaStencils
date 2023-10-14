@@ -12,5 +12,5 @@ trait IR_ProcessLocalBlockLoopVariable extends IR_Access {
   def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(resolveDatatype(), resolveName())
 
   override def datatype = resolveDatatype()
-  override def prettyprint(out : PpStream) : Unit = out << resolveName
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess()
 }
