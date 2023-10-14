@@ -14,6 +14,8 @@ import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
 import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
+import exastencils.optimization.ir.EvaluationException
+import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// QuadraticInterpPackingC2FHelper
 // helper for generating statements with quadratic interp for local/remote comm
@@ -185,8 +187,37 @@ object QuadraticInterpPackingC2FHelper {
       }
     }
 
+    def caseCanBeOptimized(it : IR_VariableAccess, checkVal : IR_Expression) = {
+      val splitInterval = getSplitPackInterval()
+      val dim = (0 until numDims).indexWhere(d => IR_FieldIteratorAccess(d) == it)
+      Logger.warn("Found it dim = " + dim)
+      try {
+        val evalCheck = IR_SimplifyExpression.evalIntegral(checkVal)
+        val evalBoundBegin = IR_SimplifyExpression.evalIntegral(splitInterval.begin(dim))
+        val evalBoundEnd = IR_SimplifyExpression.evalIntegral(splitInterval.end(dim))
+
+        evalCheck < evalBoundBegin || evalCheck > evalBoundEnd
+      } catch {
+        case _ : EvaluationException =>
+          Logger.warn("Could not evaluate bounds")
+          false
+      }
+    }
+
+    // optimize away cases that cannot occur since they are not contained in bounds of split loop
+    cases = cases.map { case (cond, interp) =>
+      cond match {
+        case IR_EqEq(it : IR_VariableAccess, check) if caseCanBeOptimized(it, check)                                                                                             =>
+          IR_BooleanConstant(false) -> interp
+        case IR_AndAnd(IR_EqEq(it1 : IR_VariableAccess, check1), IR_EqEq(it2 : IR_VariableAccess, check2)) if caseCanBeOptimized(it1, check1) || caseCanBeOptimized(it2, check2) =>
+          IR_BooleanConstant(false) -> interp
+        case _                                                                                                                                                                   =>
+          cond -> interp
+      }
+    }
+
     def stencilAdapted(cond : IR_Expression, dir : Array[Int]) =
-      stencilAdaptedForCase(cond).exists(e => (e._1 sameElements dir) && e._2)
+      stencilAdaptedForCase.contains(cond) && stencilAdaptedForCase(cond).exists(e => (e._1 sameElements dir) && e._2)
 
     // Step 3 (2D): extrap bases already built -> extrap-/interpolation in second dir
     var commonExtrapBases : ListMap[IR_Expression, IR_VariableAccess] = ListMap()
