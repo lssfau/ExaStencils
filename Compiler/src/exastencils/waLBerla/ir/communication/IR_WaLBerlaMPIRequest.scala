@@ -54,6 +54,7 @@ case class IR_WaLBerlaRemoteReqOutstanding(
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaCommVariable {
 
   override def name : String = s"wbRemoteReqOutstanding_${ direction }_${ concurrencyId }"
+
   override def isPrivate : Boolean = true
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
