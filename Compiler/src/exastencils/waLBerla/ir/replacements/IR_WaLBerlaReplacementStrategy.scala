@@ -4,16 +4,10 @@ import exastencils.baseExt.ir._
 import exastencils.datastructures._
 import exastencils.fieldlike.ir.IR_FieldLikeAccessLike
 import exastencils.util.ir.IR_StackCollector
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
-import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommBuffer
-import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommBufferBasePtr
-import exastencils.waLBerla.ir.communication.IR_WaLBerlaMPIRequest
-import exastencils.waLBerla.ir.communication.IR_WaLBerlaMPIRequestNoField
-import exastencils.waLBerla.ir.communication.IR_WaLBerlaRemoteReqOutstanding
-import exastencils.waLBerla.ir.communication.IR_WaLBerlaRemoteReqOutstandingNoField
+import exastencils.waLBerla.ir.blockforest._
+import exastencils.waLBerla.ir.communication._
 import exastencils.waLBerla.ir.field._
+import exastencils.waLBerla.ir.gpu._
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaFunction
 
 abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStrategy(name) {
@@ -53,6 +47,27 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
         found = true
         bAcc
       case bAcc : IR_WaLBerlaCommBufferBasePtr =>
+        found = true
+        bAcc
+
+      case bAcc : GPU_WaLBerlaHostDataUpdated   =>
+        found = true
+        bAcc
+      case bAcc : GPU_WaLBerlaDeviceDataUpdated =>
+        found = true
+        bAcc
+
+      case bAcc : GPU_WaLBerlaHostBufferDataUpdated   =>
+        found = true
+        bAcc
+      case bAcc : GPU_WaLBerlaDeviceBufferDataUpdated =>
+        found = true
+        bAcc
+
+      case bAcc : GPU_WaLBerlaBufferDeviceData        =>
+        found = true
+        bAcc
+      case bAcc : GPU_WaLBerlaBufferDeviceDataBasePtr =>
         found = true
         bAcc
 
