@@ -50,14 +50,16 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
 
     // use walberla functions for GPU field memory operations
     scheduler.appendToFirstFound(CUDA_PrepareMPICode,
-      ConditionedSingleStrategyWrapper(
+      ConditionedStrategyContainerWrapper(
         Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa,
+        GPU_WaLBerlaReplaceGPUIVs,
         GPU_WaLBerlaHandleGPUMemory))
 
     // adapt cuda kernels for walberla support
     scheduler.appendToFirstFound(CUDA_FunctionConversionWrapper,
       ConditionedStrategyContainerWrapper(
         Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa,
+        GPU_WaLBerlaReplaceGPUIVs,
         GPU_WaLBerlaAdaptKernels,
         GPU_WaLBerlaHandleGPUMemory))
 
@@ -74,7 +76,9 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
 
     // also add walberla IVs ...
     scheduler.prependToFirstFound(IR_AddInternalVariables,
-      IR_WaLBerlaAddInterfaceMembers)
+      IR_WaLBerlaAddInterfaceMembers,
+      IR_WaLBerlaReplaceFragmentLoops,
+      ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs))
 
     // ... and adapt memory allocations
     scheduler.appendToFirstFound(IR_AddInternalVariables,
@@ -88,7 +92,8 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaCreateInterface,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
       IR_WaLBerlaReplaceCommIVs,
-      ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, IR_WaLBerlaReplaceGPUIVs),
+      IR_WaLBerlaReplaceFragmentLoops,
+      ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,
       IR_GeneralSimplifyUntilDoneWrapper) // one last time after block loops are expanded and replacements are done

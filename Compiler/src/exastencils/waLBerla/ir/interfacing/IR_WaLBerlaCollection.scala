@@ -133,6 +133,7 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     functions ++= IR_WaLBerlaInitCouplingWrapperFunctions.functions
     functions ++= IR_WaLBerlaHelperFunctionCollection.functions
     functions ++= IR_WaLBerlaGetterFunctionCollection.functions
+    functions ++= IR_WaLBerlaSetterFunctionCollection.functions
 
     if (Knowledge.waLBerla_useRefinement)
       functions ++= IR_WaLBerlaRefinementHelperFunctions.functions
