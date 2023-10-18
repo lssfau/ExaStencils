@@ -69,7 +69,10 @@ object IR_InterpPackingHelper {
 
   // get cell widths
   def getCellWidth(level : Int, dim : Int, origin : IR_ExpressionIndex, offset : IR_ExpressionIndex = IR_ExpressionIndex(0)) : IR_Expression =
-    IR_VF_CellWidthPerDim.access(level, dim, origin + offset)
+    if (Knowledge.grid_isUniform)
+      IR_RealConstant(1.0) // when grid is uniform, we can normalize the base positions by dividing with cell width
+    else
+      IR_VF_CellWidthPerDim.access(level, dim, origin + offset)
 }
 
 /// IR_InterpPackingBaseHelper
