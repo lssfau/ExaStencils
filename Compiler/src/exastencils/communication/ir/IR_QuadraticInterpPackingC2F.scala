@@ -12,6 +12,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.StatementList
 import exastencils.domain.ir._
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.EvaluationException
@@ -118,6 +119,12 @@ object QuadraticInterpPackingC2FHelper {
 
     val orthogonalNeighDirs = getOrthogonalNeighborDirs(commDir)
     var stencilAdaptedForCase : HashMap[IR_Expression, ListBuffer[(Array[Int], Boolean)]] = HashMap()
+
+    def markStencilAdapted(currCase : IR_Expression, orthoDir : Array[Int], adapted : Boolean) : Unit = {
+      stencilAdaptedForCase = stencilAdaptedForCase.updated(currCase,
+        stencilAdaptedForCase.getOrElse(currCase, ListBuffer()) :+ (orthoDir -> adapted))
+    }
+
     for (orthoDir <- orthogonalNeighDirs) {
       val remappedOrthoDir = orthoDir.map(_ * -2)
       val remappedOrthoBaseVals = getBaseValues(field, slot, invCommDir, defIt + IR_ExpressionIndex(remappedOrthoDir), RemappedBasesShifts)
@@ -127,11 +134,6 @@ object QuadraticInterpPackingC2FHelper {
       val x0_ortho = IR_RealConstant(-0.25) * getCellWidth(level, commDirDim, defIt + IR_ExpressionIndex(orthoDir))
       val x0_remapOrtho = IR_RealConstant(-0.25) * getCellWidth(level, commDirDim, defIt + IR_ExpressionIndex(remappedOrthoDir))
 
-      def markStencilAdapted(currCase : IR_Expression, adapted : Boolean) : Unit = {
-        stencilAdaptedForCase = stencilAdaptedForCase.updated(currCase,
-          stencilAdaptedForCase.getOrElse(currCase, ListBuffer()) :+ (orthoDir -> adapted))
-      }
-
       // cases where neighbor values for extrap has to be remapped
       var casesForOrthoDir : ListBuffer[(IR_Expression, IR_Expression)] = ListBuffer()
       Knowledge.dimensionality match {
@@ -140,7 +142,7 @@ object QuadraticInterpPackingC2FHelper {
 
           casesForOrthoDir += (isCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
 
-          markStencilAdapted(isCorner, adapted = true)
+          markStencilAdapted(isCorner, orthoDir, adapted = true)
         case 3 =>
           val isMinCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = true)
           val isMaxCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = false)
@@ -148,14 +150,18 @@ object QuadraticInterpPackingC2FHelper {
           casesForOrthoDir += (isMinCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
           casesForOrthoDir += (isMaxCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
 
-          markStencilAdapted(isMinCorner, adapted = true)
-          markStencilAdapted(isMaxCorner, adapted = true)
+          val remainingDirs = orthogonalNeighDirs.filter(dir => !(dir sameElements orthoDir) && !(dir sameElements orthoDir.map(_ * -1)))
+          markStencilAdapted(isMinCorner, orthoDir, adapted = true)
+          markStencilAdapted(isMinCorner, remainingDirs(0), adapted = true)
+
+          markStencilAdapted(isMaxCorner, orthoDir, adapted = true)
+          markStencilAdapted(isMaxCorner, remainingDirs(1), adapted = true)
 
           val isEdge = isAtBlockCornerForDir2D(orthoDir)
 
           casesForOrthoDir += (isEdge -> interpolate1D(x0_remapOrtho, remappedOrthoBasePosCommDir, remappedOrthoBaseVals))
 
-          markStencilAdapted(isEdge, adapted = true)
+          markStencilAdapted(isEdge, orthoDir, adapted = true)
       }
 
       // regular case without remap in second direction
@@ -164,7 +170,7 @@ object QuadraticInterpPackingC2FHelper {
 
       casesForOrthoDir += (isRegularCase() -> interpolate1D(x0_ortho, orthoBasePosInvCommDir, orthoBaseValsInvCommDir))
 
-      markStencilAdapted(isRegularCase(), adapted = false)
+      markStencilAdapted(isRegularCase(), orthoDir, adapted = false)
 
       extrapResults += (orthoDir -> casesForOrthoDir)
     }
@@ -254,7 +260,7 @@ object QuadraticInterpPackingC2FHelper {
         // stencil NOT adapted -> bases at regular ortho positions -> both values interpolated
         if (stencilAdapted(cond, upwindDir)) {
           // upwind remap
-          val remappedBaseVals = QuadraticBaseValues(centerValue, upwindValue, downwindValue)
+          val remappedBaseVals = QuadraticBaseValues(centerValue, downwindValue, upwindValue)
 
           (interpolate1D(x1_int, basePosOrthoDirExt, remappedBaseVals),
             interpolate1D(x1_ext, basePosOrthoDirExt, remappedBaseVals))
