@@ -64,7 +64,7 @@ object QuadraticInterpPackingC2FHelper {
 
     def getSplitPackInterval() = packInfo match {
       case rp : IR_RemotePackInfo => rp.getPackInterval()
-      case lp : IR_LocalPackInfo  => lp.getPackIntervalSrc()
+      case lp : IR_LocalPackInfo  => lp.getPackIntervalDest()
       case _                      => Logger.error("Unsupported PackInfo type used in (cell-based) quadratic C2F interp")
     }
 
@@ -190,7 +190,6 @@ object QuadraticInterpPackingC2FHelper {
     def caseCanBeOptimized(it : IR_VariableAccess, checkVal : IR_Expression) = {
       val splitInterval = getSplitPackInterval()
       val dim = (0 until numDims).indexWhere(d => IR_FieldIteratorAccess(d) == it)
-      Logger.warn("Found it dim = " + dim)
       try {
         val evalCheck = IR_SimplifyExpression.evalIntegral(checkVal)
         val evalBoundBegin = IR_SimplifyExpression.evalIntegral(splitInterval.begin(dim))
