@@ -25,7 +25,7 @@ case class GPU_WaLBerlaSetGPUFlag(field : IR_WaLBerlaField) extends IR_WaLBerlaW
         IR_Assignment(deviceUpdated, true),
         IR_Assignment(hostUpdated, true)))
 
-    IR_WaLBerlaPlainFunction(name, WB_BlockDataID, ListBuffer(lvl, slot, onDevice), body)
+    IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(lvl, slot, onDevice), body)
   }
 
   override def name : String = s"markHostOrDeviceDataAsUpdated_${field.name}"
