@@ -6,6 +6,8 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.ir._
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
+import exastencils.parallelization.api.cuda.CUDA_DeviceBufferDataUpdated
+import exastencils.parallelization.api.cuda.CUDA_HostBufferDataUpdated
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 
@@ -27,6 +29,15 @@ object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("R
     case wait : IR_WaitForRemoteTransfer if wait.field.isInstanceOf[IR_WaLBerlaField] =>
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
       wait
+  })
+
+  this += Transformation("Find host/device dirty flag queries with accesses to wb fields", {
+    case dirtyFlag : CUDA_HostBufferDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField] =>
+      fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
+      dirtyFlag
+    case dirtyFlag : CUDA_DeviceBufferDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField] =>
+      fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
+      dirtyFlag
   })
 
   this += Transformation("Replace", {

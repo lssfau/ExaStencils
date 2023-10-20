@@ -10,6 +10,7 @@ import exastencils.globals.ir.IR_AddInternalVariables
 import exastencils.grid.ir.IR_ResolveIntegrateOnGrid
 import exastencils.optimization.ir.IR_GeneralSimplifyUntilDoneWrapper
 import exastencils.parallelization.api.cuda.CUDA_FunctionConversionWrapper
+import exastencils.parallelization.api.cuda.CUDA_HandleFragmentLoops
 import exastencils.parallelization.api.cuda.CUDA_PrepareMPICode
 import exastencils.scheduling._
 import exastencils.waLBerla.ir.blockforest.IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection
@@ -56,12 +57,18 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
         GPU_WaLBerlaHandleGPUMemory))
 
     // adapt cuda kernels for walberla support
-    scheduler.appendToFirstFound(CUDA_FunctionConversionWrapper,
-      ConditionedStrategyContainerWrapper(
-        Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa,
+    if (Knowledge.cuda_enabled) {
+      scheduler.appendToFirstFound(CUDA_FunctionConversionWrapper,
+        ConditionedStrategyContainerWrapper(
+          Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa,
+          GPU_WaLBerlaReplaceGPUIVs,
+          GPU_WaLBerlaAdaptKernels,
+          GPU_WaLBerlaHandleGPUMemory))
+
+      scheduler.appendToFirstFound(CUDA_HandleFragmentLoops,
         GPU_WaLBerlaReplaceGPUIVs,
-        GPU_WaLBerlaAdaptKernels,
-        GPU_WaLBerlaHandleGPUMemory))
+        IR_WaLBerlaReplaceFragmentLoops)
+    }
 
     // resolve block loops before fragment loops are resolved
     scheduler.prependToAllFound(IR_ResolveLoopOverFragments,
