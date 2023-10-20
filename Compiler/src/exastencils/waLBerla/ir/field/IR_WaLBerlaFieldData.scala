@@ -144,7 +144,8 @@ case class IR_IV_WaLBerlaFieldData(
       val dataPtr = IR_IV_WaLBerlaGetFieldData(field, slotIt, onGPU, fragmentIdx)
 
       if (fragmentIdxName != IR_WaLBerlaLoopOverLocalBlocks.defIt.name)
-        IR_TernaryCondition(fragmentIdx >= 0 AndAnd fragmentIdx < IR_WaLBerlaLocalBlocks().size(), dataPtr, IR_VariableAccess("nullptr", IR_UnknownDatatype))
+        IR_TernaryCondition(fragmentIdx >= 0 AndAnd fragmentIdx < IR_Cast(IR_IntegerDatatype, IR_WaLBerlaLocalBlocks().size()),
+          dataPtr, IR_VariableAccess("nullptr", IR_UnknownDatatype))
       else
         dataPtr
     }
