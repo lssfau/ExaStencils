@@ -427,31 +427,12 @@ case class IR_QuadraticInterpPackingC2FRemote(
         innerStmts += IR_PreIncrement(it)
       }
     } else {
-      // interp/extrap values from coarse neighbor are written in order
-      // of the upwind orthogonal dirs (in regards to comm dir) and their cross sums
-
-      // fetch upwind orthogonal directions and their cross sum
-      val upwindOrthogonals = getOrthogonalNeighborDirs(commDir).filter(isUpwindDir)
-      val crossSumUpwindOrthogonals = Knowledge.dimensionality match {
-        case 2 =>
-          ListBuffer(Array.fill(3)(0), upwindOrthogonals(0))
-        case 3 =>
-          ListBuffer(Array.fill(3)(0), upwindOrthogonals(0), upwindOrthogonals(1), dirSum(upwindOrthogonals(0), upwindOrthogonals(1)))
-      }
-
-      // read from buffer into field
-      for (offset <- crossSumUpwindOrthogonals.distinct) {
-        innerStmts += IR_Assignment(
-          IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)),
-          tmpBufAccess)
-        innerStmts += IR_PreIncrement(it)
-      }
+      // interp values from fine neighbor already aligned in correct order
+      innerStmts += IR_Assignment(IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt), tmpBufAccess)
+      innerStmts += IR_PreIncrement(it)
     }
 
-    // 2 values per dim written from coarse neighbor to fine receiver
-    val stride = if (send) null else IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1))
-
-    val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, stride, condition = condition)
+    val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
     ret += loop
@@ -504,9 +485,9 @@ case class IR_QuadraticInterpPackingC2FLocal(
     innerStmts ++= QuadraticInterpPackingC2FHelper.generateInterpStmts(interpResults, field, slot, packInfo)
 
     // push result to destination
-    for ((res, i) <- interpResults.zipWithIndex) {
+    for ((res, resIdx) <- interpResults.zipWithIndex) {
       // store each result at a different field index (offset in upwind ortho dir)
-      val offset = IR_ExpressionIndex(getCrossSumOfUpwindOrthogonals(commDir)(i))
+      val offset = IR_ExpressionIndex(getCrossSumOfUpwindOrthogonals(commDir)(resIdx))
 
       // index mapping between the (local) fine/coarse iteration space
       val originSrc = IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims).indices.zipWithIndex.map { case (idx, i) =>

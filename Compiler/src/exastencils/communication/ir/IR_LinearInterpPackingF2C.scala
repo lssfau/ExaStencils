@@ -97,15 +97,23 @@ case class IR_LinearInterpPackingF2CRemote(
     // init temp buf idx counter
     ret += IR_Assignment(it, 0)
 
-    if (send)
+    if (send) {
       innerStmts += IR_Assignment(tmpBufAccess, generateInterpExpr(field, defIt, slot, packInfo))
-    else
-      innerStmts += IR_Assignment(IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt), tmpBufAccess)
+      innerStmts += IR_PreIncrement(it)
+    } else {
+      // interp/extrap values from coarse neighbor are written in order
+      // of the upwind orthogonal dirs (in regards to comm dir) and their cross sums
 
-    innerStmts += IR_PreIncrement(it)
+      // read from buffer into field in order of cross sum of orthogonal upwind dirs
+      for (offset <- getCrossSumOfUpwindOrthogonals(commDir).distinct) {
+        innerStmts += IR_Assignment(
+          IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)), tmpBufAccess)
+        innerStmts += IR_PreIncrement(it)
+      }
+    }
 
     // fine neighbor cells (2 in 2D, 4 in 3D) are linearly interpolated and the result is sent to the coarse neighbor
-    val stride = if (send) IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1)) else null
+    val stride = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(2).updated(getDimFromDir(commDir), 1))
 
     val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, stride, condition = condition)
     loop.polyOptLevel = 1
