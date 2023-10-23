@@ -66,9 +66,9 @@ case class IR_RemoteCommunicationStart(
       val totalPackInterval = Duplicate(indices).getTotalSize
       val maxCnt =
         if (refinementCase == RefinementCase.C2F) // actual size of send message after extrapolation
-          totalPackInterval * Knowledge.refinement_maxFineNeighborsPerDim
+          totalPackInterval * Knowledge.refinement_maxFineNeighborsForCommAxis
         else if (refinementCase == RefinementCase.F2C) // actual size of send message after interpolation
-          totalPackInterval / Knowledge.refinement_maxFineNeighborsPerDim
+          totalPackInterval / Knowledge.refinement_maxFineNeighborsForCommAxis
         else
           totalPackInterval
 
