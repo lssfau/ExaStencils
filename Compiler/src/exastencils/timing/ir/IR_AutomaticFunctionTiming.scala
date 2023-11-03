@@ -84,7 +84,7 @@ case class IR_PrintAllAutomaticTimers() extends IR_TimerFunction {
     val timers = IR_CollectTimers.timers
 
     val body = ListBuffer[IR_Statement]()
-    body ++= accumulators.map { case (_, vAcc) => IR_VariableDeclaration(vAcc) }
+    body ++= accumulators.map { case (_, vAcc) => IR_VariableDeclaration(vAcc, IR_DoubleConstant(0.0)) }
     timers.values.foreach {
       case timer : IR_IV_AutomaticTimer =>
         body += genPrintTimerCode(timer)
