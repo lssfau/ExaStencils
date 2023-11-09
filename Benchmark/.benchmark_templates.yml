@@ -1,3 +1,6 @@
+include:
+    - "lock.yml"
+
 #######################################
 ##                                   ##
 ##            Templates              ##
@@ -95,6 +98,8 @@
 
 .cuda_job_template:
     stage: bench_pipe
+    extends:
+        - .seralize
     tags:
         - testcluster
     before_script:
@@ -138,6 +143,8 @@
 
 .gen_bench_job_template:
     stage: bench_gen
+    extends:
+        - .seralize
     tags:
         - testcluster
     before_script:
@@ -165,6 +172,8 @@
 .bench_pipe_template:
     tags:
         - testcluster
+    extends:
+        - .seralize
     variables:
         SLURM_NODELIST: "TO_BE_REPLACED"
         SLURM_CONSTRAINT: "hwperf"
