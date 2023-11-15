@@ -5,39 +5,11 @@ variables:
 stages:
     - pipeline
 
-include:
-    - 'Benchmark/.benchmark_templates.yml'
-    - 'Benchmark/lock.yml'
-
 pipeline_gen:
     stage: pipeline
-    extends:
-        - .seralize
     tags:
         - testcluster
     before_script:
         - cd Benchmark
     script:
-        - generate_cb_yml_stages.sh > pipeline.yml
-    artifacts:
-        when: always
-        paths:
-            - pipeline.yml
-        expire_in: 1 weeks
-    variables:
-        NO_SLURM_SUBMIT: 1
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
-
-pipeline_exec:
-    stage: pipeline
-    extends:
-        - .seralize
-    trigger:
-        include:
-            - artifact: pipeline.yml
-              job: pipeline_gen
-        strategy: depend
-    variables:
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
-    needs:
-        - pipeline_gen
+        - echo 'hello'
