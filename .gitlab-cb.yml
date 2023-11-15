@@ -5,7 +5,7 @@ variables:
 stages:
     - pipeline
 
-pipeline_gen:
+pipeline:
     stage: pipeline
     tags:
         - testcluster
