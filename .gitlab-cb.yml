@@ -9,7 +9,5 @@ pipeline_gen:
     stage: pipeline
     tags:
         - testcluster
-    before_script:
-        - cd Benchmark
     script:
         - echo 'hello'
