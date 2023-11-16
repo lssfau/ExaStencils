@@ -71,11 +71,12 @@ function generate_pipeline_jobs_for_app() {
 ## generate yml file
 
 echo -e "variables:"
-echo -e "    GIT_STRATEGY: clone"
+echo -e "    GIT_STRATEGY: fetch"
 echo -e "    GIT_SUBMODULE_STRATEGY: recursive"
 echo
 
 echo -e "include: 'Benchmark/.benchmark_templates.yml'"
+echo -e "include: 'Benchmark/lock.yml'"
 echo
 
 ### generator func args
