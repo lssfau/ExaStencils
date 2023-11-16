@@ -34,7 +34,7 @@ for HOST in ${HOST_LIST[@]}; do
   echo -e "        EXA_PROBLEM_PATH: "$2""
   echo -e "        SLURM_NODELIST: "$HOST""
   echo -e "    needs:"
-  echo -e "        - pipeline: $3"
+  echo -e "        - pipeline: '$3'"
   echo -e "          job: bench_gen:$1"
   echo -e "          artifacts: true"
   echo
