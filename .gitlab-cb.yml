@@ -14,6 +14,8 @@ pipeline_gen:
     tags:
         - testcluster
     script:
+        - echo $CI_PIPELINE_ID
+        - echo $PARENT_PIPELINE_ID
         - chmod +x Benchmark/generate_cb_yml_stages.sh
         - ./Benchmark/generate_cb_yml_stages.sh > pipeline.yml
     artifacts:

@@ -30,11 +30,13 @@ for HOST in ${HOST_LIST[@]}; do
   echo "benchmark-$1-$HOST:"
   echo -e "    stage: bench_pipe_$1_$HOST"
   echo -e "    extends: .bench_pipe_template"
+  echo -e "    trigger:"
+  echo -e "      include:"
+  echo -e "        - artifact: $1-child-pipe.yml"
+  echo -e "          job: bench_gen:$1"
+  echo -e "      strategy: depend"
   echo -e "    variables:"
   echo -e "        EXA_PROBLEM_PATH: "$2""
   echo -e "        SLURM_NODELIST: "$HOST""
-  echo -e "    needs:"
-  echo -e "        - pipeline: \$PARENT_PIPELINE_ID"
-  echo -e "          job: bench_gen:$1"
   echo
 done
