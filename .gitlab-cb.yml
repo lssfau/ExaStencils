@@ -19,6 +19,7 @@ pipeline_gen:
         - cd Benchmark
         - ls
     script:
+        - chmod +x generate_cb_yml_stages.sh
         - ./generate_cb_yml_stages.sh > pipeline.yml
     artifacts:
         when: always
