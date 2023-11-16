@@ -17,14 +17,13 @@ pipeline_gen:
         - testcluster
     before_script:
         - cd Benchmark
-        - ls
     script:
-        - chmod +x generate_cb_yml_stages.sh
-        - ./generate_cb_yml_stages.sh > pipeline.yml
+        - chmod +x Benchmark/generate_cb_yml_stages.sh
+        - ./Benchmark/generate_cb_yml_stages.sh > pipeline.yml
     artifacts:
         when: always
         paths:
-            - Benchmark/pipeline.yml
+            - pipeline.yml
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
