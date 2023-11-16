@@ -17,8 +17,9 @@ pipeline_gen:
         - testcluster
     before_script:
         - cd Benchmark
+        - ls
     script:
-        - generate_cb_yml_stages.sh > pipeline.yml
+        - ./generate_cb_yml_stages.sh > pipeline.yml
     artifacts:
         when: always
         paths:
