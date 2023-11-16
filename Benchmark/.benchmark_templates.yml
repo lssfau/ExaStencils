@@ -182,6 +182,7 @@ include:
         EXASLANG_FILES: "TO_BE_REPLACED"
         KNOWLEDGE_FILE: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
     before_script:
         - !reference [ .module_tree_build, before_script ]
         - *build_generator
