@@ -22,7 +22,7 @@ pipeline_gen:
     artifacts:
         when: always
         paths:
-            - pipeline.yml
+            - Benchmark/pipeline.yml
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
