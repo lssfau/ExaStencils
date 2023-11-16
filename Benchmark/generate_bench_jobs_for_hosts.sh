@@ -36,5 +36,6 @@ for HOST in ${HOST_LIST[@]}; do
   echo -e "    needs:"
   echo -e "        - pipeline: \$PARENT_PIPELINE_ID"
   echo -e "          job: bench_gen:$1"
+  echo -e "          artifacts: true"
   echo
 done
