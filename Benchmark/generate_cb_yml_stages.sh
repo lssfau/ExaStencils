@@ -75,8 +75,9 @@ echo -e "    GIT_STRATEGY: fetch"
 echo -e "    GIT_SUBMODULE_STRATEGY: recursive"
 echo
 
-echo -e "include: 'Benchmark/.benchmark_templates.yml'"
-echo -e "include: 'Benchmark/lock.yml'"
+echo -e "include:"
+echo -e "    - 'Benchmark/.benchmark_templates.yml'"
+echo -e "    - 'Benchmark/lock.yml'"
 echo
 
 ### generator func args
