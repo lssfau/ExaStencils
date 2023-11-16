@@ -156,7 +156,7 @@ include:
     artifacts:
         when: always
         paths:
-            - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+            - Benchmark/$EXA_PROBLEM_NAME-child-pipe.yml
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
