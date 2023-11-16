@@ -143,8 +143,6 @@ include:
 
 .gen_bench_job_template:
     stage: bench_gen
-    extends:
-        - .seralize
     tags:
         - testcluster
     before_script:

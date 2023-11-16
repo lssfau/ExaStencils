@@ -11,8 +11,6 @@ include:
 
 pipeline_gen:
     stage: pipeline
-    extends:
-        - .seralize
     tags:
         - testcluster
     script:
@@ -29,8 +27,6 @@ pipeline_gen:
 
 pipeline_exec:
     stage: pipeline
-    extends:
-        - .seralize
     trigger:
         include:
             - artifact: pipeline.yml
