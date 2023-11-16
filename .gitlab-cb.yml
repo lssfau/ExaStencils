@@ -15,8 +15,6 @@ pipeline_gen:
         - .seralize
     tags:
         - testcluster
-    before_script:
-        - cd Benchmark
     script:
         - chmod +x Benchmark/generate_cb_yml_stages.sh
         - ./Benchmark/generate_cb_yml_stages.sh > pipeline.yml
