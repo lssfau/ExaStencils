@@ -339,13 +339,13 @@ object QuadraticInterpPackingC2FHelper {
           val f6 = fetchOrAddExtrapBase(f6_val)
 
           // perform another quadratic interp/extrap in third dimension
-          val (f7_val, f8_val) = interpolate2D(defIt, f1, orthoDirUpwind3D, orthoDirDownwind3D, f5, f3)
-          val (f9_val, f10_val) = interpolate2D(defIt, f2, orthoDirUpwind3D, orthoDirDownwind3D, f6, f4)
+          val (f7_val, f8_val) = interpolate2D(defIt, f1, orthoDirUpwind3D, orthoDirDownwind3D, f3, f5)
+          val (f9_val, f10_val) = interpolate2D(defIt, f2, orthoDirUpwind3D, orthoDirDownwind3D, f4, f6)
 
           // write 3D results into variables
           interpStmts += IR_Assignment(results(0), f7_val)
-          interpStmts += IR_Assignment(results(1), f8_val)
-          interpStmts += IR_Assignment(results(2), f9_val)
+          interpStmts += IR_Assignment(results(1), f9_val)
+          interpStmts += IR_Assignment(results(2), f8_val)
           interpStmts += IR_Assignment(results(3), f10_val)
       }
 
