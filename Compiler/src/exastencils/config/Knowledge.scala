@@ -1053,6 +1053,7 @@ object Knowledge {
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
     Constraints.condError(waLBerla_useRefinement && waLBerla_useGridPartFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
     Constraints.condError(waLBerla_useRefinement && cuda_enabled, "waLBerla refinement works only for CPU codes at the moment.")
+    Constraints.condError(!waLBerla_cacheFieldPointers && experimental_cuda_useStreams, "CUDA streams can only be combined with waLBerla when 'waLBerla_cacheFieldPointers = true'.")
 
     Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
     Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
