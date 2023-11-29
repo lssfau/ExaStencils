@@ -8,7 +8,7 @@ import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
 import exastencils.core.StateManager
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
-import exastencils.domain.ir.IR_IV_NeighborIsValid
+import exastencils.domain.ir.IR_IV_NeighborIsValidLike
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 
@@ -44,7 +44,7 @@ class IR_CommunicationKernelCollector extends Collector {
 
       // communication/boundary handling
       case cond : IR_IfCondition if fragmentLoopStack != Nil =>
-        val neigh = StateManager.findFirst[IR_IV_NeighborIsValid](cond)
+        val neigh = StateManager.findFirst[IR_IV_NeighborIsValidLike](cond)
         if (neigh.isDefined)
           communicationInFragmentLoop += (head -> neigh.get.neighIdx)
 

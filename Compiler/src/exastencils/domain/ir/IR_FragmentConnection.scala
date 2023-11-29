@@ -24,6 +24,14 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
+/// IR_IV_NeighborIsValidLike: can be matched to detect kernels for communication/boundary handling
+trait IR_IV_NeighborIsValidLike {
+  def domainIdx : IR_Expression
+  def neighIdx : IR_Expression
+  def fragmentIdx : IR_Expression
+  def indexOfRefinedNeighbor : Option[IR_Expression]
+}
+
 /// IR_IV_FragmentConnection
 abstract class IR_IV_FragmentConnection extends IR_InternalVariable(true, true, false, false, true) {
   override def usesFragmentArrays : Boolean = true
@@ -64,14 +72,14 @@ abstract class IR_IV_FragmentConnection extends IR_InternalVariable(true, true, 
 /// IR_IV_NeighborIsValid
 
 case class IR_IV_NeighborIsValid(
-    var domain : IR_Expression,
+    var domainIdx : IR_Expression,
     var neighIdx : IR_Expression,
     var indexOfRefinedNeighbor : Option[IR_Expression],
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection with IR_IV_NeighborIsValidLike {
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domainIdx, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"neighbor_isValid" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
+  override def resolveName() = s"neighbor_isValid" + resolvePostfix(fragmentIdx.prettyprint, domainIdx.prettyprint, "", "", neighIdx.prettyprint)
   override def baseDatatype = IR_BooleanDatatype
   override def resolveDefValue() = Some(false)
 }
@@ -79,14 +87,14 @@ case class IR_IV_NeighborIsValid(
 /// IR_IV_NeighborIsRemote
 
 case class IR_IV_NeighborIsRemote(
-    var domain : IR_Expression,
+    var domainIdx : IR_Expression,
     var neighIdx : IR_Expression,
     var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domainIdx, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"neighbor_isRemote" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
+  override def resolveName() = s"neighbor_isRemote" + resolvePostfix(fragmentIdx.prettyprint, domainIdx.prettyprint, "", "", neighIdx.prettyprint)
   override def baseDatatype = IR_BooleanDatatype
   override def resolveDefValue() = Some(false)
 }
@@ -94,14 +102,14 @@ case class IR_IV_NeighborIsRemote(
 /// IR_IV_NeighborFragmentIdx
 
 case class IR_IV_NeighborFragmentIdx(
-    var domain : IR_Expression,
+    var domainIdx : IR_Expression,
     var neighIdx : IR_Expression,
     var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domainIdx, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
+  override def resolveName() = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.prettyprint, domainIdx.prettyprint, "", "", neighIdx.prettyprint)
   override def baseDatatype = IR_IntegerDatatype
   override def resolveDefValue() = Some(-1)
 }
@@ -109,14 +117,14 @@ case class IR_IV_NeighborFragmentIdx(
 /// IR_IV_NeighborRemoteRank
 
 case class IR_IV_NeighborRemoteRank(
-    var domain : IR_Expression,
+    var domainIdx : IR_Expression,
     var neighIdx : IR_Expression,
     var indexOfRefinedNeighbor : Option[IR_Expression],
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FragmentConnection {
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domain, IR_NullExpression, IR_NullExpression, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, domainIdx, IR_NullExpression, IR_NullExpression, neighIdx)
 
-  override def resolveName() = s"neighbor_remoteRank" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
+  override def resolveName() = s"neighbor_remoteRank" + resolvePostfix(fragmentIdx.prettyprint, domainIdx.prettyprint, "", "", neighIdx.prettyprint)
   override def baseDatatype = IR_IntegerDatatype
   override def resolveDefValue() = Some("MPI_PROC_NULL")
 }
