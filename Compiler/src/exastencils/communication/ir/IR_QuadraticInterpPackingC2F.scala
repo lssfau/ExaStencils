@@ -7,6 +7,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.ir.IR_InterpPackingHelper.dirSum
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
@@ -283,43 +284,43 @@ object QuadraticInterpPackingC2FHelper {
       val orthoDirDownwind2D = orthogonalNeighDirs(0)
       val orthoDirUpwind2D = orthogonalNeighDirs(1)
 
-      val f0_upwind2D = fetchOrAddExtrapBase(interps(orthoDirUpwind2D))
-      val f0_downwind2D = fetchOrAddExtrapBase(interps(orthoDirDownwind2D))
+      val f0_down_2D = fetchOrAddExtrapBase(interps(orthoDirDownwind2D))
+      val f0_up_2D = fetchOrAddExtrapBase(interps(orthoDirUpwind2D))
 
       // ... and perform another quadratic interp/extrap in second direction
-      val (f1_val, f2_val) = interpolate2D(defIt, f0, orthoDirUpwind2D, orthoDirDownwind2D, f0_upwind2D, f0_downwind2D)
+      val (f1_down_val, f1_up_val) = interpolate2D(defIt, f0, orthoDirUpwind2D, orthoDirDownwind2D, f0_up_2D, f0_down_2D)
 
       Knowledge.dimensionality match {
         case 2 =>
           // write 2D results into variables
-          interpStmts += IR_Assignment(results(0), f1_val)
-          interpStmts += IR_Assignment(results(1), f2_val)
+          interpStmts += IR_Assignment(results(0), f1_down_val)
+          interpStmts += IR_Assignment(results(1), f1_up_val)
         case 3 =>
           // declare 2D interpolated values of first upwind orthogonal neighbor
-          val f1 = fetchOrAddExtrapBase(f1_val)
-          val f2 = fetchOrAddExtrapBase(f2_val)
+          val f1_down = fetchOrAddExtrapBase(f1_down_val)
+          val f1_up = fetchOrAddExtrapBase(f1_up_val)
 
           // fetch orthogonal upwind/downwind neighbors (in third dir) and their corresponding extrap values
           val orthoDirDownwind3D = orthogonalNeighDirs(2)
           val orthoDirUpwind3D = orthogonalNeighDirs(3)
 
-          val f0_upwind3D = fetchOrAddExtrapBase(interps(orthoDirUpwind3D))
-          val f0_downwind3D = fetchOrAddExtrapBase(interps(orthoDirDownwind3D))
+          val f0_down_3D = fetchOrAddExtrapBase(interps(orthoDirDownwind3D))
+          val f0_up_3D = fetchOrAddExtrapBase(interps(orthoDirUpwind3D))
 
           // get directions to diagonal neighbor cells
           val diagOrigins : Array[Array[Int]] = {
             def adaptForRemap(d : Array[Int]) = if (stencilAdapted(cond, d)) d.map(_ * -2) else d
 
             Array(
+              dirSum(adaptForRemap(orthoDirDownwind3D), adaptForRemap(orthoDirUpwind2D)),
+              dirSum(adaptForRemap(orthoDirDownwind3D), adaptForRemap(orthoDirDownwind2D)),
               dirSum(adaptForRemap(orthoDirUpwind3D), adaptForRemap(orthoDirUpwind2D)),
               dirSum(adaptForRemap(orthoDirUpwind3D), adaptForRemap(orthoDirDownwind2D)),
-              dirSum(adaptForRemap(orthoDirDownwind3D), adaptForRemap(orthoDirUpwind2D)),
-              dirSum(adaptForRemap(orthoDirDownwind3D), adaptForRemap(orthoDirDownwind2D))
             )
           }
 
           // construct further extrap bases on diagonal neighbor cells
-          val f0_diag : Array[IR_VariableAccess] = diagOrigins.map { dir =>
+          val f0_diag_3D : Array[IR_VariableAccess] = diagOrigins.map { dir =>
             val origin = defIt + IR_ExpressionIndex(dir)
             val basePosInvCommDir = getBasePositionsForExtrapolation(invCommDir, origin)
             val baseValsInvCommDir = getBaseValues(field, slot, invCommDir, origin, RemappedBasesShifts)
@@ -327,26 +328,31 @@ object QuadraticInterpPackingC2FHelper {
             fetchOrAddExtrapBase(interpolate1D(x0, basePosInvCommDir, baseValsInvCommDir))
           }
 
-          val (f3_val, f4_val) = interpolate2D(defIt + IR_ExpressionIndex(orthoDirUpwind3D), f0_upwind3D,
-            orthoDirUpwind2D, orthoDirDownwind2D, f0_diag(0), f0_diag(1))
+          val (f2_down_val, f2_up_val) = interpolate2D(defIt + IR_ExpressionIndex(orthoDirDownwind3D), f0_down_3D,
+            orthoDirUpwind2D, orthoDirDownwind2D, f0_diag_3D(0), f0_diag_3D(1))
 
-          val (f5_val, f6_val) = interpolate2D(defIt + IR_ExpressionIndex(orthoDirDownwind3D), f0_downwind3D,
-            orthoDirUpwind2D, orthoDirDownwind2D, f0_diag(2), f0_diag(3))
+          val (f3_down_val, f3_up_val) = interpolate2D(defIt + IR_ExpressionIndex(orthoDirUpwind3D), f0_up_3D,
+            orthoDirUpwind2D, orthoDirDownwind2D, f0_diag_3D(2), f0_diag_3D(3))
 
-          val f3 = fetchOrAddExtrapBase(f3_val)
-          val f4 = fetchOrAddExtrapBase(f4_val)
-          val f5 = fetchOrAddExtrapBase(f5_val)
-          val f6 = fetchOrAddExtrapBase(f6_val)
+          val f2_down = fetchOrAddExtrapBase(f2_down_val)
+          val f2_up = fetchOrAddExtrapBase(f2_up_val)
+          val f3_down = fetchOrAddExtrapBase(f3_down_val)
+          val f3_up = fetchOrAddExtrapBase(f3_up_val)
 
           // perform another quadratic interp/extrap in third dimension
-          val (f7_val, f8_val) = interpolate2D(defIt, f1, orthoDirUpwind3D, orthoDirDownwind3D, f3, f5)
-          val (f9_val, f10_val) = interpolate2D(defIt, f2, orthoDirUpwind3D, orthoDirDownwind3D, f4, f6)
+          var (f4_down_val, f4_up_val) = interpolate2D(defIt, f1_down, orthoDirUpwind3D, orthoDirDownwind3D, f3_down, f2_down)
+          var (f5_down_val, f5_up_val) = interpolate2D(defIt, f1_up, orthoDirUpwind3D, orthoDirDownwind3D, f3_up, f2_up)
+
+          f4_down_val = IR_SimplifyExpression.simplifyFloatingExpr(f4_down_val)
+          f4_up_val = IR_SimplifyExpression.simplifyFloatingExpr(f4_up_val)
+          f5_down_val = IR_SimplifyExpression.simplifyFloatingExpr(f5_down_val)
+          f5_up_val = IR_SimplifyExpression.simplifyFloatingExpr(f5_up_val)
 
           // write 3D results into variables
-          interpStmts += IR_Assignment(results(0), f7_val)
-          interpStmts += IR_Assignment(results(1), f9_val)
-          interpStmts += IR_Assignment(results(2), f8_val)
-          interpStmts += IR_Assignment(results(3), f10_val)
+          interpStmts += IR_Assignment(results(0), f4_down_val)
+          interpStmts += IR_Assignment(results(1), f5_down_val)
+          interpStmts += IR_Assignment(results(2), f4_up_val)
+          interpStmts += IR_Assignment(results(3), f5_up_val)
       }
 
       IR_IfCondition(cond, interpStmts)
