@@ -14,6 +14,7 @@ import exastencils.fieldlike.ir._
 import exastencils.logger.Logger
 
 object LinearInterpPackingF2CHelper {
+
   import IR_InterpPackingBaseHelper._
   import exastencils.communication.ir.IR_InterpPackingHelper._
 
@@ -28,6 +29,25 @@ object LinearInterpPackingF2CHelper {
 
     def invCommDir : Array[Int] = commDir.map(_ * -1)
 
+    // get neighbors in upwind ortho dir and get additional neighbors by offsetting to inv comm dir
+    val upwindOrthogonals = getCrossSumOfUpwindOrthogonals(commDir).distinct
+    val invCommUpwindOrthogonals = upwindOrthogonals.map(off => dirSum(off, invCommDir))
+
+    // access field at all neighbor locations
+    val accesses = (upwindOrthogonals ++ invCommUpwindOrthogonals).distinct.map { off =>
+      IR_DirectFieldLikeAccess(field, Duplicate(slot), origin + IR_ExpressionIndex(off))
+    }
+
+    val w = Knowledge.dimensionality match {
+      case 2 => 0.25
+      case 3 => 0.125
+    }
+
+    // add all field accesses up and multiply with precomputed weight
+    w * IR_Addition(accesses : _*)
+
+    /*
+    // TODO: maybe rewrite by using BaseValues/Positions etc. in the future
     // calculate linear interpolations on orthogonal (fine) neighbor cells in upwind dir
     val linearInterpResult : Array[(IR_Expression, IR_Expression)] = getCrossSumOfUpwindOrthogonals(commDir).distinct.map(offset => {
       val basePositionsOrtho = getBasePositions(level, localization, invCommDir, origin + IR_ExpressionIndex(offset), shifts)
@@ -53,6 +73,7 @@ object LinearInterpPackingF2CHelper {
       case 3 =>
         interpAgain(bilinearInterpResult).head._2
     }
+    */
   }
 }
 
