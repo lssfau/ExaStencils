@@ -30,6 +30,9 @@ case class IR_WaLBerlaNodePositionPerDim(
 
   override def createDuplicate() : IR_KnowledgeObject = IR_WaLBerlaNodePositionPerDim(level, domain, dim)
 
-  override def resolve(index : IR_ExpressionIndex) =
-    IR_WaLBerlaBlockAABB(IR_WaLBerlaLoopOverLocalBlocks.block).min(dim) + index(dim) * IR_VirtualFieldAccess(IR_WaLBerlaCellWidthPerDim(level, domain, dim), Duplicate(index))
+  override def resolve(index : IR_ExpressionIndex) = {
+    val blockAABB = IR_WaLBerlaBlockAABB(IR_WaLBerlaLoopOverLocalBlocks.block)
+
+    IR_WaLBerlaAABBMin(blockAABB, dim) + index(dim) * IR_VirtualFieldAccess(IR_WaLBerlaCellWidthPerDim(level, domain, dim), Duplicate(index))
+  }
 }

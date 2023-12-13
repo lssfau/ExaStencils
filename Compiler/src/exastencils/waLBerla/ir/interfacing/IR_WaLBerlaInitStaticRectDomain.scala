@@ -18,8 +18,7 @@ import exastencils.util.ir.IR_Print
 import exastencils.util.ir.IR_Read
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlockNeighborhoodSection
 import exastencils.waLBerla.ir.blockforest._
-import exastencils.waLBerla.ir.grid.IR_WaLBerlaAABB
-import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
+import exastencils.waLBerla.ir.grid._
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementIndexForCoarseNeighbor
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 
@@ -65,7 +64,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
   // setup functions
   def setupFragmentPosition() = {
-    Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPosition(dim), getBlockAABB.center(dim)))
+    Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPosition(dim), IR_WaLBerlaAABBCenter(getBlockAABB, dim)))
   }
   def setupFragmentIndex() = {
     Logger.warning("IR_IV_FragmentIndex currently not properly set up in waLBerla coupling.")
@@ -79,8 +78,8 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     IR_Assignment(IR_IV_CommunicationId(defIt), defIt)
   }
   def setupFragmentPosBeginAndEnd() = {
-    val begin = Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionBegin(dim), getBlockAABB.min(dim)))
-    val end = Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), getBlockAABB.max(dim)))
+    val begin = Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionBegin(dim), IR_WaLBerlaAABBMin(getBlockAABB, dim)))
+    val end = Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), IR_WaLBerlaAABBMax(getBlockAABB, dim)))
     begin ++ end
   }
 
@@ -285,7 +284,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
             IR_VariableDeclaration(IR_IntegerDatatype, s"refIdxOff_$d",
               IR_TernaryCondition(
                 IR_Lower(
-                  getBlockAABB.center(d),
+                  IR_WaLBerlaAABBCenter(getBlockAABB, d),
                   IR_ArrayAccess(IR_MemberFunctionCall(neighAABB, "center"), d)),
                 0,
                 1)))

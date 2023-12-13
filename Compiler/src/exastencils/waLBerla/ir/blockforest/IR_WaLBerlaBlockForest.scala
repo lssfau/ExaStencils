@@ -5,7 +5,6 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
-import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellAABB
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaInitNonuniformBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
@@ -69,9 +68,6 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
 
   def getNumberOfCellsForBlock(dim : Int, block : IR_WaLBerlaBlock) : IR_Expression =
     IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType, IR_DerefAccess(block))
-
-  // aabb
-  def getCellAABB(idx : IR_ExpressionIndex) = IR_WaLBerlaCellAABB(this, idx)
 
   def getAABBFromBlockId(inAABB : IR_Expression, id : IR_Expression) = IR_MemberFunctionCallArrow(resolveAccess(), "getAABBFromBlockId", inAABB, id)
 

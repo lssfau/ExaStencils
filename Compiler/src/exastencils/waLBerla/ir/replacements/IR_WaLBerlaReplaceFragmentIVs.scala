@@ -7,7 +7,7 @@ import exastencils.datastructures.Transformation
 import exastencils.domain.ir._
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommunicationId
-import exastencils.waLBerla.ir.grid.IR_WaLBerlaBlockAABB
+import exastencils.waLBerla.ir.grid._
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementCase
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementIndexForCoarseNeighbor
 
@@ -23,9 +23,9 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
     case assign @ IR_Assignment(fragIV, _, "=") if inWaLBerlaScope(collector) =>
       fragIV match {
         // fragment positions
-        case _ @ IR_IV_FragmentPosition(dim, _)      => assign.src = getBlockAABB.center(dim)
-        case _ @ IR_IV_FragmentPositionBegin(dim, _) => assign.src = getBlockAABB.min(dim)
-        case _ @ IR_IV_FragmentPositionEnd(dim, _)   => assign.src = getBlockAABB.max(dim)
+        case _ @ IR_IV_FragmentPosition(dim, _)      => assign.src = IR_WaLBerlaAABBCenter(getBlockAABB, dim)
+        case _ @ IR_IV_FragmentPositionBegin(dim, _) => assign.src = IR_WaLBerlaAABBMin(getBlockAABB, dim)
+        case _ @ IR_IV_FragmentPositionEnd(dim, _)   => assign.src = IR_WaLBerlaAABBMax(getBlockAABB, dim)
         // fragment connectivity
         case _ @ IR_IV_NeighborIsValid(_, neighIdx, indexOfRefinedNeighbor, fragmentIdx)     =>
           assign.dest = IR_WaLBerlaNeighborIsValid(neighIdx, indexOfRefinedNeighbor, fragmentIdx)
@@ -53,9 +53,9 @@ object IR_WaLBerlaReplaceFragmentIVs extends IR_WaLBerlaReplacementStrategy("Rep
     /* accesses */
 
     // fragment positions
-    case _ @ IR_IV_FragmentPosition(dim, _) if inWaLBerlaScope(collector)      => getBlockAABB.center(dim)
-    case _ @ IR_IV_FragmentPositionBegin(dim, _) if inWaLBerlaScope(collector) => getBlockAABB.min(dim)
-    case _ @ IR_IV_FragmentPositionEnd(dim, _) if inWaLBerlaScope(collector)   => getBlockAABB.max(dim)
+    case _ @ IR_IV_FragmentPosition(dim, _) if inWaLBerlaScope(collector)      => IR_WaLBerlaAABBCenter(getBlockAABB, dim)
+    case _ @ IR_IV_FragmentPositionBegin(dim, _) if inWaLBerlaScope(collector) => IR_WaLBerlaAABBMin(getBlockAABB, dim)
+    case _ @ IR_IV_FragmentPositionEnd(dim, _) if inWaLBerlaScope(collector)   => IR_WaLBerlaAABBMax(getBlockAABB, dim)
 
   }, recursive = false)
 
