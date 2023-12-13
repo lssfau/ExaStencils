@@ -577,6 +577,9 @@ private class CollectBaseCSes(curFunc : String) extends IR_StackCollector {
       case c : IR_IfCondition =>
         c.annotate(SKIP_ANNOT)
         skip = true
+      case blv : IR_ProcessLocalBlockLoopVariable =>
+        blv.annotate(SKIP_ANNOT)
+        skip = true
 
       case IR_VariableDeclaration(dt, name, _, _)                              =>
         commonSubs(IR_VariableAccess(name, dt)) = null
