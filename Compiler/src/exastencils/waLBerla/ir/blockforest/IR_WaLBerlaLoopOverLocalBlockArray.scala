@@ -26,6 +26,9 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
 ) extends IR_LoopOverProcessLocalBlocks {
 
   def expandSpecial() : Output[IR_ForLoop] = {
+    // TODO: separate omp and potentiallyParallel
+    parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
+
     // array of process-local blocks
     val blockArray = IR_WaLBerlaLocalBlocks()
     val block = IR_WaLBerlaLoopOverLocalBlockArray.block
