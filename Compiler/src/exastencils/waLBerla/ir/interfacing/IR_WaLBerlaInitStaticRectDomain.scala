@@ -161,7 +161,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
                 IR_Print(packBufferStream, block.getId(), defIt))))
         })
 
-        communicate += IR_WaLBerlaLoopOverLocalBlockArray(IR_Scope(fillBufferForNeigh : _*), IR_ParallelizationInfo(potentiallyParallel = true))
+        communicate += IR_WaLBerlaLoopOverLocalBlockArray(IR_Scope(fillBufferForNeigh : _*))
       }
 
       // transmit list of comm participants and communicate
