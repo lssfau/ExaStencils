@@ -32,6 +32,7 @@ import exastencils.domain.ir._
 import exastencils.fieldlike.ir._
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_DataType
+import exastencils.timing.ir._
 
 /// IR_RemoteCommunicationStart
 
@@ -98,7 +99,20 @@ case class IR_RemoteCommunicationStart(
   }
 
   def genWait(neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression] = None) : IR_Statement = {
-    IR_WaitForRemoteTransfer(field, send = true, Duplicate(neighbor), concurrencyId, indexOfRefinedNeighbor)
+    val ret = IR_WaitForRemoteTransfer(field, send = true, Duplicate(neighbor), concurrencyId, indexOfRefinedNeighbor)
+
+    // add automatic timers for waiting (send)
+    val timingCategory = IR_AutomaticTimingCategory.WAIT
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_send", timingCategory)
+
+      IR_Scope(
+        IR_FunctionCall(IR_StartTimer().name, timer),
+        ret,
+        IR_FunctionCall(IR_StopTimer().name, timer))
+    } else {
+      ret
+    }
   }
 
   override def expand() : Output[StatementList] = {
