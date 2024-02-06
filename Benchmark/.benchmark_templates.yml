@@ -37,7 +37,7 @@ include:
     - gcc --version
 
 .module_icc: &module_load_icc
-    - module load intel/2020.2
+    - module load intel/2023.1.0
     - icc --version
 
 .module_openmpi: &module_load_openmpi
@@ -45,7 +45,7 @@ include:
     - mpirun --version
 
 .module_likwid: &module_load_likwid
-    - module load likwid/5.2.1
+    - module load likwid/5.2.2
     - likwid-features --version
 
 .module_cuda: &module_load_cuda
