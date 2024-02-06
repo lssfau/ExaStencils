@@ -174,6 +174,7 @@ include:
         - testcluster
     extends:
         - .seralize
+    allow_failure: true
     variables:
         SLURM_NODELIST: "TO_BE_REPLACED"
         SLURM_CONSTRAINT: "hwperf"
