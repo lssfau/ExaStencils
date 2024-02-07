@@ -49,8 +49,8 @@
     - module load cuda
     - nvcc --version
     - nvidia-smi
-    #- locate cuda.h
-    #- locate libcudart
+    - locate cuda.h
+    - locate libcudart
     - export CPATH=$CPATH:/usr/local/cuda-11.7/targets/x86_64-linux/include
     - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11.7/targets/x86_64-linux/lib
