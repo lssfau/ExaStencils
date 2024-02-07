@@ -6,7 +6,7 @@ fi
 
 # get idle hosts (and filter out drained hosts)
 HOST_LIST=$(echo "$(sinfo -t idle -h --partition=work -o "%n"; sinfo -t drain -h -o "%n")" | sort | uniq -u)
-HOST_FILTER='aurora1 warmup applem1studio gracehop1 icx36'
+HOST_FILTER='applem1studio aurora1 genoa1 gracehop1 gracesup1 icx36 lukewarm warmup'
 
 # include template
 echo "$(<.benchmark_templates.yml)"
