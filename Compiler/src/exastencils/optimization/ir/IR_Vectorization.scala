@@ -848,7 +848,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_Power(base, exp) if SIMD_MathFunctions.isAllowed("pow") =>
         IR_FunctionCall(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
 
-      case _ : IR_MemberAccess |
+      case _ : IR_MemberAccessLike |
+           _ : IR_ProcessLocalBlockLoopVariable |
            _ : IR_IV_FragmentPositionBegin |
            _ : IR_IV_FragmentPositionEnd |
            _ : IR_IV_FragmentPosition =>
