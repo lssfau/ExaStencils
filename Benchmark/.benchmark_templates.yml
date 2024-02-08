@@ -1,3 +1,6 @@
+include:
+    - "Benchmark/lock.yml"
+
 #######################################
 ##                                   ##
 ##            Templates              ##
@@ -34,7 +37,7 @@
     - gcc --version
 
 .module_icc: &module_load_icc
-    - module load intel/2020.2
+    - module load intel/2022.1.0
     - icc --version
 
 .module_openmpi: &module_load_openmpi
@@ -42,15 +45,15 @@
     - mpirun --version
 
 .module_likwid: &module_load_likwid
-    - module load likwid/5.2.1
+    - module load likwid/5.2.2
     - likwid-features --version
 
 .module_cuda: &module_load_cuda
     - module load cuda
     - nvcc --version
     - nvidia-smi
-    - locate cuda.h
-    - locate libcudart
+    #- locate cuda.h
+    #- locate libcudart
     - export CPATH=$CPATH:/usr/local/cuda-11.7/targets/x86_64-linux/include
     - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-11.7/targets/x86_64-linux/lib
@@ -95,6 +98,8 @@
 
 .cuda_job_template:
     stage: bench_pipe
+    extends:
+        - .seralize
     tags:
         - testcluster
     before_script:
@@ -144,14 +149,16 @@
         - cd Benchmark
         - !reference [ .module_tree_build, before_script ]
     script:
+        - echo $CI_PIPELINE_ID
+        - echo $PARENT_PIPELINE_ID
         - chmod +x generate_bench_jobs_for_hosts.sh
-        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH > $EXA_PROBLEM_NAME-pipe.yml
+        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH $CI_PIPELINE_ID > $EXA_PROBLEM_NAME-child-pipe.yml
     after_script:
         - !reference [ .module_tree_build, after_script ]
     artifacts:
         when: always
         paths:
-            - Benchmark/$EXA_PROBLEM_NAME-pipe.yml
+            - Benchmark/$EXA_PROBLEM_NAME-child-pipe.yml
         expire_in: 1 weeks
     variables:
         NO_SLURM_SUBMIT: 1
@@ -162,21 +169,12 @@
         OUTPUT_PATH: "output"
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
-.pipe_bench_job_template:
-    stage: bench_pipe
-    trigger:
-        include:
-            artifact: Benchmark/$EXA_PROBLEM_NAME-pipe.yml
-            job: bench_gen:$EXA_PROBLEM_NAME
-        strategy: depend
-    variables:
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
-        EXA_PROBLEM_NAME: "TO_BE_REPLACED"
-        EXA_PROBLEM_PATH: "TO_BE_REPLACED"
-
 .bench_pipe_template:
     tags:
         - testcluster
+    extends:
+        - .seralize
+    allow_failure: true
     variables:
         SLURM_NODELIST: "TO_BE_REPLACED"
         SLURM_CONSTRAINT: "hwperf"
