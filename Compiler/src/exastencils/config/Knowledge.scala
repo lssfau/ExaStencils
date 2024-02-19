@@ -133,6 +133,9 @@ object Knowledge {
 
   var refinement_enabled : Boolean = false
 
+  var refinement_interpOrderC2F : Int = 2
+  def refinement_availableC2FInterpOrders : List[Int] = List(1, 2)
+
   // determines fine:coarse ratio (e.g., 2:1)
   def refinement_maxFineNeighborsPerDim : Int = 2
 
@@ -514,7 +517,7 @@ object Knowledge {
   var waLBerla_generateInterface : Boolean = false
 
   // [true|false]: interpolation order: true -> quadratic, false -> constant
-  var waLBerla_useQuadraticF2CInterpolation : Boolean = true
+  var waLBerla_useQuadraticC2FInterpolation : Boolean = true
 
   // [true|false]: optimization.
   // generate comm schemes for waLBerla or use our internal communication
@@ -900,6 +903,7 @@ object Knowledge {
 
     // refinement
     Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")
+    Constraints.condError(refinement_enabled && !refinement_availableC2FInterpOrders.contains(refinement_interpOrderC2F), s"C2F interpolation order $refinement_interpOrderC2F not supported yet.")
     Constraints.condError(refinement_enabled && !grid_isAxisAligned, "Mesh refinement currently only supports aligned blocks.")
     Constraints.condError(refinement_enabled && comm_enableCommTransformations, "Communication transformations are currently not supported with mesh refinement.")
     Constraints.condWarn(refinement_enabled && comm_syncGhostData, "Flag 'comm_syncGhostData' is currently ignored for F2C and C2F communication.")

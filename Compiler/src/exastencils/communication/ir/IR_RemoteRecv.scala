@@ -81,8 +81,10 @@ case class IR_CopyFromRecvBuffer(
   def equalLevelCopyLoop() : IR_Statement =
     IR_NoInterpPackingRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
 
-  def coarseToFineCopyLoop() : IR_Statement =
-    IR_QuadraticInterpPackingC2FRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+  def coarseToFineCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderC2F match {
+    case 1 => IR_LinearInterpPackingC2FRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+    case 2 => IR_QuadraticInterpPackingC2FRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+  }
 
   def fineToCoarseCopyLoop() : IR_Statement =
     IR_LinearInterpPackingF2CRemote(send = false, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)

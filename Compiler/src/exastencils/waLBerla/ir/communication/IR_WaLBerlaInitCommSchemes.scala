@@ -58,7 +58,7 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
             IR_Assignment(commScheme, make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, args : _*)),
             // TODO: temporary solution. remove after local communication is implemented
             // use buffer mode for local communication
-            if (Knowledge.waLBerla_useRefinement && Knowledge.waLBerla_useQuadraticF2CInterpolation)
+            if (Knowledge.waLBerla_useRefinement && Knowledge.waLBerla_useQuadraticC2FInterpolation)
               IR_MemberFunctionCallArrow(commScheme, "setLocalMode", IR_Native("blockforest::BUFFER"))
             else
               IR_NullStatement

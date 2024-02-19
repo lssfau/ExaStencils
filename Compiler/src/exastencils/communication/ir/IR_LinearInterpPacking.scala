@@ -8,8 +8,8 @@ import exastencils.optimization.ir.IR_GeneralSimplify
 
 /// LinearBaseShifts
 
-sealed case class LinearBaseShifts() extends BaseShifts {
-  def toArray : Array[Int] = Array(0, 1)
+sealed case class LinearBaseShifts(var remapped : Boolean) extends BaseShifts {
+  def toArray : Array[Int] = if (remapped) Array(0, 1) else Array(-1, 0)
 }
 
 /// LinearBasePositions
@@ -18,11 +18,7 @@ sealed case class LinearBasePositions(var x0 : IR_Expression, var x1 : IR_Expres
   private val asArray : Array[IR_Expression] = Array(Duplicate(x0), Duplicate(x1))
 
   def computeWeights(pos : IR_Expression) : BaseWeights = {
-    if (Knowledge.grid_isUniform) {
-      LinearBaseWeights(0.5, 0.5)
-    } else {
-      LinearBaseWeights((x1 - pos) / (x1 - x0), (x0 - pos) / (x1 - x0))
-    }
+    LinearBaseWeights((pos - x1) / (x0 - x1), (pos - x0) / (x1 - x0))
   }
 
   def toArray : Array[IR_Expression] = asArray

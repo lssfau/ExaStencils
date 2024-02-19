@@ -63,7 +63,7 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
 
   def communicate() : IR_Statement = {
     if (Knowledge.waLBerla_useRefinement && wbField.layout.communicatesGhosts) {
-        if (Knowledge.waLBerla_useQuadraticF2CInterpolation) {
+        if (Knowledge.waLBerla_useQuadraticC2FInterpolation) {
           // quadratic extrapolation/interpolation scheme requires at least one ghost layer
           val expectedNrOfGhosts = wbField.layout.layoutsPerDim.forall(e => e.numGhostLayersLeft >= 1 && e.numGhostLayersRight >= 1)
           if (!expectedNrOfGhosts)

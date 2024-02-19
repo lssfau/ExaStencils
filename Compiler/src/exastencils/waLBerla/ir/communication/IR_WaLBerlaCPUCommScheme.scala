@@ -19,7 +19,7 @@ case class IR_WaLBerlaCPUCommScheme(var wbField : IR_WaLBerlaField, var slot : I
 
   def createUniformPackInfo() = {
     val packInfoType = if (Knowledge.waLBerla_useRefinement)
-      if (Knowledge.waLBerla_useQuadraticF2CInterpolation) "field::refinement::PackInfoQuadratic" else "field::refinement::PackInfo"
+      if (Knowledge.waLBerla_useQuadraticC2FInterpolation) "field::refinement::PackInfoQuadratic" else "field::refinement::PackInfo"
     else
       "field::communication::PackInfo"
 
@@ -28,7 +28,7 @@ case class IR_WaLBerlaCPUCommScheme(var wbField : IR_WaLBerlaField, var slot : I
       templateArgs += s", $WB_StencilTemplate"
 
     var ctorArgs : ListBuffer[IR_Expression] = ListBuffer(blockDataID)
-    if (Knowledge.waLBerla_useRefinement && Knowledge.waLBerla_useQuadraticF2CInterpolation)
+    if (Knowledge.waLBerla_useRefinement && Knowledge.waLBerla_useQuadraticC2FInterpolation)
       ctorArgs.prepend(blockForest)
 
     make_shared(s"$packInfoType< $templateArgs >", ctorArgs : _*)

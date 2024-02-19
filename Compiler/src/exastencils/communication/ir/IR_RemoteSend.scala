@@ -23,6 +23,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication._
+import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
@@ -72,8 +73,10 @@ case class IR_CopyToSendBuffer(
   override def equalLevelCopyLoop() : IR_Statement =
     IR_NoInterpPackingRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
 
-  override def coarseToFineCopyLoop() : IR_Statement =
-    IR_QuadraticInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+  override def coarseToFineCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderC2F match {
+    case 1 => IR_LinearInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+    case 2 => IR_QuadraticInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+  }
 
   override def fineToCoarseCopyLoop() : IR_Statement =
     IR_LinearInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
