@@ -28,6 +28,7 @@ import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
+import exastencils.util.ir.IR_FragmentLoopCollector
 
 // FIXME: refactor
 object IR_LoopOverDimensions {
@@ -148,20 +149,28 @@ case class IR_LoopOverDimensions(
     }
   }
 
-  def parallelizationIsReasonable : Boolean = {
+  def parallelizationOverDimensionsIsReasonable : Boolean = if (Knowledge.omp_parallelizeLoopOverDimensions) {
     val maxItCount = maxIterationCount()
     if (maxItCount == null)
       return true // cannot determine iteration count, default is no change in parallelizability, i.e. true
 
-    var totalNumPoints : Long = 1
-    for (i <- maxItCount)
-      totalNumPoints *= i
-    totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads
+    maxItCount.product > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads
+  } else {
+    false
+  }
+
+  def parallelizationOverFragmentsIsReasonable : Boolean = if (Knowledge.omp_parallelizeLoopOverFragments) {
+    val maxItCount = maxIterationCount()
+    if (maxItCount == null)
+      return true // cannot determine iteration count, default is no change in parallelizability, i.e. true
+
+    math.max(Knowledge.domain_numFragmentsPerBlock / Knowledge.omp_numThreads, 1) * maxItCount.product > Knowledge.omp_minWorkItemsPerThread
+  } else {
+    false
   }
 
   def explParLoop = lcCSEApplied && parallelization.potentiallyParallel &&
-    Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverDimensions &&
-    parallelizationIsReasonable
+    Knowledge.omp_enabled && parallelizationOverDimensionsIsReasonable
 
   def createOMPThreadsWrapper(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     if (explParLoop) {
@@ -214,9 +223,9 @@ case class IR_LoopOverDimensions(
     nju
   }
 
-  def expandSpecial() : ListBuffer[IR_Statement] = {
+  def expandSpecial(collector : IR_FragmentLoopCollector) : ListBuffer[IR_Statement] = {
     def parallelizable(d : Int) = parallelization.potentiallyParallel && parDims.contains(d)
-    def parallelize(d : Int) = parallelizable(d) && Knowledge.omp_parallelizeLoopOverDimensions && parallelizationIsReasonable
+    def parallelize(d : Int) = parallelizable(d) && parallelizationOverDimensionsIsReasonable
 
     // TODO: check interaction between at1stIt and condition (see also: TODO in polyhedron.Extractor.enterLoop)
     var wrappedBody : ListBuffer[IR_Statement] = body
@@ -250,6 +259,16 @@ case class IR_LoopOverDimensions(
       wrappedBody = ListBuffer[IR_Statement](loop)
     }
 
+    // propagate parallelization hints to enclosing fragment loop if parallel
+    if (Knowledge.omp_parallelizeLoopOverFragments && collector.getEnclosingFragmentLoop().isDefined) {
+      collector.getEnclosingFragmentLoop().get match {
+        case fragLoop : IR_LoopOverProcessLocalBlocks                                                                            =>
+          fragLoop.parallelization.parallelizationReasonable &&= parallelizationOverFragmentsIsReasonable
+        case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
+          fragLoop.parallelization.parallelizationReasonable &&= parallelizationOverFragmentsIsReasonable
+      }
+    }
+
     wrappedBody = createOMPThreadsWrapper(wrappedBody)
 
     wrappedBody
@@ -259,7 +278,11 @@ case class IR_LoopOverDimensions(
 /// IR_ResolveLoopOverDimensions
 
 object IR_ResolveLoopOverDimensions extends DefaultStrategy("Resolve LoopOverDimensions nodes") {
+  var collector = new IR_FragmentLoopCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
+
   this += new Transformation("Resolve", {
-    case loop : IR_LoopOverDimensions => loop.expandSpecial()
+    case loop : IR_LoopOverDimensions => loop.expandSpecial(collector)
   })
 }
