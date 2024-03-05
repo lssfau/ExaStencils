@@ -1022,7 +1022,7 @@ object Knowledge {
     Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticCommTiming = true'")
     Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticIOTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticIOTiming = true'")
 
-    Constraints.condError(timer_syncMpi && timer_automaticCommTiming, "Flags timer_syncMpi and timer_automaticCommTiming are mutually exclusive")
+    Constraints.condError(timer_syncMpi && (timer_automaticPackingTiming || timer_automaticUnpackingTiming || timer_automaticWaitTiming), "Flags timer_syncMpi and timer_automaticPackingTiming, timer_automaticUnpackingTiming or timer_automaticWaitTiming are mutually exclusive")
 
     // benchmarking and performance estimation
 
