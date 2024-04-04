@@ -41,7 +41,7 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   }
 
   // refinement level
-  def getRefinementLvlForIterator() = IR_MemberFunctionCallArrow(resolveAccess(), "getLevel", IR_DerefAccess(iterator))
+  def getRefinementLvl(iterator : IR_WaLBerlaBlock) = IR_MemberFunctionCallArrow(resolveAccess(), "getLevel", IR_DerefAccess(iterator.access))
 
   def getLevelFromBlockId(id : IR_Expression) = IR_MemberFunctionCallArrow(resolveAccess(), "getLevelFromBlockId", id)
 
@@ -52,7 +52,6 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   def dz(refinementLevel : Option[IR_Expression] = None) = getStepSize(2, refinementLevel)
 
   // iterators
-  def iterator = new IR_WaLBerlaBlock("block", IR_SpecialDatatype("auto"))
   def begin() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "begin", datatype)
   def end() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "end", datatype)
 
@@ -66,8 +65,8 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   def getNumberOfCellsPerBlock(dim : Int) : IR_Expression =
     IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }CellsPerBlock", WB_UintType)
 
-  def getNumberOfCellsForBlock(dim : Int, block : IR_WaLBerlaBlock) : IR_Expression =
-    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType, IR_DerefAccess(block))
+  def getNumberOfCellsForBlock(dim : Int, block : IR_WaLBerlaBlockLike) : IR_Expression =
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType, IR_DerefAccess(block.access))
 
   def getAABBFromBlockId(inAABB : IR_Expression, id : IR_Expression) = IR_MemberFunctionCallArrow(resolveAccess(), "getAABBFromBlockId", inAABB, id)
 

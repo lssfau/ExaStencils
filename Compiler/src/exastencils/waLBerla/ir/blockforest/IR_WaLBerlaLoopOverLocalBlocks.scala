@@ -43,7 +43,7 @@ object IR_WaLBerlaLoopOverLocalBlocks {
   def apply(body : IR_Statement, parallelization : IR_ParallelizationInfo) = new IR_WaLBerlaLoopOverLocalBlocks(ListBuffer(body), parallelization)
 
   def defIt = IR_LoopOverFragments.defIt
-  def block = IR_WaLBerlaBlockForest().iterator
+  def block = IR_WaLBerlaBlock()
 }
 
 // iterates through process-local blocks

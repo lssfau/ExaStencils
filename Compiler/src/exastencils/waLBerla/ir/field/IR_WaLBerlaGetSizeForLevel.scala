@@ -20,7 +20,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
 
   override def generateWaLBerlaFct() : IR_WaLBerlaLeveledFunction = {
 
-    val block = new IR_WaLBerlaBlock("block", IR_ConstPointerDatatype(WB_IBlock))
+    val block = IR_WaLBerlaIBlock()
     val blockForest = IR_WaLBerlaBlockForest()
     val cells = IR_VariableAccess("cells", returnType)
 
@@ -32,7 +32,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
 
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
     params += IR_FunctionArgument("blocks", IR_ConstReferenceDatatype(IR_SharedPointerDatatype(WB_StructuredBlockStorage)))
-    params += IR_FunctionArgument(block)
+    params += IR_FunctionArgument(block.access)
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
 

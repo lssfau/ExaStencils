@@ -14,12 +14,13 @@ import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 object IR_WaLBerlaBlockLoopVariable {
   // order by type
   val byTypeOrd : Ordering[IR_WaLBerlaBlockLoopVariable] = Ordering.by {
-    case _ : IR_WaLBerlaRefinementLevel          => 0
-    case _ : IR_WaLBerlaAABB                     => 1
-    case _ : IR_WaLBerlaCellWidthBlockPerDim     => 2
-    case _ : IR_WaLBerlaNeighborHoodSectionIndex => 3
-    case _ : IR_WaLBerlaNeighborHoodSectionSize  => 4
-    case _                                       => 5
+    case _ : IR_WaLBerlaBlockLike                => 0
+    case _ : IR_WaLBerlaRefinementLevel          => 1
+    case _ : IR_WaLBerlaAABB                     => 2
+    case _ : IR_WaLBerlaCellWidthBlockPerDim     => 3
+    case _ : IR_WaLBerlaNeighborHoodSectionIndex => 4
+    case _ : IR_WaLBerlaNeighborHoodSectionSize  => 5
+    case _                                       => 6
   }
   // order by name
   val byNameOrd : Ordering[IR_WaLBerlaBlockLoopVariable] = Ordering.by { member : IR_WaLBerlaBlockLoopVariable => member.resolveName() }

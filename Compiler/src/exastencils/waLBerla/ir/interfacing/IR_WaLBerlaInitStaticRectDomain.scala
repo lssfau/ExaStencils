@@ -219,7 +219,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
         val wbNeighborHoodSectionIdx = IR_WaLBerlaNeighborHoodSectionIndex(neigh.dir)
         val wbNeighborProcess = block.getNeighborProcess(wbNeighborHoodSectionIdx, wbNeighborIdx)
 
-        val refLevel = IR_WaLBerlaRefinementLevel()
+        val refLevel = IR_WaLBerlaRefinementLevel(block)
         val neighborRefLevel = blockForest.getLevelFromBlockId(wbNeighborBlockId)
 
         def findRemoteNeighborBlockIndex() = IR_ArrayAccess(IR_WaLBerlaLocalBlockIndicesFromRemote(), wbNeighborBlockId)

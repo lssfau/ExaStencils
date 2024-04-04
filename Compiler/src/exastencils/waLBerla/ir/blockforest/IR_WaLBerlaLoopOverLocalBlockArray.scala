@@ -17,7 +17,7 @@ object IR_WaLBerlaLoopOverLocalBlockArray {
   def apply(body : IR_Statement, parallelization : IR_ParallelizationInfo) = new IR_WaLBerlaLoopOverLocalBlockArray(ListBuffer(body), parallelization)
 
   def defIt = IR_LoopOverFragments.defIt
-  def block = IR_WaLBerlaBlockForest().iterator
+  def block = IR_WaLBerlaBlock()
 }
 
 case class IR_WaLBerlaLoopOverLocalBlockArray(
@@ -31,7 +31,6 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
 
     // array of process-local blocks
     val blockArray = IR_WaLBerlaLocalBlocks()
-    val block = IR_WaLBerlaLoopOverLocalBlockArray.block
 
     val upperBoundKnown = Knowledge.waLBerla_useGridPartFromExa
     val upperBound : IR_Expression = if (upperBoundKnown)
@@ -41,9 +40,6 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
 
     /* assemble loop that facilitates access to wb data structures */
     var compiledBody = ListBuffer[IR_Statement]()
-
-    // init block pointer in loop
-    compiledBody += IR_VariableDeclaration(block, IR_ArrayAccess(blockArray, defIt))
 
     // check if there are block loop variables to be added (i.e. declared and set)
     IR_WaLBerlaFindBlockLoopVariables.applyStandalone(IR_Scope(body))
