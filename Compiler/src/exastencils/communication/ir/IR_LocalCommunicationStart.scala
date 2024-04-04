@@ -63,8 +63,6 @@ case class IR_LocalCommunicationStart(
     // set LocalCommReady to signal neighbors readiness for communication
     if (Knowledge.refinement_enabled) {
       // TODO: implement pull scheme
-      if (!Knowledge.comm_pushLocalData)
-        Logger.warn("Pull scheme is not available for communication with mesh refinement")
 
       output ++= setLocalCommReady(recvPackInfos)
     } else {
@@ -76,8 +74,6 @@ case class IR_LocalCommunicationStart(
 
     if (Knowledge.refinement_enabled) {
       // TODO: implement pull scheme
-      if (!Knowledge.comm_pushLocalData)
-        Logger.warn("Pull scheme is not available for communication with mesh refinement")
 
       // distribute this fragment's data
       output += wrapFragLoop(

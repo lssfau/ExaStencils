@@ -72,8 +72,6 @@ case class IR_LocalCommunicationFinish(
     // wait until all neighbors signal that they are finished
     if (Knowledge.refinement_enabled) {
       // TODO: implement pull scheme
-      if (!Knowledge.comm_pushLocalData)
-        Logger.warn("Pull scheme is not available for communication with mesh refinement")
 
       // default to push scheme
       output ++= waitForLocalComm(recvPackInfos)

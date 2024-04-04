@@ -901,13 +901,6 @@ object Knowledge {
     Constraints.condWarn("blockstructured" == grid_spacingModel && grid_isUniform, "grid_isUniform should be false for block-structured grids")
     Constraints.condWarn(grid_halveStagBoundaryVolumes && "uniform" == grid_spacingModel, "halving staggered volumes at the boundary is not supported for uniform grids")
 
-    // refinement
-    Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")
-    Constraints.condError(refinement_enabled && !refinement_availableC2FInterpOrders.contains(refinement_interpOrderC2F), s"C2F interpolation order $refinement_interpOrderC2F not supported yet.")
-    Constraints.condError(refinement_enabled && !grid_isAxisAligned, "Mesh refinement currently only supports aligned blocks.")
-    Constraints.condError(refinement_enabled && comm_enableCommTransformations, "Communication transformations are currently not supported with mesh refinement.")
-    Constraints.condWarn(refinement_enabled && comm_syncGhostData, "Flag 'comm_syncGhostData' is currently ignored for F2C and C2F communication.")
-
     // backwards compatibility for comm_strategyFragment
     Constraints.condWarn(comm_strategyFragment != 0, "comm_strategyFragment is deprecated and will be removed in the future")
     Constraints.condEnsureValue(comm_onlyAxisNeighbors, true, 6 == comm_strategyFragment, "comm_onlyAxisNeighbors must match comm_strategyFragment")
@@ -1063,8 +1056,15 @@ object Knowledge {
     Constraints.condEnsureValue(refinement_enabled, true, waLBerla_useRefinement, "Flag 'refinement_enabled' must be enabled when 'waLBerla_useRefinement' is true")
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
     Constraints.condError(waLBerla_useRefinement && waLBerla_useGridPartFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
-    Constraints.condError(waLBerla_useRefinement && cuda_enabled, "waLBerla refinement works only for CPU codes at the moment.")
     Constraints.condError(!waLBerla_cacheFieldPointers && experimental_cuda_useStreams, "CUDA streams can only be combined with waLBerla when 'waLBerla_cacheFieldPointers = true'.")
+
+    // refinement
+    Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")
+    Constraints.condError(refinement_enabled && !refinement_availableC2FInterpOrders.contains(refinement_interpOrderC2F), s"C2F interpolation order $refinement_interpOrderC2F not supported yet.")
+    Constraints.condError(refinement_enabled && !grid_isAxisAligned, "Mesh refinement currently only supports aligned blocks.")
+    Constraints.condError(refinement_enabled && comm_enableCommTransformations, "Communication transformations are currently not supported with mesh refinement.")
+    Constraints.condWarn(refinement_enabled && comm_syncGhostData, "Flag 'comm_syncGhostData' is currently ignored for F2C and C2F communication.")
+    Constraints.condWarn(refinement_enabled && !comm_pushLocalData, "Pull scheme is not available for communication with mesh refinement (c.f. 'comm_pushLocalData').")
 
     Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
     Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
