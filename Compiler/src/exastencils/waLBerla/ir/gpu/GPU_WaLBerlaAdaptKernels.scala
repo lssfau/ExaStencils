@@ -23,6 +23,8 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
   private var waLBerlaBufferPointersForKernel : mutable.HashMap[String, ListBuffer[GPU_WaLBerlaBufferDeviceData]] = mutable.HashMap()
 
+  private var waLBerlaReductionDataForKernel : mutable.HashMap[String, GPU_WaLBerlaReductionDeviceData] = mutable.HashMap()
+
   private var adaptedKernelCalls : mutable.HashSet[CUDA_FunctionCall] = mutable.HashSet()
   private var adaptedWrapperFunctions : mutable.HashSet[String] = mutable.HashSet()
 
@@ -31,7 +33,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
     IR_WaLBerlaBlock().resolveDatatype(), IR_WaLBerlaIBlock().resolveDatatype(), IR_WaLBerlaAABB.datatype
   )
 
-  object FindKernelCall extends QuietDefaultStrategy("Find CUDA kernel call in function") {
+  object FindKernelCall extends QuietDefaultStrategy("Find CUDA kernel call in wrapper function") {
     var kernelCall : Option[CUDA_FunctionCall] = None
 
     override def applyStandalone(node : Node) : Unit = {
@@ -46,9 +48,29 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
     })
   }
 
+  object FindReductionDataAccess extends QuietDefaultStrategy("Find CUDA reduction data accesses") {
+    var reductionDataAccess : Option[CUDA_ReductionDeviceDataLike] = None
+
+    override def applyStandalone(node : Node) : Unit = {
+      reductionDataAccess = None
+      super.applyStandalone(node)
+    }
+
+    this += Transformation("Find", {
+      case fc : CUDA_ReductionDeviceDataLike if reductionDataAccess.isEmpty =>
+        reductionDataAccess = Some(fc)
+        fc
+    })
+  }
+
   def isWrapperFunction(func : IR_Function) = {
     FindKernelCall.applyStandalone(func)
     FindKernelCall.kernelCall.isDefined && func.functionQualifiers == "extern \"C\""
+  }
+
+  def getReductionDataAccess(func : IR_Function) = {
+    FindReductionDataAccess.applyStandalone(func)
+    FindReductionDataAccess.reductionDataAccess
   }
 
   def applyFilterArg(args : ListBuffer[IR_FunctionArgument]) = args.collect {
@@ -81,6 +103,9 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
   def getFunctionArgForWaLBerlaBuffer(waLBerlaBuffer : GPU_WaLBerlaBufferDeviceData) =
     IR_FunctionArgument(waLBerlaBuffer.resolveName(), waLBerlaBuffer.baseDatatype)
+
+  def getFunctionArgForWaLBerlaReductionData(reductionData : CUDA_ReductionDeviceDataLike) =
+    IR_FunctionArgument(reductionData.resolveName(), IR_PointerDatatype(reductionData.targetDt))
 
   this += Transformation("Prepare wrapper function for new field/buffer args and apply filter", {
     case func : IR_Function if CUDA_KernelFunctions.get.functions.contains(func) && isWrapperFunction(func) =>
@@ -122,6 +147,30 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
       func
   })
 
+  this += Transformation("Prepare wrapper function for new reduction data args", {
+    case func : IR_Function if isWrapperFunction(func) && adaptedWrapperFunctions.contains(func.name) =>
+      val kernelCall = FindKernelCall.kernelCall.get
+
+      // add pointer arg for reduction buffer to wrapper
+      val reductionDataAccOpt = getReductionDataAccess(func)
+      if (reductionDataAccOpt.isDefined) {
+        adaptedKernelCalls += kernelCall
+        adaptedWrapperFunctions += func.name
+
+        // convert from 'regular' reduction data type to waLBerla counterpart
+        val reductionDataAcc = reductionDataAccOpt.get
+        val wbReductionDataAcc = GPU_WaLBerlaReductionDeviceData(reductionDataAcc.numPoints, reductionDataAcc.targetDt, reductionDataAcc.fragmentIdx)
+
+        // extend wrapper args
+        func.parameters += getFunctionArgForWaLBerlaReductionData(wbReductionDataAcc)
+
+        // save employed wb reduction data for further processing
+        waLBerlaReductionDataForKernel += (func.name -> wbReductionDataAcc)
+      }
+
+      func
+  })
+
   this += Transformation("Apply filter to wrapper kernel function call", {
     case funcCall : IR_FunctionCall if adaptedWrapperFunctions.contains(funcCall.name) =>
       val filtered = applyFilterExpr(funcCall.arguments)
@@ -132,10 +181,18 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
   })
 
   this += Transformation("Adapt call to kernel wrapper function for fields/buffers", {
-    case funcCall @ IR_FunctionCall(func, _) if waLBerlaFieldPointersForKernel.contains(func.name) && adaptedWrapperFunctions.contains(funcCall.name) =>
-      funcCall.arguments = Duplicate(funcCall.arguments) ++
-        waLBerlaFieldPointersForKernel(func.name) ++ // use wb field data pointers
-        waLBerlaBufferPointersForKernel(func.name)   // use wb comm buffer pointers
+    case funcCall @ IR_FunctionCall(func, _) if adaptedWrapperFunctions.contains(funcCall.name) =>
+      // use wb field data pointers
+      if (waLBerlaFieldPointersForKernel.contains(func.name))
+        funcCall.arguments = Duplicate(funcCall.arguments) ++ waLBerlaFieldPointersForKernel(func.name)
+
+      // use wb comm buffer pointers
+      if (waLBerlaBufferPointersForKernel.contains(func.name))
+        funcCall.arguments ++= waLBerlaBufferPointersForKernel(func.name)
+
+      // use wb reduction buffer pointers
+      if (waLBerlaReductionDataForKernel.contains(func.name))
+        funcCall.arguments += waLBerlaReductionDataForKernel(func.name)
 
       funcCall
   })

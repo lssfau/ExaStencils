@@ -181,7 +181,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       field
 
-    case buf : CUDA_ReductionDeviceData =>
+    case buf : CUDA_ReductionDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val totalSize : IR_Expression = buf.numPoints * buf.targetDt.getSizeArray.product
       if (Knowledge.data_genVariableFieldSizes) {
@@ -267,7 +267,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       buf
 
-    case buf : CUDA_ReductionDeviceData =>
+    case buf : CUDA_ReductionDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
