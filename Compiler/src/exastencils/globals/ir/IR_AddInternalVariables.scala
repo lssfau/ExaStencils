@@ -66,16 +66,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   }
 
   this += new Transformation("Collecting buffer sizes", {
-    case buf : CUDA_BufferDeviceData =>
-      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      val size = IR_SimplifyExpression.evalIntegral(buf.size)
-
-      deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
-
-      buf
-
-    // TODO: introduce wrapper trait and match
-    case buf : GPU_WaLBerlaBufferDeviceData =>
+    case buf : CUDA_BufferDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = IR_SimplifyExpression.evalIntegral(buf.size)
 
@@ -220,16 +211,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   })
 
   this += new Transformation("Updating temporary buffer allocations", {
-    case buf : CUDA_BufferDeviceData =>
-      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      val size = deviceBufferSizes(id)
-
-      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, buf.field.resolveBaseDatatype), IR_ParallelizationInfo(potentiallyParallel = true)))
-
-      buf
-
-    // TODO: introduce wrapper trait and match
-    case buf : GPU_WaLBerlaBufferDeviceData =>
+    case buf : CUDA_BufferDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = deviceBufferSizes(id)
 

@@ -140,6 +140,10 @@ case class CUDA_FieldDeviceData(var field : IR_FieldLike, var slot : IR_Expressi
   }
 }
 
+/// CUDA_BufferDeviceDataLike
+
+trait CUDA_BufferDeviceDataLike extends IR_IV_AbstractCommBufferLike
+
 /// CUDA_BufferDeviceData
 
 case class CUDA_BufferDeviceData(
@@ -149,7 +153,7 @@ case class CUDA_BufferDeviceData(
     var neighIdx : IR_Expression,
     var concurrencyId : Int,
     var indexOfRefinedNeighbor : Option[IR_Expression],
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer with CUDA_BufferDeviceDataLike {
 
   override def resolveName() = s"bufferDevice_${ direction }_${ concurrencyId }" +
     resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)

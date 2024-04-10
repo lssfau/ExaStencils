@@ -7,6 +7,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.parallelization.api.cuda.CUDA_BufferDeviceDataLike
 import exastencils.parallelization.api.cuda.CUDA_Free
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaAbstractCommBuffer
 
@@ -34,7 +35,7 @@ case class GPU_WaLBerlaBufferDeviceData(
     var neighIdx : IR_Expression,
     var concurrencyId : Int,
     var indexOfRefinedNeighbor : Option[IR_Expression],
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaAbstractCommBuffer with IR_IV_CommBufferLike {
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_WaLBerlaAbstractCommBuffer with IR_IV_CommBufferLike with CUDA_BufferDeviceDataLike {
 
   override def basePtr : IR_Expression = GPU_WaLBerlaBufferDeviceDataBasePtr(field, send, size, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx)
 
