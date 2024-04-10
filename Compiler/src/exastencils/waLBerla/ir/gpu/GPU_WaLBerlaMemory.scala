@@ -41,8 +41,7 @@ case class GPU_WaLBerlaBufferDeviceData(
 
   override def isPrivate : Boolean = true
 
-  override def name : String = s"wbBufferDevice_${ direction }_${ concurrencyId }" +
-    resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def name : String = s"wbBufferDevice_${ direction }_${ concurrencyId }"
 
   override def getDtor() : Option[IR_Statement] = {
     def access = this

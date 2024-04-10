@@ -9,14 +9,10 @@ import exastencils.fieldlike.ir.IR_ResolveFieldLikeAccess
 import exastencils.globals.ir.IR_AddInternalVariables
 import exastencils.grid.ir.IR_ResolveIntegrateOnGrid
 import exastencils.optimization.ir.IR_GeneralSimplifyUntilDoneWrapper
-import exastencils.parallelization.api.cuda.CUDA_FunctionConversionWrapper
-import exastencils.parallelization.api.cuda.CUDA_HandleFragmentLoops
-import exastencils.parallelization.api.cuda.CUDA_PrepareMPICode
+import exastencils.parallelization.api.cuda._
 import exastencils.scheduling._
-import exastencils.waLBerla.ir.blockforest.IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaResolveLoopOverBlocks
-import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaAdaptKernels
-import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaHandleGPUMemory
+import exastencils.waLBerla.ir.blockforest._
+import exastencils.waLBerla.ir.gpu._
 import exastencils.waLBerla.ir.replacements._
 import exastencils.waLBerla.ir.interfacing._
 

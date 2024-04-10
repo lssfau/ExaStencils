@@ -6,9 +6,9 @@ import exastencils.parallelization.api.cuda._
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.gpu._
 
-object GPU_WaLBerlaReplaceGPUIVs extends IR_WaLBerlaReplacementStrategy("Replace GPU flags with waLBerla counterparts") {
+object GPU_WaLBerlaReplaceGPUIVs extends IR_WaLBerlaReplacementStrategy("Replace GPU IVs with waLBerla counterparts") {
 
-  this += Transformation("Replace non-recursive", {
+  this += Transformation("Replace", {
     // flags
     case _ @ CUDA_HostDataUpdated(field, slot, fragmentIdx) if inWaLBerlaScope(collector) && IR_WaLBerlaFieldCollection.objects.contains(field)   =>
       GPU_WaLBerlaHostDataUpdated(field, slot, field.level, fragmentIdx)

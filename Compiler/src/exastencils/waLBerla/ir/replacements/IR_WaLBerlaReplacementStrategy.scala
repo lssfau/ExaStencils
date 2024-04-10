@@ -23,6 +23,7 @@ abstract class IR_WaLBerlaReplacementStrategy(name : String) extends DefaultStra
       super.applyStandalone(node)
     }
 
+    // TODO: introduce trait for identifying walberla data types
     this += Transformation("Find", {
       case fAcc : IR_FieldLikeAccessLike if IR_WaLBerlaFieldCollection.contains(fAcc) =>
         found = true
