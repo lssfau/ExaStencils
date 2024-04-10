@@ -13,8 +13,12 @@ object IR_WaLBerlaDeInitExaWrapperFunctions {
 
 // wrappers for exa de-init functions
 
-private case class IR_WaLBerlaDestroyExaBuffersWrapper() extends IR_WaLBerlaWrapperFunction {
-  override def name : String = "cleanupExaBuffers"
+object IR_WaLBerlaDestroyExaBuffersWrapper {
+  def fctName : String = "cleanupExaBuffers"
+}
+
+case class IR_WaLBerlaDestroyExaBuffersWrapper() extends IR_WaLBerlaWrapperFunction {
+  override def name : String = IR_WaLBerlaDestroyExaBuffersWrapper.fctName
 
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction =
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(),
