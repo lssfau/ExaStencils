@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir.IR_LoopOverNeighbors
 import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.cuda._
@@ -45,7 +46,7 @@ case class GPU_WaLBerlaBufferDeviceData(
   override def name : String = s"wbBufferDevice_${ direction }_${ concurrencyId }"
 
   override def getDtor() : Option[IR_Statement] = {
-    def access = this
+    def access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, field.index, field.level, IR_LoopOverNeighbors.defIt)
 
     Some(wrapInLoops(
       IR_IfCondition(access,

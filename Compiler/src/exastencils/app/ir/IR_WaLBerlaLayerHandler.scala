@@ -1,5 +1,6 @@
 package exastencils.app.ir
 
+import exastencils.base.ir.IR_ExpandWrapper
 import exastencils.baseExt.ir.IR_HACK_TypeAliases
 import exastencils.baseExt.ir.IR_ResolveLoopOverFragments
 import exastencils.communication.ir.IR_ResolveRemoteTransfer
@@ -93,6 +94,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection,
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
+      IR_ExpandWrapper,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
       IR_WaLBerlaReplaceCommIVs,
       IR_WaLBerlaReplaceFragmentLoops,

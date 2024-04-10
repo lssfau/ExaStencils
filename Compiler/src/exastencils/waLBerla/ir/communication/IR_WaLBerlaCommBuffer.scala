@@ -38,7 +38,8 @@ abstract class IR_WaLBerlaAbstractCommBuffer extends IR_WaLBerlaCommVariable wit
   override def resolveDefValue() = Some(0)
 
   override def getDtor() : Option[IR_Statement] = {
-    val ptrExpr = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
+    val ptrExpr = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, field.index, field.level, IR_LoopOverNeighbors.defIt)
+
     Some(wrapInLoops(
       IR_IfCondition(ptrExpr,
         ListBuffer[IR_Statement](

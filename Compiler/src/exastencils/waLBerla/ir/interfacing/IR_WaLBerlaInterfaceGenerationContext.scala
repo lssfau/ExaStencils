@@ -3,6 +3,7 @@ package exastencils.waLBerla.ir.interfacing
 import scala.collection.mutable.LinkedHashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ExaRootNode
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
@@ -13,7 +14,7 @@ import exastencils.waLBerla.ir.field._
 
 case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaLBerlaInterfaceMember]) {
 
-  val blockForest = IR_WaLBerlaBlockForest()
+  val blockForest : IR_WaLBerlaBlockForest = IR_WaLBerlaBlockForest()
 
   val uniqueWbFields = IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head).to[ListBuffer] // find unique wb fields
     .sortBy(_.name)
@@ -100,7 +101,7 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
   }
 
   // ctor #3: user provides pointer to existing blockforest (only generated if paramMap not only contains blockforest)
-  val blockForestIsOnlyCtorParam = ifaceParamMap.size == 1 && ifaceParamMap.head._2 == blockForest.ctorParameter
+  private val blockForestIsOnlyCtorParam = ifaceParamMap.size == 1 && ifaceParamMap.head._2 == blockForest.ctorParameter
   if (!blockForestIsOnlyCtorParam) { // prevent duplicate ctors
     // params
     var ctorParams = ListBuffer[IR_FunctionArgument]()
@@ -132,6 +133,17 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
   IR_WaLBerlaDeInitExaWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
 
   var ifaceDestructor : IR_Destructor = IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
+
+  // TODO: hacky - move to separate strategy
+  object AddDtorsToCleanupFunction extends QuietDefaultStrategy("Add waLBerla IV dtors to cleanup function") {
+    this += Transformation("..", {
+      case func : IR_Function if IR_WaLBerlaDestroyExaBuffersWrapper.fctName == func.name =>
+        func.body ++= memberDtorMap.values
+        func
+    })
+  }
+
+  AddDtorsToCleanupFunction.applyStandalone(ExaRootNode.ir_root)
 }
 
 object IR_WaLBerlaAddInterfaceMembers extends QuietDefaultStrategy("Add waLBerla iface members") {
