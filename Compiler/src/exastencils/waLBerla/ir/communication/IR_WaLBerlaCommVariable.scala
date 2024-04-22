@@ -32,15 +32,16 @@ abstract class IR_WaLBerlaCommVariable extends IR_WaLBerlaInterfaceMember(true, 
   else
     baseDatatype
 
+  def resolveAccessOverWrappedLoops(explicitIndexOfRefinedNeighbor : Int) : IR_Expression = {
+    val access = super.resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverNeighbors.defIt)
+
+    IR_ArrayAccess(access, explicitIndexOfRefinedNeighbor)
+  }
+
   override def getCtor() : Option[IR_Statement] = {
     if (Knowledge.refinement_enabled && resolveDefValue().isDefined) {
-      def resolveAccess(i : Int) : IR_Expression = {
-        val access = super.resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_NullExpression, IR_NullExpression, IR_LoopOverNeighbors.defIt)
 
-        IR_ArrayAccess(access, i)
-      }
-
-      Some(wrapInLoops(IR_Scope((0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i => IR_Assignment(resolveAccess(i), resolveDefValue().get)) : _*)))
+      Some(wrapInLoops(IR_Scope((0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i => IR_Assignment(resolveAccessOverWrappedLoops(i), resolveDefValue().get)) : _*)))
     } else {
       super.getCtor()
     }

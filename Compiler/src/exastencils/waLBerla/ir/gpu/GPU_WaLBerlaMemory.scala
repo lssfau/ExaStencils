@@ -7,6 +7,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_LoopOverNeighbors
 import exastencils.communication.ir.IR_IV_CommBufferLike
+import exastencils.config.Knowledge
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.parallelization.api.cuda._
 import exastencils.prettyprinting.PpStream
@@ -46,13 +47,22 @@ case class GPU_WaLBerlaBufferDeviceData(
   override def name : String = s"wbBufferDevice_${ direction }_${ concurrencyId }"
 
   override def getDtor() : Option[IR_Statement] = {
-    def access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, field.index, field.level, IR_LoopOverNeighbors.defIt)
+    if (Knowledge.refinement_enabled) {
+      Some(wrapInLoops(
+        IR_Scope((0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(i =>
+          IR_IfCondition(resolveAccessOverWrappedLoops(i),
+            ListBuffer[IR_Statement](
+              CUDA_Free(resolveAccessOverWrappedLoops(i)),
+              IR_Assignment(resolveAccessOverWrappedLoops(i), 0)))) : _*)))
+    } else {
+      def ptrExpr = super.resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, field.index, field.level, IR_LoopOverNeighbors.defIt)
 
-    Some(wrapInLoops(
-      IR_IfCondition(access,
-        ListBuffer[IR_Statement](
-          CUDA_Free(access),
-          IR_Assignment(access, 0)))))
+      Some(wrapInLoops(
+        IR_IfCondition(ptrExpr,
+          ListBuffer[IR_Statement](
+            CUDA_Free(ptrExpr),
+            IR_Assignment(ptrExpr, 0)))))
+    }
   }
 }
 
