@@ -76,13 +76,13 @@ case class CUDA_AllocateManaged(var pointer : IR_Expression, var numElements : I
 /// CUDA_Free
 
 case class CUDA_Free(var pointer : IR_Expression) extends CUDA_HostStatement with IR_Expandable {
-  override def expand() = IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaFree"), pointer))
+  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaFree"), pointer))
 }
 
 /// CUDA_FreeHost
 
 case class CUDA_FreeHost(var pointer : IR_Expression) extends CUDA_HostStatement with IR_Expandable {
-  override def expand() = IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("cudaFreeHost"), pointer))
+  override def expand() = CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaFreeHost"), pointer))
 }
 
 /// CUDA_Memcpy
