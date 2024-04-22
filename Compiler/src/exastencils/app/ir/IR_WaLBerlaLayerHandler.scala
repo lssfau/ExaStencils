@@ -62,6 +62,9 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
           GPU_WaLBerlaAdaptKernels,
           GPU_WaLBerlaHandleGPUMemory))
 
+      scheduler.prependToFirstFound(CUDA_HandleFragmentLoops,
+        GPU_ReplaceReductionIVs)
+
       scheduler.appendToFirstFound(CUDA_HandleFragmentLoops,
         GPU_WaLBerlaReplaceGPUIVs,
         IR_WaLBerlaReplaceFragmentLoops)
