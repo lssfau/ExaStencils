@@ -49,9 +49,9 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
 
   // flags signaling potential neighbors
-  def canHaveLocalNeighs = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_canHaveLocalNeighs
-  def canHaveRemoteNeighs = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_canHaveRemoteNeighs
-  def canHavePeriodicity = !Knowledge.waLBerla_useGridPartFromExa || Knowledge.domain_rect_hasPeriodicity
+  def canHaveLocalNeighs = !Knowledge.domain_isPartitioningKnown || Knowledge.domain_canHaveLocalNeighs
+  def canHaveRemoteNeighs = !Knowledge.domain_isPartitioningKnown || Knowledge.domain_canHaveRemoteNeighs
+  def canHavePeriodicity = !Knowledge.domain_isPartitioningKnown || Knowledge.domain_rect_hasPeriodicity
 
   // wb block info
   def wbNeighborIdx = IR_WaLBerlaLoopOverBlockNeighborhoodSection.defIt

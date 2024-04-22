@@ -80,10 +80,12 @@ object Knowledge {
 
   /// utility functions
 
+  // evaluates if domain partitioning is known to generator
+  def domain_isPartitioningKnown : Boolean = waLBerla_useGridPartFromExa
   // evaluates if fragments can have local (i.e. same block) neighbors, i.e. if local comm is required
-  def domain_canHaveLocalNeighs : Boolean = !waLBerla_useGridPartFromExa || refinement_enabled || domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity
+  def domain_canHaveLocalNeighs : Boolean = !domain_isPartitioningKnown || refinement_enabled || domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity
   // evaluates if fragments can have remote (i.e. different block) neighbors, i.e. if mpi comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (mpi_enabled && (refinement_enabled || !waLBerla_useGridPartFromExa)) || domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
+  def domain_canHaveRemoteNeighs : Boolean = (mpi_enabled && (refinement_enabled || !domain_isPartitioningKnown)) || domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
 
   /// specific flags for setting rectangular domains
 

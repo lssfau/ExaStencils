@@ -32,7 +32,7 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
     // array of process-local blocks
     val blockArray = IR_WaLBerlaLocalBlocks()
 
-    val upperBoundKnown = Knowledge.waLBerla_useGridPartFromExa
+    val upperBoundKnown = Knowledge.domain_isPartitioningKnown
     val upperBound : IR_Expression = if (upperBoundKnown)
       Knowledge.domain_numFragmentsPerBlock
     else

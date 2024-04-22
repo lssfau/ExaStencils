@@ -56,7 +56,7 @@ abstract class IR_WaLBerlaInterfaceMember(
   def numNeighbors : Int = DefaultNeighbors.neighbors.size
 
   def usesStdVectorForBlocks = canBePerBlock && hasMultipleBlocks && !numBlocksKnown
-  def numBlocksKnown : Boolean = Knowledge.waLBerla_useGridPartFromExa
+  def numBlocksKnown : Boolean = Knowledge.domain_isPartitioningKnown
   def hasMultipleBlocks : Boolean = if (numBlocksKnown) numFragments > 1 else true
   def hasMultipleLevels : Boolean = numLevels > 1
   def hasMultipleNeighbors : Boolean =  DefaultNeighbors.neighbors.size > 1
