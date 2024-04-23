@@ -245,9 +245,9 @@ trait CUDA_ReductionFragmentCopyLike extends IR_InternalVariableLike with IR_Exp
 
   def getAccess() = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
   def resolveDatatype() : IR_Datatype = baseDt match {
-    case _ @ IR_ArrayDatatype(mat : IR_MatrixDatatype, numElements) =>
-      IR_ArrayDatatype(IR_ArrayDatatype(mat.resolveBaseDatatype, mat.sizeN * mat.sizeM), numElements)
-    case dt : IR_Datatype                                            =>
+    case mat : IR_MatrixDatatype =>
+      IR_ArrayDatatype(mat.resolveBaseDatatype, mat.sizeN * mat.sizeM)
+    case dt : IR_Datatype        =>
       dt
   }
 }
