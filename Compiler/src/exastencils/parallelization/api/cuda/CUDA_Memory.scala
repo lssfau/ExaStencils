@@ -189,11 +189,12 @@ trait CUDA_MatrixDeviceCopyLike extends IR_InternalVariableLike with IR_Expressi
 
   override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(
     IR_IfCondition(getAccess(),
-      if (Knowledge.cuda_useManagedMemory)
-        IR_ArrayFree(getAccess())
-      else
-        CUDA_Free(getAccess()),
-      IR_Assignment(getAccess(), 0))))
+      ListBuffer[IR_Statement](
+        if (Knowledge.cuda_useManagedMemory)
+          IR_ArrayFree(getAccess())
+        else
+          CUDA_Free(getAccess()),
+        IR_Assignment(getAccess(), 0)))))
 }
 
 /// CUDA_MatrixDeviceCopy
@@ -223,8 +224,9 @@ trait CUDA_ReductionResultBufferLike extends IR_InternalVariableLike with IR_Exp
   override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(IR_ArrayAllocation(getAccess(), baseDt, size)))
   override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(
     IR_IfCondition(getAccess(),
-      IR_ArrayFree(getAccess()),
-      IR_Assignment(getAccess(), 0))))
+      ListBuffer[IR_Statement](
+        IR_ArrayFree(getAccess()),
+        IR_Assignment(getAccess(), 0)))))
 }
 
 /// CUDA_ReductionResultBuffer
@@ -297,7 +299,7 @@ object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-a
     case alloc @ IR_ArrayAllocation(pointer : IR_IV_AbstractFieldLikeData, _, _) =>
       fieldHostAllocations += pointer.field
       alloc
-    case alloc @ IR_ArrayAllocation(pointer : IR_IV_CommBufferLike, _, _)            =>
+    case alloc @ IR_ArrayAllocation(pointer : IR_IV_CommBufferLike, _, _)        =>
       bufferHostAllocations += pointer.field
       alloc
   })
