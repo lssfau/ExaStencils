@@ -3,11 +3,10 @@ package exastencils.waLBerla.ir.interfacing
 import scala.collection.mutable.LinkedHashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ExaRootNode
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
-import exastencils.datastructures.QuietDefaultStrategy
+import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field._
@@ -49,12 +48,23 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
   publicMemberDeclarationMap ++= IR_WaLBerlaCollection.get.variables.map(decl => decl.name -> decl)
 
   // call init functions responsible for setting up exa data structures
-  val initFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaInitExaWrapperFunctions.functions)
+  val initExaFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaInitExaWrapperFunctions.functions)
+    .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))
+
+  val deInitExaFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaDeInitExaWrapperFunctions.functions)
     .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))
 
   // call init functions responsible for setting up coupling
   val couplingFunctions : ListBuffer[IR_PlainInternalFunctionReference] = Duplicate(IR_WaLBerlaInitCouplingWrapperFunctions.functions)
     .map(f => IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype))
+
+  def initIVs(funcName : String, funcBody : Iterable[IR_Statement]) : IR_Statement = {
+    val setupIVs = IR_WaLBerlaInitInterfaceVariables(funcName,
+      funcBody.to[ListBuffer])
+    IR_WaLBerlaCollection.get.functions += setupIVs
+
+    IR_FunctionCall(setupIVs.name)
+  }
 
   var ifaceConstructors : ListBuffer[IR_Constructor] = ListBuffer()
 
@@ -64,10 +74,10 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
     // exa data initialization in ctor body
-    initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+    initExaFunctions foreach (f => ctorBody += IR_FunctionCall(f))
 
-    // call ctors of collected members
-    ctorBody ++= memberCtorMap.values
+    // call ctors of collected interface members
+    ctorBody += initIVs("setupInterfaceVariables", memberCtorMap.values)
 
     // exa & waLBerla data structures initialized -> setup coupling
     couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
@@ -89,10 +99,11 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
     // initialization in ctor body
-    initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+    initExaFunctions foreach (f => ctorBody += IR_FunctionCall(f))
 
     // call ctors of collected members (except those in iface ctor initializer list)
-    ctorBody ++= memberCtorMap.filter { case (name, _) => !ifaceParamMap.keys.exists(_ == name) }.values
+    ctorBody += initIVs("setupInterfaceVariablesWithoutCtorParameters",
+      memberCtorMap.filter { case (name, _) => !ifaceParamMap.keys.exists(_ == name) }.values)
 
     // exa & waLBerla data structures initialized -> setup coupling
     couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
@@ -115,10 +126,11 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     val ctorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
     // initialization in ctor body
-    initFunctions foreach (f => ctorBody += IR_FunctionCall(f))
+    initExaFunctions foreach (f => ctorBody += IR_FunctionCall(f))
 
     // call ctors of collected members (except the one for the blockforest)
-    ctorBody ++= memberCtorMap.filter { case (name, _) => name != blockForest.resolveName() }.values
+    ctorBody += initIVs("setupInterfaceVariablesWithoutBlockforest",
+      memberCtorMap.filter { case (name, _) => name != blockForest.resolveName() }.values)
 
     // exa & waLBerla data structures initialized -> setup coupling
     couplingFunctions foreach (f => ctorBody += IR_FunctionCall(f))
@@ -126,35 +138,31 @@ case class IR_WaLBerlaInterfaceGenerationContext(var members : ListBuffer[IR_WaL
     ifaceConstructors += IR_Constructor(IR_WaLBerlaInterface.interfaceName, ctorParams, ctorInitializerList, ctorBody)
   }
 
-  // dtor body
+  // dtor
   val dtorBody : ListBuffer[IR_Statement] = ListBuffer(IR_NullStatement)
 
-  IR_WaLBerlaDeInitWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
-  IR_WaLBerlaDeInitExaWrapperFunctions.functions foreach (f => dtorBody += IR_FunctionCall(IR_PlainInternalFunctionReference(f.name, IR_UnitDatatype)))
+  {
+    deInitExaFunctions foreach (f => dtorBody += IR_FunctionCall(f))
 
-  var ifaceDestructor : IR_Destructor = IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
-
-  // TODO: hacky - move to separate strategy
-  object AddDtorsToCleanupFunction extends QuietDefaultStrategy("Add waLBerla IV dtors to cleanup function") {
-    this += Transformation("..", {
-      case func : IR_Function if IR_WaLBerlaDestroyExaBuffersWrapper.fctName == func.name =>
-        func.body ++= memberDtorMap.values
-        func
-    })
+    // add IV dtors to interface function and simply call in body
+    val cleanupIVs = IR_WaLBerlaDeInitInterfaceVariables(memberDtorMap.values.to[ListBuffer])
+    IR_WaLBerlaCollection.get.functions += cleanupIVs
+    dtorBody += IR_FunctionCall(cleanupIVs.name)
   }
 
-  AddDtorsToCleanupFunction.applyStandalone(ExaRootNode.ir_root)
+  var ifaceDestructor : IR_Destructor = IR_Destructor(IR_WaLBerlaInterface.interfaceName, dtorBody)
 }
 
-object IR_WaLBerlaAddInterfaceMembers extends QuietDefaultStrategy("Add waLBerla iface members") {
+object IR_WaLBerlaAddInterfaceMembers extends DefaultStrategy("Add waLBerla iface members") {
   var collectedMembers = ListBuffer[IR_WaLBerlaInterfaceMember]()
-  this += Transformation("..", {
+
+  this += Transformation("Collect IV members", {
     case iv : IR_WaLBerlaInterfaceMember =>
       collectedMembers += iv
       iv
   })
 
-  this += Transformation("..", {
+  this += Transformation("Create interface context", {
     case wbColl : IR_WaLBerlaCollection =>
       wbColl.interfaceContext = Some(IR_WaLBerlaInterfaceGenerationContext(collectedMembers.sorted))
       wbColl

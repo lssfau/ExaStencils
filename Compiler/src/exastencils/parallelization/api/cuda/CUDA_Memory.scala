@@ -230,7 +230,7 @@ case class CUDA_ReductionResultBuffer(
     var baseDt : IR_Datatype,
     var size : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
-) extends IR_InternalVariable(true, false, false, false, false) with CUDA_ReductionResultBufferLike{
+) extends IR_InternalVariable(true, false, false, false, false) with CUDA_ReductionResultBufferLike {
 
   def resolveName() : String = name
   override def prettyprint(out : PpStream) : Unit = out << getAccess()

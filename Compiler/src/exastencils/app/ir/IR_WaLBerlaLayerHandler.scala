@@ -101,7 +101,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
       IR_WaLBerlaReplaceCommIVs,
       IR_WaLBerlaReplaceFragmentLoops,
-      ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs),
+      ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,
       IR_GeneralSimplifyUntilDoneWrapper) // one last time after block loops are expanded and replacements are done
