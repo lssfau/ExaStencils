@@ -187,11 +187,13 @@ trait CUDA_MatrixDeviceCopyLike extends IR_InternalVariableLike with IR_Expressi
     else
       CUDA_Allocate(getAccess(), size, baseDt)))
 
-  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(getAccess(),
-    if (Knowledge.cuda_useManagedMemory)
-      IR_ArrayFree(getAccess())
-    else
-      CUDA_Free(getAccess()))))
+  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(
+    IR_IfCondition(getAccess(),
+      if (Knowledge.cuda_useManagedMemory)
+        IR_ArrayFree(getAccess())
+      else
+        CUDA_Free(getAccess()),
+      IR_Assignment(getAccess(), 0))))
 }
 
 /// CUDA_MatrixDeviceCopy
@@ -219,7 +221,10 @@ trait CUDA_ReductionResultBufferLike extends IR_InternalVariableLike with IR_Exp
   def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
 
   override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(IR_ArrayAllocation(getAccess(), baseDt, size)))
-  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(IR_IfCondition(getAccess(), IR_ArrayFree(getAccess()))))
+  override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(
+    IR_IfCondition(getAccess(),
+      IR_ArrayFree(getAccess()),
+      IR_Assignment(getAccess(), 0))))
 }
 
 /// CUDA_ReductionResultBuffer
