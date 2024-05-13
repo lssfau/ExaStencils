@@ -6,8 +6,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.ir._
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.parallelization.api.cuda.CUDA_DeviceBufferDataUpdated
-import exastencils.parallelization.api.cuda.CUDA_HostBufferDataUpdated
+import exastencils.parallelization.api.cuda._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
@@ -37,6 +36,12 @@ object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("R
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
       dirtyFlag
     case dirtyFlag : CUDA_DeviceBufferDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField] =>
+      fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
+      dirtyFlag
+    case dirtyFlag : CUDA_HostDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField]   =>
+      fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
+      dirtyFlag
+    case dirtyFlag : CUDA_DeviceDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField] =>
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
       dirtyFlag
   })
