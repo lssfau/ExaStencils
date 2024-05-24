@@ -4,6 +4,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.core.Duplicate
@@ -104,20 +105,20 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_Executi
       val fieldData = access._2
       if (syncBeforeHost(access._1, fieldAccesses.keys)) {
         val dirtyFlag = CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
-        beforeHost += IR_IfCondition(dirtyFlag,
+        beforeHost += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id,
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "D2H"),
-            IR_Assignment(dirtyFlag, IR_BooleanConstant(false))))
+            IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
       }
     }
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
       if (syncBeforeHost(access._1, bufferAccesses.keys)) {
         val dirtyFlag = CUDA_DeviceBufferDataUpdated(buffer.field, buffer.send, Duplicate(buffer.neighIdx))
-        beforeHost += IR_IfCondition(dirtyFlag,
+        beforeHost += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id,
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "D2H"),
-            IR_Assignment(dirtyFlag, IR_BooleanConstant(false))))
+            IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
       }
     }
 
@@ -132,20 +133,20 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_Executi
       val fieldData = access._2
       if (syncBeforeDevice(access._1, fieldAccesses.keys)) {
         val dirtyFlag = CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
-        beforeDevice += IR_IfCondition(dirtyFlag,
+        beforeDevice += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id,
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "H2D"),
-            IR_Assignment(dirtyFlag, IR_BooleanConstant(false))))
+            IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
       }
     }
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
       if (syncBeforeDevice(access._1, bufferAccesses.keys)) {
         val dirtyFlag = CUDA_HostBufferDataUpdated(buffer.field, buffer.send, Duplicate(buffer.neighIdx))
-        beforeDevice += IR_IfCondition(dirtyFlag,
+        beforeDevice += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id,
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "H2D"),
-            IR_Assignment(dirtyFlag, IR_BooleanConstant(false))))
+            IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
       }
     }
 

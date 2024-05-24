@@ -36,6 +36,7 @@ import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 
 /// CUDA_PrepareHostCode
 
@@ -89,11 +90,35 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
     beforeHost ++= syncEventsBeforeHost(executionStream)
 
+    // update flags for written fields/buffers
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
+      if (syncAfterHost(access._1, fieldAccesses.keys))
+        afterHost += IR_Assignment(CUDA_HostDataUpdated(access._2.field, Duplicate(access._2.slot)),
+          CUDA_DirtyFlagCase.INTERMEDIATE.id)
+    }
+    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
+      if (syncAfterHost(access._1, bufferAccesses.keys))
+        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(access._2.field, access._2.send, Duplicate(access._2.neighIdx)),
+          CUDA_DirtyFlagCase.INTERMEDIATE.id)
+    }
+
     // device sync stmts
 
     if (isParallel) {
       if (!Knowledge.experimental_cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
+
+      // update flags for written fields/buffers
+      for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
+        if (syncAfterDevice(access._1, fieldAccesses.keys))
+          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(access._2.field, Duplicate(access._2.slot), access._2.fragmentIdx),
+            CUDA_DirtyFlagCase.INTERMEDIATE.id)
+      }
+      for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
+        if (syncAfterDevice(access._1, bufferAccesses.keys))
+          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(access._2.field, access._2.send, Duplicate(access._2.neighIdx), access._2.fragmentIdx),
+            CUDA_DirtyFlagCase.INTERMEDIATE.id)
+      }
     }
 
     beforeDevice ++= syncEventsBeforeDevice(executionStream)
