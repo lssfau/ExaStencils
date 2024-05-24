@@ -132,18 +132,26 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_Executi
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
       if (syncBeforeDevice(access._1, fieldAccesses.keys)) {
-        val dirtyFlag = CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
-        beforeDevice += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id,
+        val field = fieldData.field
+        val fragIdx = fieldData.fragmentIdx
+        val domainIdx = field.domain.index
+        val dirtyFlag = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
+        val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
+        beforeDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id),
           ListBuffer[IR_Statement](
-            CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "H2D"),
+            CUDA_WaitEvent(CUDA_PendingStreamTransfers(field, Duplicate(fieldData.fragmentIdx)), stream, "H2D"),
             IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
       }
     }
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
       if (syncBeforeDevice(access._1, bufferAccesses.keys)) {
+        val field = buffer.field
+        val fragIdx = buffer.fragmentIdx
+        val domainIdx = field.domain.index
         val dirtyFlag = CUDA_HostBufferDataUpdated(buffer.field, buffer.send, Duplicate(buffer.neighIdx))
-        beforeDevice += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id,
+        val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
+        beforeDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id),
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "H2D"),
             IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
