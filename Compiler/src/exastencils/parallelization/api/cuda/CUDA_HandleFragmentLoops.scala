@@ -252,7 +252,7 @@ case class CUDA_HandleFragmentLoops(
 
       // update flags for written buffers
       if (syncAfterHost(access._1, bufferAccesses.keys)) {
-        val dirtyFlag = CUDA_HostBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
+        val dirtyFlag = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
         val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
         afterHost += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
           IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
@@ -294,7 +294,7 @@ case class CUDA_HandleFragmentLoops(
 
         // update flags for written fields
         if (syncAfterDevice(access._1, bufferAccesses.keys)) {
-          val dirtyFlag = CUDA_DeviceBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
+          val dirtyFlag = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
           val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
           afterDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
             IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))

@@ -95,7 +95,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     }
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       if (syncAfterHost(access._1, bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(access._2.field, access._2.send, Duplicate(access._2.neighIdx)),
+        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(access._2.field, access._2.direction, Duplicate(access._2.neighIdx)),
           CUDA_DirtyFlagCase.INTERMEDIATE.id)
     }
 
@@ -113,7 +113,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       }
       for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
         if (syncAfterDevice(access._1, bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(access._2.field, access._2.send, Duplicate(access._2.neighIdx), access._2.fragmentIdx),
+          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(access._2.field, access._2.direction, Duplicate(access._2.neighIdx), access._2.fragmentIdx),
             CUDA_DirtyFlagCase.INTERMEDIATE.id)
       }
     }
