@@ -23,9 +23,21 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.ir._
 import exastencils.config._
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.fieldlike.ir.IR_IV_FieldLikeFlag
 import exastencils.prettyprinting._
+
+/// CUDA_DirtyFlagHelper
+
+object CUDA_DirtyFlagHelper {
+  def fragmentIdxIsValid(fragIdx : IR_Expression, domainIdx : IR_Expression) = {
+    if (fragIdx != IR_LoopOverFragments.defIt)
+      fragIdx >= 0 AndAnd fragIdx < Knowledge.domain_numFragmentsPerBlock AndAnd IR_IV_IsValidForDomain(domainIdx, fragIdx)
+    else
+      IR_IV_IsValidForDomain(domainIdx, fragIdx)
+  }
+}
 
 /// CUDA_DirtyFlagCase
 

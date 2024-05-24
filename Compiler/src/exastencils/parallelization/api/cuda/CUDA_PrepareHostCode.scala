@@ -90,7 +90,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
     beforeHost ++= syncEventsBeforeHost(executionStream)
 
-    // update flags for written fields/buffers
+    // update flags for written fields/buffers (check for valid fragment already implicitly done in surrounding loop)
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       if (syncAfterHost(access._1, fieldAccesses.keys))
         afterHost += IR_Assignment(CUDA_HostDataUpdated(access._2.field, Duplicate(access._2.slot)),
@@ -108,7 +108,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       if (!Knowledge.experimental_cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
 
-      // update flags for written fields/buffers
+      // update flags for written fields/buffers (check for valid fragment already implicitly done in surrounding loop)
       for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
         if (syncAfterDevice(access._1, fieldAccesses.keys))
           afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(access._2.field, Duplicate(access._2.slot), access._2.fragmentIdx),
