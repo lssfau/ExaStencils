@@ -26,6 +26,18 @@ import exastencils.config._
 import exastencils.field.ir._
 import exastencils.prettyprinting._
 
+/// CUDA_DirtyFlagCase
+
+object CUDA_DirtyFlagCase extends Enumeration {
+  type Access = Value
+  final val ANNOT : String = "DirtyFlagCase"
+
+  // CLEAR       : field/buffer was not updated -> no transfer needed
+  // INTERMEDIATE: field/buffer was updated     -> possibly need to wait for event before setting to DIRTY
+  // DIRTY       : field/buffer was updated     -> transfer needed if execution hardware changes
+  final val CLEAR, INTERMEDIATE, DIRTY = Value
+}
+
 /// CUDA_HostDataUpdated
 
 // TODO: move to communication package?
@@ -35,7 +47,14 @@ case class CUDA_HostDataUpdated(override var field : IR_Field, override var slot
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def resolveName() = s"hostDataUpdated" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, field.level.toString, "")
-  override def resolveDefValue() = Some(true)
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.DIRTY.id)
+
+  override def resolveDatatype() = {
+    if (field.numSlots > 1)
+      IR_ArrayDatatype(IR_IntegerDatatype, field.numSlots)
+    else
+      IR_IntegerDatatype
+  }
 }
 
 /// CUDA_DeviceDataUpdated
@@ -47,7 +66,14 @@ case class CUDA_DeviceDataUpdated(override var field : IR_Field, override var sl
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def resolveName() = s"deviceDataUpdated" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, field.level.toString, "")
-  override def resolveDefValue() = Some(false)
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.CLEAR.id)
+
+  override def resolveDatatype() = {
+    if (field.numSlots > 1)
+      IR_ArrayDatatype(IR_IntegerDatatype, field.numSlots)
+    else
+      IR_IntegerDatatype
+  }
 }
 
 /// CUDA_HostBufferDataUpdated
@@ -57,8 +83,8 @@ case class CUDA_HostBufferDataUpdated(var field : IR_Field, var direction : Stri
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName() = s"hostBufferDataUpdated_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
-  override def resolveDatatype() = IR_BooleanDatatype
-  override def resolveDefValue() = Some(false)
+  override def resolveDatatype() = IR_IntegerDatatype
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.CLEAR.id)
 }
 
 /// CUDA_DeviceBufferDataUpdated
@@ -68,8 +94,8 @@ case class CUDA_DeviceBufferDataUpdated(var field : IR_Field, var direction : St
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName() = s"deviceBufferDataUpdated_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
-  override def resolveDatatype() = IR_BooleanDatatype
-  override def resolveDefValue() = Some(false)
+  override def resolveDatatype() = IR_IntegerDatatype
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.CLEAR.id)
 }
 
 /// CUDA_ExecutionMode

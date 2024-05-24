@@ -228,8 +228,11 @@ case class CUDA_HandleFragmentLoops(
         beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
-      if (syncAfterHost(access._1, fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(true))
+      if (syncAfterHost(access._1, fieldAccesses.keys)) {
+        val dirtyFlag = CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
+        afterHost += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id,
+          IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
+      }
     }
 
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
@@ -241,8 +244,11 @@ case class CUDA_HandleFragmentLoops(
         beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written buffers
-      if (syncAfterHost(access._1, bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
+      if (syncAfterHost(access._1, bufferAccesses.keys)) {
+        val dirtyFlag = CUDA_HostBufferDataUpdated(buffer.field, buffer.send, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx))
+        afterHost += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id,
+          IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
+      }
     }
 
     // - device sync stmts -
@@ -257,8 +263,11 @@ case class CUDA_HandleFragmentLoops(
           beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
-        if (syncAfterDevice(access._1, fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(true))
+        if (syncAfterDevice(access._1, fieldAccesses.keys)) {
+          val dirtyFlag = CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
+          afterDevice += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id,
+            IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
+        }
       }
       for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
         val buffer = access._2
@@ -269,8 +278,11 @@ case class CUDA_HandleFragmentLoops(
           beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
-        if (syncAfterDevice(access._1, bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
+        if (syncAfterDevice(access._1, bufferAccesses.keys)) {
+          val dirtyFlag = CUDA_DeviceBufferDataUpdated(buffer.field, buffer.send, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx))
+          afterDevice += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id,
+            IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
+        }
       }
     }
 
