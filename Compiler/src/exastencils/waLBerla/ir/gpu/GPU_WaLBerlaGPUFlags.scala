@@ -5,6 +5,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.parallelization.api.cuda.CUDA_DirtyFlagCase
 import exastencils.prettyprinting.PpStream
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaCommVariable
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
@@ -27,10 +28,8 @@ abstract class GPU_WaLBerlaGPUFlags extends IR_WaLBerlaInterfaceMember(true, tru
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, level, IR_NullExpression)
 
-  override def resolveDefValue() = Some(false)
-
   override def resolveDatatype() : IR_Datatype = {
-    var dt : IR_Datatype = IR_BooleanDatatype
+    var dt : IR_Datatype = IR_IntegerDatatype
 
     if (field.numSlots > 1)
       dt = IR_StdArrayDatatype(dt, field.numSlots)
@@ -60,6 +59,7 @@ abstract class GPU_WaLBerlaGPUFlags extends IR_WaLBerlaInterfaceMember(true, tru
 case class GPU_WaLBerlaHostDataUpdated(var field : IR_FieldLike, var slot : IR_Expression, var level : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends GPU_WaLBerlaGPUFlags {
 
   override def name : String = s"wbHostDataUpdated_${field.name}"
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.DIRTY.id)
 }
 
 /// GPU_WaLBerlaDeviceDataUpdated
@@ -67,6 +67,7 @@ case class GPU_WaLBerlaHostDataUpdated(var field : IR_FieldLike, var slot : IR_E
 case class GPU_WaLBerlaDeviceDataUpdated(var field : IR_FieldLike, var slot : IR_Expression, var level : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends GPU_WaLBerlaGPUFlags {
 
   override def name : String = s"wbDeviceDataUpdated_${field.name}"
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.CLEAR.id)
 }
 
 /// GPU_WaLBerlaHostBufferDataUpdated
@@ -80,9 +81,9 @@ case class GPU_WaLBerlaHostBufferDataUpdated(
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveDefValue() = Some(false)
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.DIRTY.id)
 
-  override def baseDatatype : IR_Datatype = IR_BooleanDatatype
+  override def baseDatatype : IR_Datatype = IR_IntegerDatatype
 
   override def name : String = s"wbHostBufferDataUpdated_${field.name}_$direction"
 }
@@ -98,9 +99,9 @@ case class GPU_WaLBerlaDeviceBufferDataUpdated(
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveDefValue() = Some(false)
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.CLEAR.id)
 
-  override def baseDatatype : IR_Datatype = IR_BooleanDatatype
+  override def baseDatatype : IR_Datatype = IR_IntegerDatatype
 
   override def name : String = s"wbDeviceBufferDataUpdated_${field.name}_$direction"
 }
