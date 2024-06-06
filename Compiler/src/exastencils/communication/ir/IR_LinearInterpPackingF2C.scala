@@ -106,24 +106,30 @@ case class IR_LinearInterpPackingF2CRemote(
 
     var ret = ListBuffer[IR_Statement]()
 
+    def it = IR_IV_CommBufferIterator(field, send, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
+
     def commBuffer = IR_IV_CommBuffer(field, send, indices.getTotalSize, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
 
-    def tmpBufAccess(offset : IR_Expression) = IR_TempBufferAccess(commBuffer,
-      IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _) + IR_ExpressionIndex(offset),
-      IR_ExpressionIndex(indices.end, indices.begin, _ - _))
+    val tmpBufAccess = IR_TempBufferAccess(commBuffer,
+      IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
 
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
 
+    // init temp buf idx counter
+    ret += IR_Assignment(it, 0)
+
     if (send) {
-      innerStmts += IR_Assignment(tmpBufAccess(0), generateInterpExpr(field, defIt, slot, packInfo))
+      innerStmts += IR_Assignment(tmpBufAccess, generateInterpExpr(field, defIt, slot, packInfo))
+      innerStmts += IR_PreIncrement(it)
     } else {
       // interp/extrap values from coarse neighbor are written in order
       // of the upwind orthogonal dirs (in regards to comm dir) and their cross sums
 
       // read from buffer into field in order of cross sum of orthogonal upwind dirs
-      for ((offset, i) <- getCrossSumOfUpwindOrthogonals(commDir).distinct.zipWithIndex) {
+      for (offset <- getCrossSumOfUpwindOrthogonals(commDir).distinct) {
         innerStmts += IR_Assignment(
-          IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)), tmpBufAccess(i))
+          IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)), tmpBufAccess)
+        innerStmts += IR_PreIncrement(it)
       }
     }
 
@@ -133,7 +139,6 @@ case class IR_LinearInterpPackingF2CRemote(
     val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, stride, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
-    loop.parallelization.noVect = !send // different indexing of field iterator and tmp buffer for recv
     ret += loop
 
     ret

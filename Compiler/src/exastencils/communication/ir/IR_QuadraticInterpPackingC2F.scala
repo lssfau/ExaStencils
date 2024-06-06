@@ -424,13 +424,17 @@ case class IR_QuadraticInterpPackingC2FRemote(
 
     var ret = ListBuffer[IR_Statement]()
 
+    def it = IR_IV_CommBufferIterator(field, send, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
+
     def commBuffer = IR_IV_CommBuffer(field, send, indices.getTotalSize, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
 
-    def tmpBufAccess(offset : IR_Expression) = IR_TempBufferAccess(commBuffer,
-      IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _) + IR_ExpressionIndex(offset),
-      IR_ExpressionIndex(indices.end, indices.begin, _ - _))
+    val tmpBufAccess = IR_TempBufferAccess(commBuffer,
+      IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
 
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
+
+    // init temp buf idx counter
+    ret += IR_Assignment(it, 0)
 
     if (send) {
       // store final interp results for fine ghost neighbor cells (2 in 2D, 4 in 3D)
@@ -445,18 +449,19 @@ case class IR_QuadraticInterpPackingC2FRemote(
       innerStmts ++= QuadraticInterpPackingC2FHelper.generateInterpStmts(interpResults, field, slot, packInfo)
 
       // write result variables to buffer
-      for ((res, i) <- interpResults.zipWithIndex) {
-        innerStmts += IR_Assignment(tmpBufAccess(i), res)
+      for (res <- interpResults) {
+        innerStmts += IR_Assignment(tmpBufAccess, res)
+        innerStmts += IR_PreIncrement(it)
       }
     } else {
       // interp values from fine neighbor already aligned in correct order
-      innerStmts += IR_Assignment(IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt), tmpBufAccess(0))
+      innerStmts += IR_Assignment(IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt), tmpBufAccess)
+      innerStmts += IR_PreIncrement(it)
     }
 
     val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
-    loop.parallelization.noVect = send // different indexing of field iterator and tmp buffer for send
     ret += loop
 
     ret
