@@ -148,7 +148,11 @@ Function doSolve@finest {
 
 Function mgCycle@(all but coarsest) {
   // smoother
+  startTimer@finest("mg")
   repeat 3 times {
+        @finest {
+        startTimer("smoother") // Ziel: startTimer@current("smoother")
+        }
     repeat with {
       ( 0 == ( ( i0 + i1 ) % 2 ) ),
       ( 1 == ( ( i0 + i1 ) % 2 ) ),
@@ -163,7 +167,11 @@ Function mgCycle@(all but coarsest) {
       apply bc to u
       apply bc to v
     }
+        @finest {
+        stopTimer("smoother")
+        }
   }
+
 
   // update residual
   communicate u
@@ -233,6 +241,7 @@ Function mgCycle@(all but coarsest) {
       apply bc to v
     }
   }
+  stopTimer@finest("mg")
 }
 
 Function mgCycle@coarsest {
@@ -407,5 +416,6 @@ Function Application {
 
     // de-init
     printAllTimers ( )
+    print (getTotalTime("smoother"))
     destroyGlobals ( )
 }

@@ -6,7 +6,7 @@ maxLevel                       = 8
 discr_type                     = "FiniteDifferences"
 
 // omp parallelization on exactly one fragment in one block
-import '../../../Examples/lib/domain_onePatch.knowledge'
-import '../../../Examples/lib/parallelization_pureOmp.knowledge'
+import '../../../Examples/lib/domain_fourPatches.knowledge'
+import '../../../Examples/lib/parallelization_fourMPI.knowledge'
 
 testing_enabled = true

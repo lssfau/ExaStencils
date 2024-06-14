@@ -36,6 +36,7 @@ object IR_TimerFunction {
 // TODO: leveled timer functions?
 trait IR_TimerFunction extends IR_FutureFunction
 
+
 /// IR_TimerFunctions
 
 object IR_TimerFunctions extends ObjectWithState {
