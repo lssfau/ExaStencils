@@ -19,6 +19,7 @@
 package exastencils.timing.ir
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.logger.Logger
 
@@ -34,13 +35,24 @@ object IR_IV_Timer {
   })
 }
 
-trait IR_TimingIV extends IR_UnduplicatedVariable with IR_Access {
+object IR_IV_LeveledTimer {
+  def apply(name : IR_Expression, level : Int) = new IR_IV_LeveledTimer(name match {
+    case IR_StringConstant(value) => value
+    case IR_StringLiteral(value)  => value
+    case otherExpression          =>
+      Logger.warn("Timer name is not constant: " + otherExpression)
+      otherExpression.prettyprint()
+  }, level)
+}
+
+trait IR_TimingIV extends IR_Access {
   def name : String
+  def stripName : String = name.replaceAll("[^a-zA-Z0-9]", "_")
+}
 
-  override def resolveName() = s"timer_" + stripName
-  override def resolveDatatype() = IR_SpecialDatatype("StopWatch")
-
-  def stripName = name.replaceAll("[^a-zA-Z0-9]", "_")
+trait IR_NoLevelTimingIV extends IR_UnduplicatedVariable with IR_TimingIV {
+  override def resolveName() = s"timer_${stripName}"
+  override def resolveDatatype() : IR_SpecialDatatype = IR_SpecialDatatype("StopWatch")
 
   override def getCtor() : Option[IR_Statement] = {
     Some(IR_Assignment(
@@ -49,4 +61,20 @@ trait IR_TimingIV extends IR_UnduplicatedVariable with IR_Access {
   }
 }
 
-case class IR_IV_Timer(var name : String) extends IR_TimingIV
+trait IR_LeveledTimingIV extends IR_InternalVariable with IR_TimingIV {
+  def level : Int
+
+  override def resolveName() = s"timer_${stripName}_${level}"
+  override def resolveDatatype() : IR_SpecialDatatype = IR_SpecialDatatype("StopWatch")
+
+  // todo this might be wrong, check again
+  override def getCtor() : Option[IR_Statement] = {
+    Some(IR_Assignment(
+      IR_MemberAccess(IR_VariableAccess(resolveName(), resolveDatatype()), "timerName"),
+      IR_StringConstant(stripName)))
+  }
+}
+
+case class IR_IV_Timer(var name : String) extends IR_NoLevelTimingIV
+
+case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_LeveledTimingIV

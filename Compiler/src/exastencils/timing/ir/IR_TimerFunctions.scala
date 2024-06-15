@@ -49,28 +49,6 @@ object IR_AdaptTimerFunctions extends DefaultStrategy("Adapt function calls to t
 
       // adapt arguments
       function.name match {
-        case "startTimer" | "stopTimer" | "getMeanTime" | "getTotalTime" =>
-          // functions expecting exactly one timer
-          if (args.length != 1) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
-          fctCall.arguments = ListBuffer[IR_Expression](IR_IV_Timer(args(0)))
-        case "printAllTimers" | "printAllTimersToFile" | "printAllAutomaticTimers" | "reduceTimers"  =>
-          // functions expecting no parameters
-          if (args.nonEmpty) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
-          fctCall.arguments = ListBuffer()
-      }
-
-      fctCall
-    case fctCall @ IR_FunctionCall(function : IR_LeveledTimerFunctionReference, args) => {
-      // map aliases
-      fctCall.function.name = function.baseName match {
-        case "getMeanFromTimer"  => "getMeanTime"
-        case "getTotalFromTimer" => "getTotalTime"
-        case other               => other
-      }
-
-      // todo remove code duplication
-      // adapt arguments
-      function.baseName match {
         case "startTimer" | "stopTimer" | "getMeanTime" | "getTotalTime"                            =>
           // functions expecting exactly one timer
           if (args.length != 1) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
@@ -82,6 +60,25 @@ object IR_AdaptTimerFunctions extends DefaultStrategy("Adapt function calls to t
       }
 
       fctCall
-    }
+    case fctCall @ IR_FunctionCall(function : IR_LeveledTimerFunctionReference, args) =>
+      // map aliases
+      fctCall.function.name = function.baseName match {
+        case "getMeanFromTimer"  => "getMeanTime"
+        case "getTotalFromTimer" => "getTotalTime"
+        case other               => other
+      }
+
+      // adapt arguments
+      function.baseName match {
+        case "startTimer" | "stopTimer" | "getMeanTime" | "getTotalTime"                            =>
+          // functions expecting exactly one timer
+          if (args.length != 1) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
+          fctCall.arguments = ListBuffer[IR_Expression](IR_IV_LeveledTimer(args(0), function.level))
+        case "printAllTimers" | "printAllTimersToFile" | "printAllAutomaticTimers" | "reduceTimers" =>
+          // functions expecting no parameters
+          if (args.nonEmpty) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
+          fctCall.arguments = ListBuffer()
+      }
+      fctCall
   })
 }
