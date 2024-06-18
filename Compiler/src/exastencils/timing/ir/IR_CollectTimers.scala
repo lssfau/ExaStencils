@@ -38,10 +38,10 @@ object IR_CollectTimers extends DefaultStrategy("Collect all timers used") {
   }
 
   this += new Transformation("Collect", {
-    case timer : IR_NoLevelTimingIV =>
+    case timer : IR_PlainTimingIV           =>
       timers += (timer.resolveName -> timer)
       timer
-    case leveled_timer : IR_IV_LeveledTimer =>
+    case leveled_timer : IR_LeveledTimingIV =>
       timers += (leveled_timer.resolveName() -> leveled_timer)
       leveled_timer
   })

@@ -45,12 +45,12 @@ object IR_IV_LeveledTimer {
   }, level)
 }
 
-trait IR_TimingIV extends IR_Access {
+trait IR_TimingIV extends IR_InternalVariable with IR_Access {
   def name : String
   def stripName : String = name.replaceAll("[^a-zA-Z0-9]", "_")
 }
 
-trait IR_NoLevelTimingIV extends IR_UnduplicatedVariable with IR_TimingIV {
+trait IR_PlainTimingIV extends IR_UnduplicatedVariable with IR_TimingIV {
   override def resolveName() = s"timer_${stripName}"
   override def resolveDatatype() : IR_SpecialDatatype = IR_SpecialDatatype("StopWatch")
 
@@ -61,10 +61,10 @@ trait IR_NoLevelTimingIV extends IR_UnduplicatedVariable with IR_TimingIV {
   }
 }
 
-trait IR_LeveledTimingIV extends IR_InternalVariable with IR_TimingIV {
+trait IR_LeveledTimingIV extends IR_TimingIV {
   def level : Int
 
-  override def resolveName() = s"timer_${stripName}_${level}"
+  override def resolveName() = s"timer_${stripName}"
   override def resolveDatatype() : IR_SpecialDatatype = IR_SpecialDatatype("StopWatch")
 
   // todo this might be wrong, check again
@@ -75,6 +75,6 @@ trait IR_LeveledTimingIV extends IR_InternalVariable with IR_TimingIV {
   }
 }
 
-case class IR_IV_Timer(var name : String) extends IR_NoLevelTimingIV
+case class IR_IV_Timer(var name : String) extends IR_PlainTimingIV
 
-case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_LeveledTimingIV
+case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_InternalVariable(false, false, false, true, false) with IR_LeveledTimingIV

@@ -32,7 +32,7 @@ import exastencils.logger.Logger
 case class IR_TimerFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference
 
 case class IR_LeveledTimerFunctionReference(var baseName: String, var returnType : IR_Datatype, var level : Int) extends IR_LeveledFunctionReference {
-  def name : String = baseName + "_" + level
+  var name : String = baseName + "_" + level
 }
 
 /// IR_ResolveTimerFunctions

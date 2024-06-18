@@ -43,7 +43,7 @@ trait IR_HasAutomaticTimingCategory {
 case class IR_IV_AutomaticTimer(
     var name : String,
     var timingCategory : IR_AutomaticTimingCategory.Access
-) extends IR_TimingIV with IR_HasAutomaticTimingCategory
+) extends IR_PlainTimingIV with IR_HasAutomaticTimingCategory
 
 /// IR_PrintAllAutomaticTimers
 

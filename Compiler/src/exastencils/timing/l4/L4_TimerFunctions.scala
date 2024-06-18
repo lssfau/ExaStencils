@@ -66,7 +66,7 @@ case class L4_LeveledTimerFunctionReference(var name : String, var returnType : 
 object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function references") {
   this += new Transformation("Resolve", {
     case L4_UnresolvedFunctionReference(fctName, level, offset) if L4_TimerFunctions.exists(fctName) =>
-      if (level.isDefined) Logger.warn(s"Found leveled timing function ${ fctName } with level ${ level.get }; level is ignored")
+      //if (level.isDefined) Logger.warn(s"Found leveled timing function ${ fctName } with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found timing function ${ fctName } with offset; offset is ignored")
       if (level.isDefined) {
         L4_LeveledTimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName), level.get.resolveLevel)
