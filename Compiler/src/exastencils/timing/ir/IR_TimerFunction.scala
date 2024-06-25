@@ -31,17 +31,10 @@ import exastencils.timing.l4.L4_TimerFunctions
 
 object IR_TimerFunction {
   def accessMember(member : String) = IR_MemberAccess(IR_VariableAccess("stopWatch", IR_SpecialDatatype("StopWatch&")), member)
+
 }
 
-// TODO: leveled timer functions?
 trait IR_TimerFunction extends IR_FutureFunction
-
-object IR_LeveledTimerFunction {
-  // todo needs array access
-  def accessMember(member: String) = IR_MemberAccess(IR_VariableAccess("stopWatch", IR_SpecialDatatype("StopWatch&")), member)
-}
-
-trait IR_LeveledTimerFunction extends IR_FutureLeveledFunction
 
 /// IR_TimerFunctions
 
