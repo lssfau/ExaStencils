@@ -62,8 +62,8 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
         loopStatements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + " at level\"", IR_LoopOverLevels.defIt, "\":\"", "timerValue")
 
         statements += timer.wrapInLoops(
-          IR_Scope(
-            loopStatements
+          IR_IfCondition(
+            IR_Greater(IR_MemberAccess(leveledTimer.accessTimerAtIndex(), "numMeasurements"), IR_IntegerConstant(0)), loopStatements
           )
         )
     }
