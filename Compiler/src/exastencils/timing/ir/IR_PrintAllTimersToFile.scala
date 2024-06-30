@@ -39,10 +39,23 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
 
     var it = 0
     for (timer <- timers.toList.sortBy(_._1)) {
-      statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall("getTotalTime", timer._2.resolveName()))
-      it += 1
-      statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall("getMeanTime", timer._2.resolveName()))
-      it += 1
+      timer._2 match {
+        case plainTimer @ IR_IV_Timer(_)                 => {
+          statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, None), plainTimer.resolveName()))
+          it += 1
+          statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getMeanTime", IR_DoubleDatatype, None), plainTimer.resolveName()))
+          it += 1
+        }
+        case leveledTimer @ IR_IV_LeveledTimer(_, _) => {
+          for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
+            // todo might need an if for both to check if the timers have even been used
+            statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Option(level)), leveledTimer.accessTimerAtLevel(level)))
+            it += 1
+            statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getMeanTime", IR_DoubleDatatype, Option(level)), leveledTimer.accessTimerAtLevel(level)))
+            it += 1
+          }
+        }
+      }
     }
 
     statements
@@ -56,22 +69,33 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
     var it = 0
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
-      statements += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
-        IR_StringConstant(timer._2.name), sep,
-        IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
-        IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
+      timer._2 match {
+        case IR_IV_Timer(_) =>
+          statements += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
+            IR_StringConstant(timer._2.name), sep,
+            IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
+            IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
+          it += 2
 
-      it += 2
-    }
+          // wrap in loop over each rank if required
+          if (Knowledge.mpi_enabled && Knowledge.timer_printTimersToFileForEachRank) {
+            statements = ListBuffer[IR_Statement](
+              IR_ForLoop(
+                IR_VariableDeclaration(IR_IntegerDatatype, stride.prettyprint, 0),
+                IR_Lower(stride, Knowledge.mpi_numThreads),
+                IR_PreIncrement(stride),
+                statements))
+          }
+        case IR_IV_LeveledTimer(_, _) =>
+          for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
+            statements += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
+              IR_StringConstant(timer._2.name + "_" + level), sep,
+              IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
+              IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
+            it += 2
+          }
+      }
 
-    // wrap in loop over each rank if required
-    if (Knowledge.mpi_enabled && Knowledge.timer_printTimersToFileForEachRank) {
-      statements = ListBuffer[IR_Statement](
-        IR_ForLoop(
-          IR_VariableDeclaration(IR_IntegerDatatype, stride.prettyprint, 0),
-          IR_Lower(stride, Knowledge.mpi_numThreads),
-          IR_PreIncrement(stride),
-          statements))
     }
 
     statements.prepend(IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "open", "\"" + Settings.timerOutputFile + "\""))

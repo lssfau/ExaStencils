@@ -25,7 +25,6 @@ import exastencils.base.ir.IR_FunctionReference
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.logger.Logger
-import exastencils.timing.ir.IR_LeveledTimerFunctionReference
 import exastencils.timing.ir.IR_TimerFunctionReference
 
 // L4_TimerFunctions
@@ -53,14 +52,9 @@ object L4_TimerFunctions {
 
 /// L4_TimerFunctionReference
 
-case class L4_TimerFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
-  override def progress : IR_TimerFunctionReference = ProgressLocation(IR_TimerFunctionReference(name, returnType.progress))
+case class L4_TimerFunctionReference(var name : String, var returnType : L4_Datatype, var level : Option[Int]) extends L4_PlainFunctionReference {
+  override def progress : IR_TimerFunctionReference = ProgressLocation(IR_TimerFunctionReference(name, returnType.progress, level))
 }
-
-case class L4_LeveledTimerFunctionReference(var name : String, var returnType : L4_Datatype, var level : Int) extends L4_LeveledFunctionReference {
-  override def progress : IR_FunctionReference = ProgressLocation(IR_LeveledTimerFunctionReference(name, returnType.progress, level))
-}
-
 /// L4_ResolveTimerFunctions
 
 object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function references") {
@@ -69,9 +63,9 @@ object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function 
       //if (level.isDefined) Logger.warn(s"Found leveled timing function ${ fctName } with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found timing function ${ fctName } with offset; offset is ignored")
       if (level.isDefined) {
-        L4_LeveledTimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName), level.get.resolveLevel)
+        L4_TimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName), Some(level.get.resolveLevel))
       } else {
-        L4_TimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName))
+        L4_TimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName), None)
       }
   })
 

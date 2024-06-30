@@ -23,6 +23,7 @@ import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.logger.Logger
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_LoopOverLevels
 import exastencils.prettyprinting.PpStream
 
 /// IR_IV_Timer
@@ -70,10 +71,9 @@ trait IR_LeveledTimingIV extends IR_TimingIV {
 case class IR_IV_Timer(var name : String) extends IR_PlainTimingIV
 
 case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_InternalVariable(false, false, false, true, false) with IR_LeveledTimingIV {
-  //def acc = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
 
   override def getCtor() : Option[IR_Statement] = {
-    val acc = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, level, IR_NullExpression)
+    val acc = accessTimerAtLevel(level)
     acc match {
       case access : IR_Access => Some(wrapInLoops(IR_Assignment(
         IR_MemberAccess(access, "timerName"), IR_StringConstant(stripName)
@@ -85,5 +85,9 @@ case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_Int
     }
   }
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), IR_NullExpression, IR_NullExpression, IR_NullExpression, level, IR_NullExpression)
+  def accessTimerAtLevel(level : Int) : IR_Expression = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, level, IR_NullExpression)
+
+  def accessTimerAtIndex() : IR_Expression = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverLevels.defIt, IR_NullExpression)
+
+  override def prettyprint(out : PpStream) : Unit = out << accessTimerAtLevel(level)
 }

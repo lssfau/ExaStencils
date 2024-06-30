@@ -22,6 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverLevels
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.parallelization.api.mpi.MPI_AllReduce
@@ -38,18 +39,37 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val timeToPrint = "getTotalTime"
+
     def timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
-    statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(timeToPrint, timer.resolveName()))
 
-    if (Knowledge.mpi_enabled) {
-      statements += MPI_AllReduce(IR_AddressOf(timerValue), timerValue.datatype, 1, "+")
-      statements += IR_Assignment(timerValue, MPI_IV_MpiSize, "/=")
+    timer match {
+      case IR_IV_Timer(_)                              => // non-leveled timer
+        statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(IR_TimerFunctionReference(timeToPrint, IR_DoubleDatatype, None), timer.resolveName()))
+
+        if (Knowledge.mpi_enabled) {
+          statements += MPI_AllReduce(IR_AddressOf(timerValue), timerValue.datatype, 1, "+")
+          statements += IR_Assignment(timerValue, MPI_IV_MpiSize, "/=")
+        }
+
+        statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + ":\"", "timerValue")
+      case leveledTimer @ IR_IV_LeveledTimer(_, level) =>
+        val loopStatements : ListBuffer[IR_Statement] = ListBuffer()
+
+        loopStatements += IR_VariableDeclaration(timerValue, IR_FunctionCall(
+          IR_TimerFunctionReference(timeToPrint, IR_DoubleDatatype, Option(level)), leveledTimer.accessTimerAtIndex()
+        ))
+        // todo there must be a better way to do this
+        loopStatements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + " at level\"", IR_LoopOverLevels.defIt, "\":\"", "timerValue")
+
+        statements += timer.wrapInLoops(
+          IR_Scope(
+            loopStatements
+          )
+        )
     }
-
-    statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + ":\"", "timerValue")
-
     IR_Scope(statements)
   }
+
 
   override def generateFct() = {
     IR_CollectTimers.applyStandalone(StateManager.root)

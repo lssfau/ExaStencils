@@ -35,12 +35,22 @@ case class IR_ReduceTimers() extends IR_TimerFunction {
   def genReduceTimerCode(timer : IR_TimingIV) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += IR_Assignment(IR_MemberAccess(timer, "totalTimeAveraged"), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype), timer))
+    timer match {
+      case IR_IV_Timer(_) =>
+        statements += IR_Assignment(IR_MemberAccess(timer, "totalTimeAveraged"),
+          IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, None), timer))
 
-    if (Knowledge.mpi_enabled) {
-      val timerValue = IR_MemberAccess(timer, "totalTimeAveraged")
-      statements += MPI_AllReduce(IR_AddressOf(timerValue), IR_DoubleDatatype, 1, "+")
-      statements += IR_Assignment(timerValue, timerValue / Knowledge.mpi_numThreads)
+        if (Knowledge.mpi_enabled) {
+          val timerValue = IR_MemberAccess(timer, "totalTimeAveraged")
+          statements += MPI_AllReduce(IR_AddressOf(timerValue), IR_DoubleDatatype, 1, "+")
+          statements += IR_Assignment(timerValue, timerValue / Knowledge.mpi_numThreads)
+        }
+      case leveledTimer @ IR_IV_LeveledTimer(_, _) =>
+        for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
+          val access = leveledTimer.accessTimerAtLevel(level).asInstanceOf[IR_Access]
+          statements += IR_Assignment(IR_MemberAccess(access, "totalTimeAveraged"), // todo should the cast already be part of the function
+            IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Some(level)), access))
+        }
     }
 
     IR_Scope(statements)
