@@ -34,7 +34,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
   override var name = "printAllTimersToFile"
   override def prettyprint_decl() : String = prettyprint
 
-  def genDataCollect(timers : HashMap[String, IR_TimingIV]) : ListBuffer[IR_Statement] = {
+  def genDataCollect(timers : HashMap[(String, Option[Int]), IR_TimingIV]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     var it = 0
@@ -46,24 +46,20 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
           statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getMeanTime", IR_DoubleDatatype, None), plainTimer.resolveName()))
           it += 1
         case leveledTimer : IR_IV_LeveledTimer =>
-          for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
-            val innerStatements : ListBuffer[IR_Statement] = ListBuffer()
-            val timerAccess = leveledTimer.accessTimerAtLevel(level)
+          val level = leveledTimer.level
+          val timerAccess = leveledTimer.accessTimerAtLevel(level)
 
-            innerStatements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Option(level)), timerAccess))
-            it += 1
-            innerStatements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getMeanTime", IR_DoubleDatatype, Option(level)), timerAccess))
-            it += 1
-
-            statements += IR_IfCondition(IR_Greater(IR_MemberAccess(leveledTimer.accessTimerAtLevel(level), "numMeasurements"), IR_IntegerConstant(0)), IR_Scope(innerStatements))
-          }
+          statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Option(level)), timerAccess))
+          it += 1
+          statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getMeanTime", IR_DoubleDatatype, Option(level)), timerAccess))
+          it += 1
       }
     }
 
     statements
   }
 
-  def genPrint(timers : HashMap[String, IR_TimingIV]) : ListBuffer[IR_Statement] = {
+  def genPrint(timers : HashMap[(String, Option[Int]), IR_TimingIV]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     def stride : IR_Expression = if (Knowledge.mpi_enabled && Knowledge.timer_printTimersToFileForEachRank) "mpiIt" else 0
@@ -72,33 +68,32 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
       timer._2 match {
-        case plainTimer : IR_IV_Timer =>
+        case plainTimer : IR_IV_Timer          =>
           statements += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
             IR_StringConstant(plainTimer.name), sep,
             IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
             IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
           it += 2
 
-          // wrap in loop over each rank if required
-          if (Knowledge.mpi_enabled && Knowledge.timer_printTimersToFileForEachRank) {
-            statements = ListBuffer[IR_Statement](
-              IR_ForLoop(
-                IR_VariableDeclaration(IR_IntegerDatatype, stride.prettyprint, 0),
-                IR_Lower(stride, Knowledge.mpi_numThreads),
-                IR_PreIncrement(stride),
-                statements))
-          }
-        case leveledTimer: IR_IV_LeveledTimer =>
-          for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
-            val print = IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
-              IR_StringConstant(timer._2.name + "_" + level), sep,
-              IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
-              IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
-            it += 2
-
-            statements += IR_IfCondition(IR_Greater(IR_MemberAccess(leveledTimer.accessTimerAtLevel(level), "numMeasurements"), IR_IntegerConstant(0)), print)
-          }
+        case leveledTimer : IR_IV_LeveledTimer =>
+          val level = leveledTimer.level
+          val print = IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
+            IR_StringConstant(timer._2.name + "_" + level), sep,
+            IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
+            IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
+          it += 2
+          statements += print
       }
+    }
+
+    // wrap in loop over each rank if required
+    if (Knowledge.mpi_enabled && Knowledge.timer_printTimersToFileForEachRank) {
+      statements = ListBuffer[IR_Statement](
+        IR_ForLoop(
+          IR_VariableDeclaration(IR_IntegerDatatype, stride.prettyprint, 0),
+          IR_Lower(stride, Knowledge.mpi_numThreads),
+          IR_PreIncrement(stride),
+          statements))
     }
 
     statements.prepend(IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "open", "\"" + Settings.timerOutputFile + "\""))
@@ -114,29 +109,23 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
-    val numberOfLeveledTimers = timers.count(_._2.isInstanceOf[IR_IV_LeveledTimer])
-    val numberOfPlainTimers = timers.size - numberOfLeveledTimers
-    val numberOfArrayElements = 2 * (numberOfPlainTimers + numberOfLeveledTimers * Knowledge.numLevels)
-
-
-    // todo check if switch every "2 * timers.size" for "numberOfArrayElements" also makes sense in MPI context
     if (timers.nonEmpty) {
       if (Knowledge.timer_printTimersToFileForEachRank) {
         body += IR_IfCondition(MPI_IsRootProc(),
           ListBuffer[IR_Statement](
-            IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, Knowledge.mpi_numThreads * numberOfArrayElements), "timesToPrint"))
+            IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
             ++ genDataCollect(timers)
-            ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint", IR_DoubleDatatype, numberOfArrayElements))
+            ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint", IR_DoubleDatatype, 2 * timers.size))
             ++ genPrint(timers),
-          ListBuffer[IR_Statement](IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, numberOfArrayElements), "timesToPrint"))
+          ListBuffer[IR_Statement](IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint"))
             ++ genDataCollect(timers)
-            ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint", "timesToPrint", IR_DoubleDatatype, numberOfArrayElements)))
+            ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint", "timesToPrint", IR_DoubleDatatype, 2 * timers.size)))
       } else {
-        body += IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, numberOfArrayElements), "timesToPrint")
+        body += IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint")
         body ++= genDataCollect(timers)
-        body += MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, numberOfArrayElements, "+")
+        body += MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = IR_VariableAccess("timerId", IR_IntegerDatatype)
-        body += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_Lower(timerId, numberOfArrayElements), IR_PreIncrement(timerId),
+        body += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_Lower(timerId, 2 * timers.size), IR_PreIncrement(timerId),
           IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
         body += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }

@@ -46,12 +46,11 @@ case class IR_ReduceTimers() extends IR_TimerFunction {
           statements += IR_Assignment(timerValue, timerValue / Knowledge.mpi_numThreads)
         }
       case leveledTimer : IR_IV_LeveledTimer =>
-        for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
-          val timerAccess = leveledTimer.accessTimerAtLevel(level)
-          val reduceAssignment = IR_Assignment(IR_MemberAccess(timerAccess, "totalTimeAveraged"),
-            IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Some(level)), timerAccess))
-          statements += IR_IfCondition(IR_Greater(IR_MemberAccess(leveledTimer.accessTimerAtLevel(level), "numMeasurements"), IR_IntegerConstant(0)), reduceAssignment)
-        }
+        val level = leveledTimer.level
+        val timerAccess = leveledTimer.accessTimerAtLevel(level)
+        val reduceAssignment = IR_Assignment(IR_MemberAccess(timerAccess, "totalTimeAveraged"),
+          IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Some(level)), timerAccess))
+        statements += reduceAssignment
     }
 
     IR_Scope(statements)

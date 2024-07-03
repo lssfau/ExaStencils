@@ -73,14 +73,13 @@ case class IR_IV_Timer(var name : String) extends IR_PlainTimingIV
 case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_InternalVariable(false, false, false, true, false) with IR_LeveledTimingIV {
 
   override def getCtor() : Option[IR_Statement] = {
+    val accessViaIndex = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverLevels.defIt, IR_NullExpression)
     Some(wrapInLoops(IR_Assignment(
-      IR_MemberAccess(accessTimerAtLevel(level), "timerName"), IR_StringConstant(stripName)
+      IR_MemberAccess(checked_cast(accessViaIndex), "timerName"),  IR_StringConstant(stripName)
     )))
   }
 
   def accessTimerAtLevel(level : Int) : IR_Access = checked_cast(resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, level, IR_NullExpression))
-
-  def accessTimerAtIndex() : IR_Access = checked_cast(resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverLevels.defIt, IR_NullExpression))
 
   private def checked_cast(leveledTimerAccess : IR_Expression) : IR_Access = {
     leveledTimerAccess match {

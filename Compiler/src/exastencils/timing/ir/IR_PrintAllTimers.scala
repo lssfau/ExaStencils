@@ -52,20 +52,13 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
         }
 
         statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + ":\"", "timerValue")
-      case leveledTimer @ IR_IV_LeveledTimer(_, level) =>
-        val loopStatements : ListBuffer[IR_Statement] = ListBuffer()
+      case leveledTimer @ IR_IV_LeveledTimer(_, level) => // leveled timer
+        val access = leveledTimer.accessTimerAtLevel(level)
 
-        loopStatements += IR_VariableDeclaration(timerValue, IR_FunctionCall(
-          IR_TimerFunctionReference(timeToPrint, IR_DoubleDatatype, Option(level)), leveledTimer.accessTimerAtIndex()
-        ))
-        // todo there must be a better way to do this
-        loopStatements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + " at level\"", IR_LoopOverLevels.defIt, "\":\"", "timerValue")
+        statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(IR_TimerFunctionReference(timeToPrint, IR_DoubleDatatype, None), access))
 
-        statements += timer.wrapInLoops(
-          IR_IfCondition(
-            IR_Greater(IR_MemberAccess(leveledTimer.accessTimerAtIndex(), "numMeasurements"), IR_IntegerConstant(0)), loopStatements
-          )
-        )
+        //val text = s"\"Mean mean total time for Timer ${timer.name} at level ${level}:\""
+        statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + " at level " + level + ":\"", "timerValue")
     }
     IR_Scope(statements)
   }
