@@ -36,7 +36,7 @@ case class IR_ReduceTimers() extends IR_TimerFunction {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     timer match {
-      case _ : IR_IV_Timer =>
+      case _ : IR_PlainTimingIV =>
         statements += IR_Assignment(IR_MemberAccess(timer, "totalTimeAveraged"),
           IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, None), timer))
 
@@ -45,9 +45,9 @@ case class IR_ReduceTimers() extends IR_TimerFunction {
           statements += MPI_AllReduce(IR_AddressOf(timerValue), IR_DoubleDatatype, 1, "+")
           statements += IR_Assignment(timerValue, timerValue / Knowledge.mpi_numThreads)
         }
-      case leveledTimer : IR_IV_LeveledTimer =>
+      case leveledTimer : IR_LeveledTimingIV =>
         val level = leveledTimer.level
-        val timerAccess = leveledTimer.accessTimerAtLevel(level)
+        val timerAccess = leveledTimer.accessTimerAtLevel()
         val reduceAssignment = IR_Assignment(IR_MemberAccess(timerAccess, "totalTimeAveraged"),
           IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Some(level)), timerAccess))
         statements += reduceAssignment

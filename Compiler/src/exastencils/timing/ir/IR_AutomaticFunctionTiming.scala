@@ -4,8 +4,10 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_RawPrint
 
@@ -45,6 +47,11 @@ case class IR_IV_AutomaticTimer(
     var timingCategory : IR_AutomaticTimingCategory.Access
 ) extends IR_PlainTimingIV with IR_HasAutomaticTimingCategory
 
+case class IR_IV_AutomaticLeveledTimer(
+    var name : String,
+    var timingCategory : IR_AutomaticTimingCategory.Access,
+    var level : Int
+) extends IR_InternalVariable(false, false, false, true, false) with IR_LeveledTimingIV with IR_HasAutomaticTimingCategory
 /// IR_PrintAllAutomaticTimers
 
 case class IR_PrintAllAutomaticTimers() extends IR_TimerFunction {

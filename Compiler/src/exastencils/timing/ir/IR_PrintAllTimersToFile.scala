@@ -40,14 +40,14 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
     var it = 0
     for (timer <- timers.toList.sortBy(_._1)) {
       timer._2 match {
-        case plainTimer : IR_IV_Timer                 =>
+        case plainTimer : IR_PlainTimingIV                 =>
           statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, None), plainTimer.resolveName()))
           it += 1
           statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getMeanTime", IR_DoubleDatatype, None), plainTimer.resolveName()))
           it += 1
-        case leveledTimer : IR_IV_LeveledTimer =>
+        case leveledTimer : IR_LeveledTimingIV =>
           val level = leveledTimer.level
-          val timerAccess = leveledTimer.accessTimerAtLevel(level)
+          val timerAccess = leveledTimer.accessTimerAtLevel()
 
           statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Option(level)), timerAccess))
           it += 1
@@ -68,14 +68,14 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
       timer._2 match {
-        case plainTimer : IR_IV_Timer          =>
+        case plainTimer : IR_PlainTimingIV          =>
           statements += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
             IR_StringConstant(plainTimer.name), sep,
             IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
             IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
           it += 2
 
-        case leveledTimer : IR_IV_LeveledTimer =>
+        case leveledTimer : IR_LeveledTimingIV =>
           val level = leveledTimer.level
           val print = IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
             IR_StringConstant(timer._2.name + "_" + level), sep,

@@ -27,8 +27,6 @@ import exastencils.logger.Logger
 
 /// IR_TimerFunctionReference
 
-
-// Idea: If level is necessary, one can use IR_LeveledFunctionReference, otherwise it is upcast to base IR_FunctionReference, ignoring unneeded field level
 case class IR_TimerFunctionReference(var name : String, var returnType : IR_Datatype, var level : Option[Int]) extends IR_FunctionReference
 
 /// IR_ResolveTimerFunctions

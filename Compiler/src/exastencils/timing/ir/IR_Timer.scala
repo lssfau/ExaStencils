@@ -66,22 +66,10 @@ trait IR_PlainTimingIV extends IR_UnduplicatedVariable with IR_TimingIV {
 
 trait IR_LeveledTimingIV extends IR_TimingIV {
   def level : Int
-}
 
-case class IR_IV_Timer(var name : String) extends IR_PlainTimingIV
+  def accessTimerAtLevel() : IR_Access = checked_cast(resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, level, IR_NullExpression))
 
-case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_InternalVariable(false, false, false, true, false) with IR_LeveledTimingIV {
-
-  override def getCtor() : Option[IR_Statement] = {
-    val accessViaIndex = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverLevels.defIt, IR_NullExpression)
-    Some(wrapInLoops(IR_Assignment(
-      IR_MemberAccess(checked_cast(accessViaIndex), "timerName"),  IR_StringConstant(stripName)
-    )))
-  }
-
-  def accessTimerAtLevel(level : Int) : IR_Access = checked_cast(resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, level, IR_NullExpression))
-
-  private def checked_cast(leveledTimerAccess : IR_Expression) : IR_Access = {
+  protected def checked_cast(leveledTimerAccess : IR_Expression) : IR_Access = {
     leveledTimerAccess match {
       case access : IR_Access =>
         access
@@ -92,5 +80,16 @@ case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_Int
     }
   }
 
-  override def prettyprint(out : PpStream) : Unit = out << accessTimerAtLevel(level)
+  override def getCtor() : Option[IR_Statement] = {
+    val accessViaIndex = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverLevels.defIt, IR_NullExpression)
+    Some(wrapInLoops(IR_Assignment(
+      IR_MemberAccess(checked_cast(accessViaIndex), "timerName"),  IR_StringConstant(stripName)
+    )))
+  }
+
+  override def prettyprint(out : PpStream) : Unit = out << accessTimerAtLevel()
 }
+
+case class IR_IV_Timer(var name : String) extends IR_PlainTimingIV
+
+case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_InternalVariable(false, false, false, true, false) with IR_LeveledTimingIV

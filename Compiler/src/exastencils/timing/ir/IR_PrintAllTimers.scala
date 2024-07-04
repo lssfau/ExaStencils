@@ -43,7 +43,7 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
     def timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
 
     timer match {
-      case IR_IV_Timer(_)                              => // non-leveled timer
+      case _ : IR_PlainTimingIV                           => // non-leveled timer
         statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(IR_TimerFunctionReference(timeToPrint, IR_DoubleDatatype, None), timer.resolveName()))
 
         if (Knowledge.mpi_enabled) {
@@ -52,8 +52,9 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
         }
 
         statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + ":\"", "timerValue")
-      case leveledTimer @ IR_IV_LeveledTimer(_, level) => // leveled timer
-        val access = leveledTimer.accessTimerAtLevel(level)
+      case leveledTimer : IR_LeveledTimingIV => // leveled timer
+        val level = leveledTimer.level
+        val access = leveledTimer.accessTimerAtLevel()
 
         statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(IR_TimerFunctionReference(timeToPrint, IR_DoubleDatatype, None), access))
 
