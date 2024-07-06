@@ -60,7 +60,7 @@ case class IR_GetMeanTime() extends IR_TimerFunction {
       IR_Return(IR_TernaryCondition(
         0 EqEq accessMember("numMeasurements"),
         0.0,
-        IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, None), "stopWatch") / accessMember("numMeasurements"))) // todo "None" should not work here
+        IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, None), "stopWatch") / accessMember("numMeasurements")))
 
     val fct = IR_PlainFunction(name, IR_DoubleDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
     fct.allowFortranInterface = false

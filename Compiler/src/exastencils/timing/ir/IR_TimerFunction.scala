@@ -57,7 +57,7 @@ object IR_TimerFunctions extends ObjectWithState {
 }
 
 case class IR_TimerFunctions() extends IR_FunctionCollection(IR_TimerFunctions.defBaseName,
-  ListBuffer("fstream", "iostream"),
+  ListBuffer("fstream", "iostream", "vector"),  // todo check if it is legal to add vector here
   ListBuffer(IR_GlobalCollection.defHeader, IR_Stopwatch.defHeader)) {
 
   functions += IR_StartTimer()

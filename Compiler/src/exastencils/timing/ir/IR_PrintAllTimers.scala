@@ -55,10 +55,13 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
       case leveledTimer : IR_LeveledTimingIV => // leveled timer
         val level = leveledTimer.level
         val access = leveledTimer.accessTimerAtLevel()
-
         statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(IR_TimerFunctionReference(timeToPrint, IR_DoubleDatatype, None), access))
 
-        //val text = s"\"Mean mean total time for Timer ${timer.name} at level ${level}:\""
+        if (Knowledge.mpi_enabled) {
+          statements += MPI_AllReduce(IR_AddressOf(timerValue), timerValue.datatype, 1, "+")
+          statements += IR_Assignment(timerValue, MPI_IV_MpiSize, "/=")
+        }
+
         statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + " at level " + level + ":\"", "timerValue")
     }
     IR_Scope(statements)

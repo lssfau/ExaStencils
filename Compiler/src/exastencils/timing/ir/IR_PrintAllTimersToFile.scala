@@ -22,7 +22,7 @@ import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir.IR_StdVectorDatatype_VS
 import exastencils.config._
 import exastencils.core.StateManager
 import exastencils.parallelization.api.mpi._
@@ -91,7 +91,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
       statements = ListBuffer[IR_Statement](
         IR_ForLoop(
           IR_VariableDeclaration(IR_IntegerDatatype, stride.prettyprint, 0),
-          IR_Lower(stride, Knowledge.mpi_numThreads),
+          IR_Lower(stride, MPI_IV_MpiSize),
           IR_PreIncrement(stride),
           statements))
     }
@@ -113,20 +113,21 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
       if (Knowledge.timer_printTimersToFileForEachRank) {
         body += IR_IfCondition(MPI_IsRootProc(),
           ListBuffer[IR_Statement](
-            IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
+            IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, MPI_IV_MpiSize * 2 * timers.size), "timesToPrint"))
+          ++ genDataCollect(timers)
+          ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint.data()", IR_DoubleDatatype, 2 * timers.size))
+          ++ genPrint(timers),
+          ListBuffer[IR_Statement](IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, 2 * timers.size), "timesToPrint"))
             ++ genDataCollect(timers)
-            ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint", IR_DoubleDatatype, 2 * timers.size))
-            ++ genPrint(timers),
-          ListBuffer[IR_Statement](IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint"))
-            ++ genDataCollect(timers)
-            ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint", "timesToPrint", IR_DoubleDatatype, 2 * timers.size)))
+            ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint.data()", "timesToPrint.data()", IR_DoubleDatatype, 2 * timers.size))
+        )
       } else {
-        body += IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint")
+        body += IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, 2 * timers.size), "timesToPrint")
         body ++= genDataCollect(timers)
-        body += MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
+        body += MPI_Reduce(0, "timesToPrint.data()", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = IR_VariableAccess("timerId", IR_IntegerDatatype)
         body += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_Lower(timerId, 2 * timers.size), IR_PreIncrement(timerId),
-          IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
+          IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), MPI_IV_MpiSize, "/="))
         body += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }
     }
