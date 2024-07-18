@@ -31,16 +31,18 @@ import exastencils.util.ir.IR_RawPrint
 
 /// IR_PrintAllTimers
 
-case class IR_PrintAllTimers() extends IR_TimerFunction {
+abstract class IR_AbstractPrintAllTimers extends IR_TimerFunction {
+
   override var name = "printAllTimers"
   override def prettyprint_decl() : String = prettyprint
+
+  protected def timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
+
 
   def genPrintTimerCode(timer : IR_TimingIV) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val timeToPrint = "getTotalTime"
-
-    def timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
 
     timer match {
       case _ : IR_PlainTimingIV                           => // non-leveled timer
@@ -66,8 +68,9 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
     }
     IR_Scope(statements)
   }
+}
 
-
+case class IR_PrintAllTimers() extends IR_AbstractPrintAllTimers {
   override def generateFct() = {
     IR_CollectTimers.applyStandalone(StateManager.root)
     val timers = IR_CollectTimers.timers
@@ -77,5 +80,83 @@ case class IR_PrintAllTimers() extends IR_TimerFunction {
     val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false
     fct
+  }
+}
+
+case class IR_PrintAllTimersIncludingAutomatic() extends IR_AbstractPrintAllTimers {
+  import IR_AutomaticTimingCategory._
+
+  private val accumulators : Map[(Access, Option[Int]), IR_VariableAccess] = values
+    // create a variable for each category and level pair and add it to a list
+    .flatMap(enum =>
+      if (enum != IR_AutomaticTimingCategory.IO) {
+        for (n <- Range.inclusive(Knowledge.minLevel, Knowledge.maxLevel))
+          yield (enum, Some(n)) -> IR_VariableAccess(s"accum_${ enum.toString }_$n", IR_DoubleDatatype) : ((Access, Option[Int]), IR_VariableAccess)
+      } else {
+        Seq.empty
+      }
+    )
+    // add one more variable for IO
+    .+((IR_AutomaticTimingCategory.IO, None) -> IR_VariableAccess(s"accum_${ IR_AutomaticTimingCategory.IO.toString }", IR_DoubleDatatype))
+    .toMap
+
+
+  // adds additional code for accumlator addition
+  override def genPrintTimerCode(timer : IR_TimingIV) : IR_Statement = {
+    val scope = super.genPrintTimerCode(timer).asInstanceOf[IR_Scope]
+    timer match {
+      case IR_IV_AutomaticTimer(_, timingCategory) =>
+        val accum = accumulators((timingCategory, None))
+        scope.body += IR_Assignment(accum, timerValue, "+=")
+      case IR_IV_AutomaticLeveledTimer(_, timingCategory, level) =>
+        val accum = accumulators((timingCategory, Some(level)))
+        scope.body += IR_Assignment(accum, timerValue, "+=")
+      case _ =>
+    }
+    scope
+  }
+
+
+  override def generateFct() = {
+    IR_CollectTimers.applyStandalone(StateManager.root)
+    val timers = IR_CollectTimers.timers
+    val sortedAccumulators = accumulators.toList.sortBy(_._1)
+
+    val body : ListBuffer[IR_Statement] = ListBuffer()
+    body ++= sortedAccumulators.map { case (_, vAcc) => IR_VariableDeclaration(vAcc, 0.0) }
+    body ++= timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2)).to[ListBuffer]
+
+    // print out mean total timers for automatic function timers
+    def rawPrint(msg : String, expr : IR_Expression) = IR_RawPrint(ListBuffer[IR_Expression](IR_StringConstant(msg), expr))
+    for (((category, optionalLevel), vAcc) <- sortedAccumulators) {
+      if (categoryEnabled(category)) {
+        val levelDescription = if (optionalLevel.isDefined) s" at level ${optionalLevel.get}" else ""
+        body += rawPrint(s"Mean mean total time for sum of ${vAcc.name}${levelDescription}:", vAcc)
+      }
+    }
+    if (Knowledge.timer_automaticCommTiming) {
+      body += rawPrint("Mean mean total time for all automatic communication timers:",
+        filterAndReduce(sortedAccumulators, IR_AutomaticTimingCategory.COMM))
+    }
+    if (Knowledge.timer_automaticBCsTiming) {
+      body += rawPrint("Mean mean total time for all automatic boundary condition timers:",
+        filterAndReduce(sortedAccumulators, IR_AutomaticTimingCategory.APPLYBC))
+    }
+    if (Knowledge.timer_automaticIOTiming) {
+      body += rawPrint("Mean mean total time for all automatic IO timers:",
+        filterAndReduce(sortedAccumulators, IR_AutomaticTimingCategory.IO))
+    }
+    body += rawPrint("Mean mean total time for all automatic timers:", sortedAccumulators.map(_._2 : IR_Expression).reduce(_ + _))
+
+    val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
+    fct.allowFortranInterface = false
+    fct
+  }
+
+  private def filterAndReduce(sortedAccumulators : List[((Access, Option[Int]), IR_VariableAccess)], category : Access) : IR_Expression = {
+    sortedAccumulators
+      .filter(elem => elem._1._1 == category)
+      .map(_._2 : IR_Expression)
+      .reduce(_ + _)
   }
 }

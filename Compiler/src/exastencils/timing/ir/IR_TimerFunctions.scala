@@ -51,7 +51,7 @@ object IR_AdaptTimerFunctions extends DefaultStrategy("Adapt function calls to t
           } else {
             fctCall.arguments = ListBuffer[IR_Expression](IR_IV_Timer(args(0)))
           }
-        case "printAllTimers" | "printAllTimersToFile" | "printAllAutomaticTimers" | "reduceTimers" =>
+        case "printAllTimers" | "printAllTimersToFile" | "reduceTimers" =>
           // functions expecting no parameters
           if (function.level.isDefined) Logger.warn("Found level at non-leveled function " + function.name + ". Level ist ignored.")
           if (args.nonEmpty) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)

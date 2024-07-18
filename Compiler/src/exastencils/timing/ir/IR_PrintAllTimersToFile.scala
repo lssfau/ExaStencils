@@ -125,9 +125,12 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
         body += IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, 2 * timers.size), "timesToPrint")
         body ++= genDataCollect(timers)
         body += MPI_Reduce(0, "timesToPrint.data()", IR_DoubleDatatype, 2 * timers.size, "+")
-        def timerId = IR_VariableAccess("timerId", IR_IntegerDatatype)
-        body += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_Lower(timerId, 2 * timers.size), IR_PreIncrement(timerId),
-          IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), MPI_IV_MpiSize, "/="))
+        if (Knowledge.mpi_enabled) {
+          def timerId = IR_VariableAccess("timerId", IR_IntegerDatatype)
+
+          body += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_Lower(timerId, 2 * timers.size), IR_PreIncrement(timerId),
+            IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), MPI_IV_MpiSize, "/="))
+        }
         body += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }
     }
