@@ -8,12 +8,15 @@ import exastencils.config.Knowledge
 object IR_AutomaticTimingCategory extends Enumeration {
   type Access = Value
   final val ANNOT : String = "TimingCategory"
-  final val COMM, APPLYBC, IO = Value
+  final val COMM, WAIT, PACK, UNPACK, APPLYBC, IO = Value
 
   def categoryEnabled(category : Access) = {
     if (Knowledge.timer_automaticTiming) {
       category match {
         case COMM    => Knowledge.timer_automaticCommTiming
+        case WAIT    => Knowledge.timer_automaticWaitTiming
+        case PACK    => Knowledge.timer_automaticPackingTiming
+        case UNPACK  => Knowledge.timer_automaticUnpackingTiming
         case APPLYBC => Knowledge.timer_automaticBCsTiming
         case IO      => Knowledge.timer_automaticIOTiming
         case _       => false

@@ -307,6 +307,9 @@ object Knowledge {
   var timer_automaticTiming : Boolean = false
   var timer_automaticBCsTiming : Boolean = false
   var timer_automaticCommTiming : Boolean = false
+  var timer_automaticPackingTiming : Boolean = false
+  var timer_automaticUnpackingTiming : Boolean = false
+  var timer_automaticWaitTiming : Boolean = false
   var timer_automaticIOTiming : Boolean = false
 
   // library/tool to use for benchmarking
@@ -950,6 +953,10 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
     Constraints.condEnsureValue(timer_syncDevice, false, !cuda_enabled, "Disabling flag \"timer_syncDevice\". Requires \"cuda_enabled\" to be enabled.")
+
+    Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticPackingTiming, "timer_automaticCommTiming must be enabled for timer_automaticPackingTiming.")
+    Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticUnpackingTiming, "timer_automaticCommTiming must be enabled for timer_automaticUnpackingTiming.")
+    Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticWaitTiming, "timer_automaticCommTiming must be enabled for timer_automaticWaitTiming.")
 
     Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticBCsTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticBCsTiming = true'")
     Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticCommTiming = true'")

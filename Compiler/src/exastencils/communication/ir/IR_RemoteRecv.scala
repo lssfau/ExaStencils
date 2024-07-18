@@ -32,6 +32,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
+import exastencils.timing.ir._
 
 /// IR_RemoteRecv
 
@@ -116,6 +117,15 @@ case class IR_CopyFromRecvBuffer(
         ret += loop
       }
 
+    }
+
+    // add automatic timers for unpacking
+    val timingCategory = IR_AutomaticTimingCategory.UNPACK
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }", timingCategory)
+
+      ret.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+      ret.append(IR_FunctionCall(IR_StopTimer().name, timer))
     }
 
     ret
