@@ -26,6 +26,13 @@ object IR_AutomaticTimingCategory extends Enumeration {
     }
   }
 
+  def categoryLeveled(category : Access): Boolean = {
+    category match {
+      case COMM | APPLYBC => true
+      case IO | WAIT | PACK | UNPACK => false
+    }
+  }
+
   exastencils.core.Duplicate.registerConstant(this)
 }
 

@@ -72,6 +72,7 @@ case class IR_TimerFunctions() extends IR_FunctionCollection(IR_TimerFunctions.d
   }
   functions += IR_PrintAllTimersToFile()
   functions += IR_ReduceTimers()
-  //if (Knowledge.timer_automaticTiming)
-  //  functions += IR_PrintAllAutomaticTimers()
+  if (Knowledge.mpi_enabled) {
+    functions += IR_PrintTimerStatistics()
+  }
 }

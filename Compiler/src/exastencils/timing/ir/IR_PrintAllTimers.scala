@@ -22,7 +22,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_LoopOverLevels
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.parallelization.api.mpi.MPI_AllReduce
@@ -89,15 +88,19 @@ case class IR_PrintAllTimersIncludingAutomatic() extends IR_AbstractPrintAllTime
   private val accumulators : Map[(Access, Option[Int]), IR_VariableAccess] = values
     // create a variable for each category and level pair and add it to a list
     .flatMap(enum =>
-      if (enum != IR_AutomaticTimingCategory.IO) {
-        for (n <- Range.inclusive(Knowledge.minLevel, Knowledge.maxLevel))
-          yield (enum, Some(n)) -> IR_VariableAccess(s"accum_${ enum.toString }_$n", IR_DoubleDatatype) : ((Access, Option[Int]), IR_VariableAccess)
+      if (categoryEnabled(enum)) {
+        if (categoryLeveled(enum)) {
+          // leveled categories need a accumulator variable for each level
+          for (n <- Range.inclusive(Knowledge.minLevel, Knowledge.maxLevel))
+            yield (enum, Some(n)) -> IR_VariableAccess(s"accum_${ enum.toString }_$n", IR_DoubleDatatype) : ((Access, Option[Int]), IR_VariableAccess)
+        } else {
+          // non leveled categories only need one accumulator variable
+          List((`enum`, None) -> IR_VariableAccess(s"accum_${ `enum`.toString }", IR_DoubleDatatype))
+        }
       } else {
         Seq.empty
       }
     )
-    // add one more variable for IO
-    .+((IR_AutomaticTimingCategory.IO, None) -> IR_VariableAccess(s"accum_${ IR_AutomaticTimingCategory.IO.toString }", IR_DoubleDatatype))
     .toMap
 
 
@@ -134,19 +137,21 @@ case class IR_PrintAllTimersIncludingAutomatic() extends IR_AbstractPrintAllTime
         body += rawPrint(s"Mean mean total time for sum of ${vAcc.name}${levelDescription}:", vAcc)
       }
     }
-    if (Knowledge.timer_automaticCommTiming) {
-      body += rawPrint("Mean mean total time for all automatic communication timers:",
-        filterAndReduce(sortedAccumulators, IR_AutomaticTimingCategory.COMM))
-    }
-    if (Knowledge.timer_automaticBCsTiming) {
-      body += rawPrint("Mean mean total time for all automatic boundary condition timers:",
-        filterAndReduce(sortedAccumulators, IR_AutomaticTimingCategory.APPLYBC))
-    }
-    if (Knowledge.timer_automaticIOTiming) {
-      body += rawPrint("Mean mean total time for all automatic IO timers:",
-        filterAndReduce(sortedAccumulators, IR_AutomaticTimingCategory.IO))
-    }
+    IR_AutomaticTimingCategory.values.toList.sortBy(_.toString).foreach(enum =>
+      if (categoryEnabled(enum)) {
+        body += rawPrint(s"Mean mean total time for all automatic ${enum.toString} timers:",
+          filterAndReduce(sortedAccumulators, enum))
+      }
+    )
     body += rawPrint("Mean mean total time for all automatic timers:", sortedAccumulators.map(_._2 : IR_Expression).reduce(_ + _))
+
+    /*  Does not work currently, since IR_RawPrint is already wrapped in mpi_check
+    if (Knowledge.mpi_enabled) {
+      body += IR_IfCondition(MPI_IsRootProc(), ifBody)
+    } else {
+      body ++= ifBody
+    }
+     */
 
     val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false
