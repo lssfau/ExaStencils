@@ -37,13 +37,13 @@ jobs:
         with:
           python-version: 3.9
       - name: Install dependencies
-        run:
-          python -m pip install --upgrade pip wheel
-          pip install sphinx sphinx-rtd-theme
+        run: |
+          python -m pip install --upgrade pip wheel \
+          pip install sphinx sphinx-rtd-theme \
       - name: Build page
-        run:
-          mkdir public;
-          sphinx-build docs public -b dirhtml;
+        run: |
+          mkdir public \
+          sphinx-build docs public -b dirhtml \
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
