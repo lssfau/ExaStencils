@@ -15,7 +15,7 @@ from argparse_helpers import *
 
 
 # --- generate target code from ExaSlang specification --- #
-@check_err
+@check_err(True)
 @timer
 def generate_code(ctx: RunContext):
     return subprocess.run(
@@ -25,7 +25,7 @@ def generate_code(ctx: RunContext):
 
 
 # --- compile target code --- #
-@check_err
+@check_err(False)
 @timer
 def compile_code(ctx: RunContext):
     return subprocess.run(['make', '-j', '-s', '-C', ctx.target_code_path],
@@ -33,7 +33,7 @@ def compile_code(ctx: RunContext):
 
 
 # --- run target code --- #
-@check_err
+@check_err(False)
 @timer
 def run_code(ctx: RunContext):
     cwd = os.getcwd()
@@ -54,11 +54,9 @@ def run_code(ctx: RunContext):
                     f'-np', f'{ctx.config.mpi_num_processes}'] + bin
         if ctx.config.mpi_enabled:
             bin = mpi_run
-        print(bin)
+        print(f"Executing binary with {bin}")
         result = subprocess.run(bin, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # print stderr
-    print(result.stderr.decode('utf-8'))
     os.chdir(cwd)
 
     return result
