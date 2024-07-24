@@ -169,7 +169,7 @@ case class IR_LinearInterpPackingF2CRemote(
     val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, stride, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
-    loop.parallelization.noVect = !send // different indexing of field iterator and tmp buffer for recv
+    loop.parallelization.noVect = true // different indexing of field iterator and tmp buffer for send/recv
     ret += loop
 
     ret
