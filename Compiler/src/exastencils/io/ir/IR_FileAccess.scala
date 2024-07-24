@@ -247,6 +247,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
     IR_DataBuffer.resetDimensionalityMap()
 
     // add automatic timers for I/O
+    /*
     val timingCategory = IR_AutomaticTimingCategory.IO
     if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
       val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_${interfaceName}_${if (writeAccess) "w" else "r"}", timingCategory)
@@ -254,6 +255,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
       stmts.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
       stmts.append(IR_FunctionCall(IR_StopTimer().name, timer))
     }
+    */
 
     stmts
   }
