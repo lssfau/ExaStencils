@@ -106,30 +106,60 @@ case class IR_LinearInterpPackingF2CRemote(
 
     var ret = ListBuffer[IR_Statement]()
 
-    def it = IR_IV_CommBufferIterator(field, send, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
-
     def commBuffer = IR_IV_CommBuffer(field, send, indices.getTotalSize, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
 
-    val tmpBufAccess = IR_TempBufferAccess(commBuffer,
-      IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
+    def tmpBufAccess(index : IR_ExpressionIndex, offset : IR_ExpressionIndex, stride : IR_ExpressionIndex) =
+      IR_TempBufferAccess(commBuffer, index + offset, stride)
 
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
 
-    // init temp buf idx counter
-    ret += IR_Assignment(it, 0)
-
     if (send) {
-      innerStmts += IR_Assignment(tmpBufAccess, generateInterpExpr(field, defIt, slot, packInfo))
-      innerStmts += IR_PreIncrement(it)
+      val off = IR_ExpressionIndex(Array.fill(numDims)(0))
+      val stride = IR_ExpressionIndex(indices.end, indices.begin, _ - _)
+
+      // index mapping for temporary buffer
+      val adaptedIdx = {
+        IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims).indices.zipWithIndex.map { case (idx, i) =>
+          if (getDimFromDir(neighbor.dir) != i)
+            (idx - indices.begin(i)) / Knowledge.refinement_maxFineNeighborsPerDim : IR_Expression
+          else
+            idx - indices.begin(i) : IR_Expression
+        })
+      }
+
+      // stride mapping for temporary buffer
+      val adaptedStride = IR_ExpressionIndex(stride.indices.zipWithIndex.map { case (s, i) =>
+        if (i != getDimFromDir(neighbor.dir))
+          s / Knowledge.refinement_maxFineNeighborsPerDim
+        else
+          s
+      })
+
+      innerStmts += IR_Assignment(tmpBufAccess(adaptedIdx, off, adaptedStride), generateInterpExpr(field, defIt, slot, packInfo))
     } else {
       // interp/extrap values from coarse neighbor are written in order
       // of the upwind orthogonal dirs (in regards to comm dir) and their cross sums
 
       // read from buffer into field in order of cross sum of orthogonal upwind dirs
-      for (offset <- getCrossSumOfUpwindOrthogonals(commDir).distinct) {
+      for ((offset, i) <- getCrossSumOfUpwindOrthogonals(commDir).distinct.zipWithIndex) {
+        val idx = IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _)
+        val off = IR_ExpressionIndex(Array.fill(numDims)(0).updated(0, i))
+        val stride = IR_ExpressionIndex(indices.end, indices.begin, _ - _)
+
+        val adaptedIdx = IR_ExpressionIndex(idx.indices.zipWithIndex.map { case (idx, i) =>
+          (idx - (idx / Knowledge.refinement_maxFineNeighborsPerDim)) * Knowledge.refinement_maxFineNeighborsForCommAxis : IR_Expression
+        })
+
+        // stride mapping for temporary buffer
+        val adaptedStride = IR_ExpressionIndex(stride.indices.zipWithIndex.map { case (s, i) =>
+          if (i != getDimFromDir(neighbor.dir))
+            s / Knowledge.refinement_maxFineNeighborsPerDim
+          else
+            s
+        })
+
         innerStmts += IR_Assignment(
-          IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)), tmpBufAccess)
-        innerStmts += IR_PreIncrement(it)
+          IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt + IR_ExpressionIndex(offset)), tmpBufAccess(adaptedIdx, off, adaptedStride))
       }
     }
 
@@ -139,6 +169,7 @@ case class IR_LinearInterpPackingF2CRemote(
     val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, stride, condition = condition)
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
+    loop.parallelization.noVect = !send // different indexing of field iterator and tmp buffer for recv
     ret += loop
 
     ret
