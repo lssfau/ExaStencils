@@ -25,16 +25,23 @@ def timer(func):
 
 # --- error code check --- #
 
-def check_err(func):
-    @functools.wraps(func)
-    def wrapper_check_err(*args, **kwargs):
-        result = func(*args, **kwargs)
-        if not result.returncode == 0:
-            print("---- STDERR: ----")
-            print(result.stderr.decode('utf-8'))
-            print("---- STDOUT: ----")
-            print(result.stdout.decode('utf-8'))
-            sys.exit(result)
-        return result
-
-    return wrapper_check_err
+def check_err(suppress_stdout):
+    def check_err_decorator(func):
+        @functools.wraps(func)
+        def wrapper_check_err(*args, **kwargs):
+            result = func(*args, **kwargs)
+            if not result.returncode == 0:
+                print(f"ERROR: Function '{func.__name__}' returned code {result.returncode}")
+                print("---- STDERR: ----")
+                print(result.stderr.decode('utf-8'))
+                print("---- STDOUT: ----")
+                print(result.stdout.decode('utf-8'))
+                sys.exit(result)
+            else:
+                print(f"Function '{func.__name__}' has exited successfully")
+                if not suppress_stdout:
+                    print("---- STDOUT: ----")
+                    print(result.stdout.decode('utf-8'))
+            return result
+        return wrapper_check_err
+    return check_err_decorator

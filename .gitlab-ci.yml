@@ -788,15 +788,15 @@ test:CUDA_2D_MatrixReduction:
         - python3 run_test.py CUDA_2D_MatrixReduction_ZC CUDA 2D_MatrixReduction_ZC.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
         # no stream variant
         - cp CUDA/2D_MatrixReduction.knowledge CUDA/2D_MatrixReduction_NoStream.knowledge
-        - echo -e "\ncuda_useStreams = false" >> CUDA/2D_MatrixReduction_NoStream.knowledge
+        - echo -e "\nexperimental_cuda_useStreams = false" >> CUDA/2D_MatrixReduction_NoStream.knowledge
         - python3 run_test.py CUDA_2D_MatrixReduction_NoStream CUDA 2D_MatrixReduction_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
         # managed memory && no stream variant
         - cp CUDA/2D_MatrixReduction_MM.knowledge CUDA/2D_MatrixReduction_MM_NoStream.knowledge
-        - echo -e "\ncuda_useStreams = false" >> CUDA/2D_MatrixReduction_MM_NoStream.knowledge
+        - echo -e "\nexperimental_cuda_useStreams = false" >> CUDA/2D_MatrixReduction_MM_NoStream.knowledge
         - python3 run_test.py CUDA_2D_MatrixReduction_MM_NoStream CUDA 2D_MatrixReduction_MM_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
         # zero copy && no stream variant
         - cp CUDA/2D_MatrixReduction_ZC.knowledge CUDA/2D_MatrixReduction_ZC_NoStream.knowledge
-        - echo -e "\ncuda_useStreams = false" >> CUDA/2D_MatrixReduction_ZC_NoStream.knowledge
+        - echo -e "\nexperimental_cuda_useStreams = false" >> CUDA/2D_MatrixReduction_ZC_NoStream.knowledge
         - python3 run_test.py CUDA_2D_MatrixReduction_ZC_NoStream CUDA 2D_MatrixReduction_ZC_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
 
 
