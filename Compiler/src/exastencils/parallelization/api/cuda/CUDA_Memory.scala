@@ -128,7 +128,7 @@ case class CUDA_FieldDeviceData(var field : IR_FieldLike, var slot : IR_Expressi
     val origSlot = slot
     slot = "slot"
 
-    def access = this
+    val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_NullExpression)
 
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,
@@ -159,7 +159,7 @@ case class CUDA_BufferDeviceData(
     resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[IR_Statement] = {
-    def access = this
+    def access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
 
     Some(wrapInLoops(
       IR_IfCondition(access,
