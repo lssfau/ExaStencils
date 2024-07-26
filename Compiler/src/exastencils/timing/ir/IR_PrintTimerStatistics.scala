@@ -15,39 +15,7 @@ import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 import exastencils.util.ir._
 
-// todo should this be here?
-trait TimerGatherer {
-  val dataStructureName = "timerValues"
-
-  def createTimerValuesStorage(size : IR_Expression) : IR_VariableDeclaration = IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, size), dataStructureName)
-  def accessTimerValues(index: IR_Expression) : IR_ArrayAccess = IR_ArrayAccess(dataStructureName, index)
-  def timerValuesPointer : String = dataStructureName + ".data()"
-
-
-  def genDataCollect(timers : HashMap[(String, Option[Int]), IR_TimingIV], includeMeanTime : Boolean) : ListBuffer[IR_Statement] = {
-    var statements : ListBuffer[IR_Statement] = ListBuffer()
-
-    var it = 0
-    for (timer <- timers.toList.sortBy(_._1)) {
-      val (access, level) = timer._2 match {
-        case plainTimer : IR_PlainTimingIV     =>
-          (IR_StringLiteral(plainTimer.resolveName()), None)
-        case leveledTimer : IR_LeveledTimingIV =>
-          (leveledTimer.accessTimerAtLevel(), Some(leveledTimer.level))
-      }
-      statements += IR_Assignment(accessTimerValues(it), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, level), access))
-      it += 1
-      if (includeMeanTime) {
-        statements += IR_Assignment(accessTimerValues(it), IR_FunctionCall(IR_TimerFunctionReference("getMeanTime", IR_DoubleDatatype, level), access))
-        it += 1
-      }
-    }
-
-    statements
-  }
-}
-
-case class IR_PrintTimerStatistics() extends IR_TimerFunction with TimerGatherer {
+case class IR_PrintTimerStatistics() extends IR_TimerFunction with IR_TimerGatherer {
 
   override var name = "printTimerStatistics"
   override def prettyprint_decl() : String = prettyprint
@@ -69,7 +37,7 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with TimerGatherer
     body += IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, numberOfTimers), IR_PreIncrement(i),
       IR_Assignment(IR_ArrayAccess(meanVectorName, i), 0),
       IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, MPI_IV_MpiSize), IR_PreIncrement(j),
-        IR_Assignment(IR_ArrayAccess(meanVectorName, i), accessTimerValues(i + j * numberOfTimers), "+=")
+        IR_Assignment(IR_ArrayAccess(meanVectorName, i), accessTimerValue(i + j * numberOfTimers), "+=")
       ),
       IR_Assignment(IR_ArrayAccess(meanVectorName, i), MPI_IV_MpiSize, "/=")
     )
@@ -88,7 +56,7 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with TimerGatherer
       IR_Assignment(max, 0),
       IR_Assignment(min, "std::numeric_limits<double>::infinity()"), // todo not sure if this works
       IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, MPI_IV_MpiSize), IR_PreIncrement(j),
-        IR_Assignment(tmp, accessTimerValues(i + j * numberOfTimers)),
+        IR_Assignment(tmp, accessTimerValue(i + j * numberOfTimers)),
         IR_IfCondition(IR_Greater(tmp, max),
           IR_Assignment(max, tmp)
         ),
@@ -105,7 +73,7 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with TimerGatherer
     body += IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, numberOfTimers), IR_PreIncrement(i),
       IR_Assignment(IR_ArrayAccess(stdDevVectorName, i), 0),
       IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, MPI_IV_MpiSize), IR_PreIncrement(j),
-        IR_Assignment(tmp, accessTimerValues(i + j * numberOfTimers) - IR_ArrayAccess(meanVectorName, i)),
+        IR_Assignment(tmp, accessTimerValue(i + j * numberOfTimers) - IR_ArrayAccess(meanVectorName, i)),
         IR_Assignment(IR_ArrayAccess(stdDevVectorName, i), tmp * tmp, "+=")
       ),
       IR_Assignment(tmp, IR_ArrayAccess(stdDevVectorName, i) / MPI_IV_MpiSize),
@@ -113,13 +81,13 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with TimerGatherer
     )
 
     // print calculated values
-    body += IR_RawPrint(IR_StringConstant("TimerName / Metric | Average | Max | Min | StdDev"))
+    body += IR_RawPrint(IR_StringConstant("TimerName / Metric | Average | Min | Max | StdDev"))
     for (index <- 0 until numberOfTimers) {
       body += IR_RawPrint(
         IR_StringConstant(timerNames(index)),
         IR_ArrayAccess(meanVectorName, index),
-        IR_ArrayAccess(maxVectorName, index),
         IR_ArrayAccess(minVectorName, index),
+        IR_ArrayAccess(maxVectorName, index),
         IR_ArrayAccess(stdDevVectorName, index)
       )
     }
@@ -141,11 +109,11 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with TimerGatherer
 
     body += IR_IfCondition(MPI_IsRootProc(),
       ListBuffer[IR_Statement](
-        createTimerValuesStorage(MPI_IV_MpiSize * timers.size))
+        createTimerValueStorage(MPI_IV_MpiSize * timers.size))
         ++ genDataCollect(timers, includeMeanTime = false)
         ++ ListBuffer[IR_Statement](MPI_Gather(timerValuesPointer, IR_DoubleDatatype, timers.size))
         ++ calculateAndPrint(timerNames),
-      ListBuffer[IR_Statement](createTimerValuesStorage(timers.size))
+      ListBuffer[IR_Statement](createTimerValueStorage(timers.size))
         ++ genDataCollect(timers, includeMeanTime = false)
         ++ ListBuffer[IR_Statement](MPI_Gather(timerValuesPointer, timerValuesPointer, IR_DoubleDatatype, timers.size))
     )

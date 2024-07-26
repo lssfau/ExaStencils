@@ -30,7 +30,7 @@ import exastencils.util.ir._
 
 /// IR_PrintAllTimersToFile
 
-case class IR_PrintAllTimersToFile() extends IR_TimerFunction with TimerGatherer {
+case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_TimerGatherer {
   override var name = "printAllTimersToFile"
   override def prettyprint_decl() : String = prettyprint
 
@@ -50,8 +50,8 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with TimerGatherer
       }
       statements += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
         IR_StringConstant(name), sep,
-        IR_ArrayAccess(dataStructureName, (stride * (2 * timers.size)) + it), sep,
-        IR_ArrayAccess(dataStructureName, (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
+        accessTimerValue((stride * (2 * timers.size)) + it), sep,
+        accessTimerValue((stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
       it += 2
     }
 
@@ -82,23 +82,23 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with TimerGatherer
       if (Knowledge.timer_printTimersToFileForEachRank) {
         body += IR_IfCondition(MPI_IsRootProc(),
           ListBuffer[IR_Statement](
-            IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, MPI_IV_MpiSize * 2 * timers.size), dataStructureName))
+            createTimerValueStorage(MPI_IV_MpiSize * 2 * timers.size))
           ++ genDataCollect(timers, includeMeanTime = true)
-          ++ ListBuffer[IR_Statement](MPI_Gather(dataStructureName + ".data()", IR_DoubleDatatype, 2 * timers.size))
+          ++ ListBuffer[IR_Statement](MPI_Gather(timerValuesPointer, IR_DoubleDatatype, 2 * timers.size))
           ++ genPrint(timers),
-          ListBuffer[IR_Statement](IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, 2 * timers.size), dataStructureName))
+          ListBuffer[IR_Statement](createTimerValueStorage(2 * timers.size))
             ++ genDataCollect(timers, includeMeanTime = true)
-            ++ ListBuffer[IR_Statement](MPI_Gather(dataStructureName + ".data()", dataStructureName + ".data()", IR_DoubleDatatype, 2 * timers.size))
+            ++ ListBuffer[IR_Statement](MPI_Gather(timerValuesPointer, timerValuesPointer, IR_DoubleDatatype, 2 * timers.size))
         )
       } else {
-        body += IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, 2 * timers.size), dataStructureName)
+        body += createTimerValueStorage(2 * timers.size)
         body ++= genDataCollect(timers, includeMeanTime = true)
-        body += MPI_Reduce(0, dataStructureName + ".data()", IR_DoubleDatatype, 2 * timers.size, "+")
+        body += MPI_Reduce(0, timerValuesPointer, IR_DoubleDatatype, 2 * timers.size, "+")
         if (Knowledge.mpi_enabled) {
           def timerId = IR_VariableAccess("timerId", IR_IntegerDatatype)
 
           body += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_Lower(timerId, 2 * timers.size), IR_PreIncrement(timerId),
-            IR_Assignment(IR_ArrayAccess(dataStructureName, timerId), MPI_IV_MpiSize, "/="))
+            IR_Assignment(accessTimerValue(timerId), MPI_IV_MpiSize, "/="))
         }
         body += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }
