@@ -1,0 +1,5 @@
+.seralize:
+  resource_group: "Serializer"
+
+.host_serializer:
+  resource_group: "Host"

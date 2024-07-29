@@ -88,7 +88,7 @@ Artifacts can be added for the other sub-projects in a similar fashion.
 For users that don't want to use an IDE or want to compile on the command line, sbt is required.
 *If you are using Windows we recommend using Ubuntu Shell which is part of the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/install-win10).*
 
-The first step is installing sbt -- a guide can be found [here](https://www.scala-sbt.org/1.0/docs/Installing-sbt-on-Linux.html)
+The first step is installing sbt -- a guide can be found [here](https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html)
 
 Next, open a shell and locate the folder the git repository has been checked out to.
 Compilation is done via typing
