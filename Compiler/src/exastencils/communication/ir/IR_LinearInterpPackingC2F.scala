@@ -401,9 +401,8 @@ case class IR_LinearInterpPackingC2FRemote(
 
     def commBuffer = IR_IV_CommBuffer(field, send, indices.getTotalSize, neighborIdx, concurrencyId, indexOfRefinedNeighbor)
 
-    def tmpBufAccess(offset : IR_Expression) = IR_TempBufferAccess(commBuffer,
-      IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _) + IR_ExpressionIndex(offset),
-      IR_ExpressionIndex(indices.end, indices.begin, _ - _))
+    def tmpBufAccess(index : IR_ExpressionIndex, offset : IR_ExpressionIndex, stride : IR_ExpressionIndex) =
+      IR_TempBufferAccess(commBuffer, index + offset, stride)
 
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -421,11 +420,29 @@ case class IR_LinearInterpPackingC2FRemote(
 
       // write result variables to buffer
       for ((res, i) <- interpResults.zipWithIndex) {
-        innerStmts += IR_Assignment(tmpBufAccess(i), res)
+        val off = IR_ExpressionIndex(Array.fill(numDims)(0).updated(0, i))
+        val stride = IR_ExpressionIndex(indices.end, indices.begin, _ - _)
+
+        // index mapping for temporary buffer
+        val adaptedIdx = {
+          IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims).indices.zipWithIndex.map { case (idx, i) =>
+            if (getDimFromDir(neighbor.dir) != i)
+              (idx - indices.begin(i)) * Knowledge.refinement_maxFineNeighborsForCommAxis : IR_Expression
+            else
+              idx - indices.begin(i) : IR_Expression
+          })
+        }
+
+        innerStmts += IR_Assignment(tmpBufAccess(adaptedIdx, off, stride), res)
       }
     } else {
       // interp values from fine neighbor already aligned in correct order
-      innerStmts += IR_Assignment(IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt), tmpBufAccess(0))
+      val idx = IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _)
+      val off = IR_ExpressionIndex(Array.fill(numDims)(0))
+      val stride = IR_ExpressionIndex(indices.end, indices.begin, _ - _)
+
+      innerStmts += IR_Assignment(IR_DirectFieldLikeAccess(field, Duplicate(slot), defIt),
+        tmpBufAccess(idx, off, stride))
     }
 
     val loop = new IR_LoopOverDimensions(numDims, indices, innerStmts, condition = condition)
