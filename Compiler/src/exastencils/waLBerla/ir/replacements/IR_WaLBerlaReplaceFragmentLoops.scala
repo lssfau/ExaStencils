@@ -14,11 +14,6 @@ import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 object IR_WaLBerlaPrepareReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("Prepare fragment loops replacements with waLBerla block loops") {
   var fragmentLoopsToReplace : ListBuffer[IR_LoopOverFragments] = ListBuffer()
 
-  override def apply(applyAtNode : Option[Node]) : Unit = {
-    fragmentLoopsToReplace.clear()
-    super.apply(applyAtNode)
-  }
-
   this += Transformation("Find remote send/recv calls with accesses to wb fields", {
     case transfer : IR_RemoteTransfer if transfer.field.isInstanceOf[IR_WaLBerlaField] =>
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
