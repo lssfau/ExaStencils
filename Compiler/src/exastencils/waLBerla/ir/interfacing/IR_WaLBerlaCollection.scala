@@ -114,10 +114,10 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     if (Knowledge.waLBerla_generateCommSchemes) {
       addExternalDependency("blockforest/communication/NonUniformBufferedScheme.h")
 
-      if (Knowledge.waLBerla_useQuadraticC2FInterpolation)
-        addExternalDependency("field/refinement/PackInfoQuadratic.h")
-      else
+      if (Knowledge.waLBerla_useConservingRefinementPackInfo)
         addExternalDependency("field/refinement/PackInfo.h")
+      else
+        addExternalDependency("field/refinement/PackInfoQuadratic.h")
     }
   }
 

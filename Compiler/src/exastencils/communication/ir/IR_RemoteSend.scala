@@ -28,6 +28,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.timing.ir._
@@ -78,8 +79,10 @@ case class IR_CopyToSendBuffer(
     case 2 => IR_QuadraticInterpPackingC2FRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
   }
 
-  override def fineToCoarseCopyLoop() : IR_Statement =
-    IR_LinearInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+  override def fineToCoarseCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderF2C match {
+    case 1 => IR_LinearInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+    case v => Logger.error(s"Invalid value $v for flag 'refinement_interpOrderF2C' when using generated communication with refinement")
+  }
 
   override def expand() : Output[StatementList] = {
     var ret = ListBuffer[IR_Statement]()

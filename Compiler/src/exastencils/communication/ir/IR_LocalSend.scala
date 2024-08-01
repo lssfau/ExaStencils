@@ -27,6 +27,7 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.domain.ir._
 import exastencils.fieldlike.ir._
+import exastencils.logger.Logger
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
 import exastencils.timing.ir._
 
@@ -52,8 +53,10 @@ case class IR_LocalSend(
     case 2 => IR_QuadraticInterpPackingC2FLocal(send = true, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
   }
 
-  def fineToCoarseCopyLoop() : IR_Statement =
-    IR_LinearInterpPackingF2CLocal(send = true, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+  def fineToCoarseCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderF2C match {
+    case 1 => IR_LinearInterpPackingF2CLocal(send = true, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+    case v => Logger.error(s"Invalid value $v for flag 'refinement_interpOrderF2C' when using generated communication with refinement")
+  }
 
   override def expand() : Output[IR_Statement] = {
     val neighbor = packInfo.neighbor

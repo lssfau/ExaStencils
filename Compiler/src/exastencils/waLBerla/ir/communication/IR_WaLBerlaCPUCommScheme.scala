@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockDataID
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
@@ -19,7 +20,7 @@ case class IR_WaLBerlaCPUCommScheme(var wbField : IR_WaLBerlaField, var slot : I
 
   def createUniformPackInfo() = {
     val packInfoType = if (Knowledge.waLBerla_useRefinement)
-      if (Knowledge.waLBerla_useQuadraticC2FInterpolation) "field::refinement::PackInfoQuadratic" else "field::refinement::PackInfo"
+      if (!Knowledge.waLBerla_useConservingRefinementPackInfo) "field::refinement::PackInfoQuadratic" else "field::refinement::PackInfo"
     else
       "field::communication::PackInfo"
 
@@ -28,8 +29,15 @@ case class IR_WaLBerlaCPUCommScheme(var wbField : IR_WaLBerlaField, var slot : I
       templateArgs += s", $WB_StencilTemplate"
 
     var ctorArgs : ListBuffer[IR_Expression] = ListBuffer(blockDataID)
-    if (Knowledge.waLBerla_useRefinement && Knowledge.waLBerla_useQuadraticC2FInterpolation)
+    if (Knowledge.waLBerla_useRefinement && !Knowledge.waLBerla_useConservingRefinementPackInfo) {
       ctorArgs.prepend(blockForest)
+
+      Knowledge.refinement_interpOrderF2C match {
+        case 1 => templateArgs += ", false"
+        case 2 => templateArgs += ", true"
+        case v => Logger.error(s"Invalid value $v for flag 'refinement_interpOrderF2C' when using comm schemes with refinement.")
+      }
+    }
 
     make_shared(s"$packInfoType< $templateArgs >", ctorArgs : _*)
   }

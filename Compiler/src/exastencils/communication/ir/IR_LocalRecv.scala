@@ -55,8 +55,10 @@ case class IR_LocalRecv(
     case 2 => IR_QuadraticInterpPackingC2FLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
   }
 
-  def fineToCoarseCopyLoop() : IR_Statement =
-    IR_LinearInterpPackingF2CLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+  def fineToCoarseCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderF2C match {
+    case 1 => IR_LinearInterpPackingF2CLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+    case v => Logger.error(s"Invalid value $v for flag 'refinement_interpOrderF2C' when using generated communication with refinement")
+  }
 
   override def expand() : Output[IR_Statement] = {
     val packIntervalDest = packInfo.getPackIntervalDest()

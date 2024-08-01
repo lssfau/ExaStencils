@@ -136,6 +136,9 @@ object Knowledge {
   var refinement_enabled : Boolean = false
 
   var refinement_interpOrderC2F : Int = 2
+
+  var refinement_interpOrderF2C : Int = 1
+
   def refinement_availableC2FInterpOrders : List[Int] = List(1, 2)
 
   // determines fine:coarse ratio (e.g., 2:1)
@@ -518,8 +521,10 @@ object Knowledge {
   // needs to be enabled if waLBerla data structures are used
   var waLBerla_generateInterface : Boolean = false
 
-  // [true|false]: interpolation order: true -> quadratic, false -> constant
-  var waLBerla_useQuadraticC2FInterpolation : Boolean = true
+  // [true|false]: conserving pack info provided by waLBerla (at the cost of accuracy)
+  // true -> constant C2F, linear F2C
+  // false -> quadratic C2F, linear/quadratic F2C
+  var waLBerla_useConservingRefinementPackInfo : Boolean = false
 
   // [true|false]: optimization.
   // generate comm schemes for waLBerla or use our internal communication
@@ -1058,6 +1063,7 @@ object Knowledge {
     Constraints.condEnsureValue(refinement_enabled, true, waLBerla_useRefinement, "Flag 'refinement_enabled' must be enabled when 'waLBerla_useRefinement' is true")
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
     Constraints.condError(waLBerla_useRefinement && waLBerla_useGridPartFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
+
     Constraints.condError(!waLBerla_cacheFieldPointers && experimental_cuda_useStreams, "CUDA streams can only be combined with waLBerla when 'waLBerla_cacheFieldPointers = true'.")
 
     // refinement
