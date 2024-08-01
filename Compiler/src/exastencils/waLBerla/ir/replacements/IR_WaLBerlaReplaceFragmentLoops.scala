@@ -11,7 +11,7 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 
-object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("Replace fragment loops over waLBerla fields") {
+object IR_WaLBerlaPrepareReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("Prepare fragment loops replacements with waLBerla block loops") {
   var fragmentLoopsToReplace : ListBuffer[IR_LoopOverFragments] = ListBuffer()
 
   override def apply(applyAtNode : Option[Node]) : Unit = {
@@ -32,16 +32,16 @@ object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("R
   })
 
   this += Transformation("Find host/device dirty flag queries with accesses to wb fields", {
-    case dirtyFlag : CUDA_HostBufferDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField] =>
+    case dirtyFlag : CUDA_HostBufferDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField]   =>
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
       dirtyFlag
     case dirtyFlag : CUDA_DeviceBufferDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField] =>
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
       dirtyFlag
-    case dirtyFlag : CUDA_HostDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField]   =>
+    case dirtyFlag : CUDA_HostDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField]         =>
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
       dirtyFlag
-    case dirtyFlag : CUDA_DeviceDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField] =>
+    case dirtyFlag : CUDA_DeviceDataUpdated if dirtyFlag.field.isInstanceOf[IR_WaLBerlaField]       =>
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
       dirtyFlag
   })
@@ -51,9 +51,15 @@ object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("R
       fragmentLoopsToReplace ++= collector.stack.collectFirst { case n : IR_LoopOverFragments => n }
       iv
   })
+}
+
+object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("Replace fragment loops over waLBerla fields") {
+  this.onBefore = () => IR_WaLBerlaPrepareReplaceFragmentLoops.apply()
 
   this += Transformation("Replace", {
-    case loopOverFrags : IR_LoopOverFragments if containsWaLBerlaFieldAccesses(loopOverFrags) || fragmentLoopsToReplace.contains(loopOverFrags) =>
+    case loopOverFrags : IR_LoopOverFragments if containsWaLBerlaFieldAccesses(loopOverFrags) ||
+      IR_WaLBerlaPrepareReplaceFragmentLoops.fragmentLoopsToReplace.contains(loopOverFrags) =>
+
       IR_WaLBerlaLoopOverLocalBlocks(loopOverFrags.body, loopOverFrags.parallelization)
   })
 }

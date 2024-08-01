@@ -33,9 +33,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       ConditionedSingleStrategyWrapper(Knowledge.waLBerla_generateCommSchemes, IR_WaLBerlaReplaceCommunication)))
 
     scheduler.prependToFirstFound(IR_ResolveRemoteTransfer,
-      IR_WaLBerlaReplaceFragmentLoops,
-      ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaReplaceCommIVs)
+      IR_WaLBerlaPrepareReplaceFragmentLoops)
 
     // replace accesses to geometry information
     scheduler.prependToAllFound(IR_ResolveIntegrateOnGrid,
@@ -73,6 +71,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // resolve block loops before fragment loops are resolved
     scheduler.prependToAllFound(IR_ResolveLoopOverFragments,
       IR_WaLBerlaReplaceFragmentLoops,
+      IR_WaLBerlaReplaceCommIVs,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
       IR_WaLBerlaResolveLoopOverBlocks)
 
@@ -101,6 +100,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
       IR_WaLBerlaReplaceCommIVs,
       IR_WaLBerlaReplaceFragmentLoops,
+      IR_WaLBerlaResolveLoopOverBlocks,
       ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,
