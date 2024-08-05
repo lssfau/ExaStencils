@@ -496,6 +496,9 @@ object Knowledge {
   // the number of mpi threads to be used
   var mpi_numThreads : Int = 1
 
+  // [true|false] // employ compact MPI tag generation for MPI implementations with small upper bound for MPI tagd
+  var mpi_generateCompactTags : Boolean = false
+
   // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
   var mpi_useCustomDatatypes : Boolean = false
   // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
