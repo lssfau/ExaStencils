@@ -25,12 +25,12 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()
 ) extends IR_LoopOverProcessLocalBlocks {
 
-  // array of process-local blocks
-  private val blockArray = IR_WaLBerlaLocalBlocks()
-
   def expandSpecial() : Output[IR_ForLoop] = {
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
+
+    // array of process-local blocks
+    val blockArray = IR_WaLBerlaLocalBlocks()
 
     val upperBoundKnown = Knowledge.domain_isPartitioningKnown
     val upperBound : IR_Expression = if (upperBoundKnown)
