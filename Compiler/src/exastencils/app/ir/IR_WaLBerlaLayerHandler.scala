@@ -73,7 +73,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaReplaceFragmentLoops,
       IR_WaLBerlaReplaceCommIVs,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaResolveLoopOverLocalBlocks)
+      IR_WaLBerlaResolveLoopOverBlocks)
 
     // resolve block loops before fieldlike accesses are resolved
     scheduler.prependToFirstFound(IR_ResolveFieldLikeAccess,
@@ -100,7 +100,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaReplaceFragmentLoops,
       ConditionedSingleStrategyWrapper(!Knowledge.waLBerla_useGridPartFromExa, IR_WaLBerlaReplaceFragmentIVs),
       IR_WaLBerlaReplaceCommIVs,
-      IR_WaLBerlaResolveLoopOverLocalBlockArray,
+      IR_WaLBerlaResolveLoopOverBlocks,
       ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,

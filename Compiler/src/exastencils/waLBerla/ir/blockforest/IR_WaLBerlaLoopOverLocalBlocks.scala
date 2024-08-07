@@ -123,18 +123,13 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
   }
 }
 
-object IR_WaLBerlaResolveLoopOverLocalBlocks extends DefaultStrategy("Resolve waLBerla LoopOverLocalBlocks") {
+object IR_WaLBerlaResolveLoopOverBlocks extends DefaultStrategy("Resolve waLBerla LoopOverBlocks") {
   val collector = new IR_StackCollector
   this.register(collector)
   this.onBefore = () => this.resetCollectors()
 
   this += Transformation("Resolve", {
     case loop : IR_WaLBerlaLoopOverLocalBlocks => loop.expandSpecial(collector)
-  })
-}
-
-object IR_WaLBerlaResolveLoopOverLocalBlockArray extends DefaultStrategy("Resolve waLBerla LoopOverLocalBlockArray") {
-  this += Transformation("Resolve", {
     case loop : IR_WaLBerlaLoopOverLocalBlockArray => loop.expandSpecial()
   })
 }
