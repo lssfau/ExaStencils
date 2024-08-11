@@ -9,6 +9,7 @@ import exastencils.base.ir.IR_Statement
 import exastencils.base.ir.IR_UnitDatatype
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdVectorDatatype_VS
+import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.parallelization.api.mpi.MPI_Gather
 import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
@@ -54,7 +55,7 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with IR_TimerGathe
     body += IR_VariableDeclaration(IR_StdVectorDatatype_VS(IR_DoubleDatatype, numberOfTimers), minVectorName)
     body += IR_ForLoop(IR_VariableDeclaration(i, 0), IR_Lower(i, numberOfTimers), IR_PreIncrement(i),
       IR_Assignment(max, 0),
-      IR_Assignment(min, "std::numeric_limits<double>::infinity()"), // todo not sure if this works
+      IR_Assignment(min, "std::numeric_limits<double>::infinity()"),
       IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, MPI_IV_MpiSize), IR_PreIncrement(j),
         IR_Assignment(tmp, accessTimerValue(i + j * numberOfTimers)),
         IR_IfCondition(IR_Greater(tmp, max),
@@ -81,16 +82,50 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with IR_TimerGathe
     )
 
     // print calculated values
-    body += IR_RawPrint(IR_StringConstant("TimerName / Metric | Average | Min | Max | StdDev"))
+    val stdOut = IR_VariableAccess("std::cout", IR_UnknownDatatype)
+
+    val firstColumnText = "TimerName / Metric "
+    val maxNameLength = timerNames.maxBy(_.length).length
+
+    body += IR_ExpressionStatement(
+      if (Knowledge.field_printFieldPrecision == -1) {
+        "std::cout << std::scientific"
+      } else {
+        s"std::cout << std::scientific << std::setprecision(${Knowledge.field_printFieldPrecision})"
+      }
+    )
+
+    val precisionVar = IR_VariableAccess("streamPrecision", IR_IntegerDatatype)
+    body += IR_VariableDeclaration(precisionVar, IR_StringLiteral("std::cout.precision()"))
+
+    val firstColumnWidth = IR_StringLiteral(s"std::setw(${Math.max(firstColumnText.length, maxNameLength + 1)})")
+    val columnWidthBaseValue = 6 + 8 // width of largest column 'Average', which is the largest + 8 for exponent and integer part of number
+    val columnWidth = IR_StringLiteral(s"std::setw(${columnWidthBaseValue} + ${precisionVar.name})")
+    val columnSeparator = IR_StringConstant("|")
+
+    body += IR_ExpressionStatement("std::cout << std::left")
+
+    body += IR_Print(stdOut,
+      firstColumnWidth, IR_StringConstant(firstColumnText), columnSeparator,
+      columnWidth, IR_StringConstant(" Average "), columnSeparator,
+      columnWidth, IR_StringConstant(" Min "), columnSeparator,
+      columnWidth, IR_StringConstant(" Max "), columnSeparator,
+      columnWidth, IR_StringConstant(" StdDev "), IR_Print.endl
+      //"TimerName / Metric | Average | Min | Max | StdDev"
+    )
+
     for (index <- 0 until numberOfTimers) {
-      body += IR_RawPrint(
-        IR_StringConstant(timerNames(index)),
-        IR_ArrayAccess(meanVectorName, index),
-        IR_ArrayAccess(minVectorName, index),
-        IR_ArrayAccess(maxVectorName, index),
-        IR_ArrayAccess(stdDevVectorName, index)
+      body += IR_Print(stdOut,
+        firstColumnWidth, IR_StringConstant(timerNames(index)), columnSeparator,
+        columnWidth, IR_ArrayAccess(meanVectorName, index), columnSeparator,
+        columnWidth, IR_ArrayAccess(minVectorName, index), columnSeparator,
+        columnWidth, IR_ArrayAccess(maxVectorName, index), columnSeparator,
+        columnWidth, IR_ArrayAccess(stdDevVectorName, index), IR_Print.endl
       )
     }
+
+    body += IR_ExpressionStatement("std::cout.flags(std::ios::fmtflags(0))")
+
     body
   }
 
