@@ -134,25 +134,25 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with IR_TimerGathe
     val timers = IR_CollectTimers.timers
 
     val body : ListBuffer[IR_Statement] = ListBuffer()
+    if (timers.nonEmpty) {
+      val timerNames = timers.values.map {
+        case plainTimer : IR_PlainTimingIV     =>
+          plainTimer.name
+        case leveledTimer : IR_LeveledTimingIV =>
+          leveledTimer.name + "_" + leveledTimer.level
+      }.toList.sorted
 
-    val timerNames = timers.values.map {
-      case plainTimer : IR_PlainTimingIV     =>
-        plainTimer.name
-      case leveledTimer : IR_LeveledTimingIV =>
-        leveledTimer.name + "_" + leveledTimer.level
-    }.toList.sorted
-
-    body += IR_IfCondition(MPI_IsRootProc(),
-      ListBuffer[IR_Statement](
-        createTimerValueStorage(MPI_IV_MpiSize * timers.size))
-        ++ genDataCollect(timers, includeMeanTime = false)
-        ++ ListBuffer[IR_Statement](MPI_Gather(timerValuesPointer, IR_DoubleDatatype, timers.size))
-        ++ calculateAndPrint(timerNames),
-      ListBuffer[IR_Statement](createTimerValueStorage(timers.size))
-        ++ genDataCollect(timers, includeMeanTime = false)
-        ++ ListBuffer[IR_Statement](MPI_Gather(timerValuesPointer, timerValuesPointer, IR_DoubleDatatype, timers.size))
-    )
-
+      body += IR_IfCondition(MPI_IsRootProc(),
+        ListBuffer[IR_Statement](
+          createTimerValueStorage(MPI_IV_MpiSize * timers.size))
+          ++ genDataCollect(timers, includeMeanTime = false)
+          ++ ListBuffer[IR_Statement](MPI_Gather(timerValuesPointer, IR_DoubleDatatype, timers.size))
+          ++ calculateAndPrint(timerNames),
+        ListBuffer[IR_Statement](createTimerValueStorage(timers.size))
+          ++ genDataCollect(timers, includeMeanTime = false)
+          ++ ListBuffer[IR_Statement](MPI_Gather(timerValuesPointer, timerValuesPointer, IR_DoubleDatatype, timers.size))
+      )
+    }
 
     val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false

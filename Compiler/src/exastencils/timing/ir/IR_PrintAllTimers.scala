@@ -104,13 +104,15 @@ case class IR_PrintAllTimers() extends IR_AbstractPrintAllTimers {
     IR_CollectTimers.applyStandalone(StateManager.root)
     val timers = IR_CollectTimers.timers
 
+    val body : ListBuffer[IR_Statement] = ListBuffer()
+    if (timers.nonEmpty) {
+      body ++= prepareOutputFormatting()
+      body += IR_RawPrint(IR_StringConstant("--------- Timer Values ---------"))
+      val lengthOfLongestName = timers.keys.map(_._1).maxBy(_.length).length
+      body ++= timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2, lengthOfLongestName)).to[ListBuffer]
 
-    val body : ListBuffer[IR_Statement] = prepareOutputFormatting()
-    body += IR_RawPrint(IR_StringConstant("--------- Timer Values ---------"))
-    val lengthOfLongestName = timers.keys.map(_._1).maxBy(_.length).length
-    body ++= timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2, lengthOfLongestName)).to[ListBuffer]
-
-    body += resetOutputFormatting()
+      body += resetOutputFormatting()
+    }
 
     val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false
@@ -144,18 +146,22 @@ case class IR_PrintAllTimersIncludingAutomatic() extends IR_AbstractPrintAllTime
     val timers = IR_CollectTimers.timers
     val sortedAccumulators = accumulators.toList.sortBy(_._1)
 
-    val body : ListBuffer[IR_Statement] = prepareOutputFormatting()
-    body ++= sortedAccumulators.map { case (_, vAcc) => IR_VariableDeclaration(vAcc, 0.0) }
+    val body : ListBuffer[IR_Statement] = ListBuffer()
+    if (timers.nonEmpty) {
+      body ++= prepareOutputFormatting()
+      body ++= sortedAccumulators.map { case (_, vAcc) => IR_VariableDeclaration(vAcc, 0.0) }
 
-    body += IR_RawPrint(IR_StringConstant("--------- Timer Values ---------"))
-    val lengthOfLongestTimerName = timers.keys.map(_._1).maxBy(_.length).length
-    body ++= timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2, lengthOfLongestTimerName)).to[ListBuffer]
+      // print out mean total timers for automatic function timers
+      body += IR_RawPrint(IR_StringConstant("--------- Timer Values ---------"))
+      val lengthOfLongestTimerName = timers.keys.map(_._1).maxBy(_.length).length
+      body ++= timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2, lengthOfLongestTimerName)).to[ListBuffer]
 
-    // print out mean total timers for automatic function timers
-    body += IR_RawPrint(IR_StringConstant("------- Aggregated Timer Values -------"))
-    body += genPrintAccuCode(sortedAccumulators)
+      body += IR_RawPrint(IR_StringConstant("------- Aggregated Timer Values -------"))
+      body += genPrintAccuCode(sortedAccumulators)
 
-    body += resetOutputFormatting()
+      body += resetOutputFormatting()
+    }
+
 
     val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false
@@ -201,39 +207,6 @@ case class IR_PrintAllTimersIncludingAutomatic() extends IR_AbstractPrintAllTime
     )
 
     outputTuples += (("Mean mean total time for all automatic timers:", sortedAccumulators.map(_._2 : IR_Expression).reduce(_ + _)))
-
-    /*
-    for (((category, optionalLevel), vAcc) <- sortedAccumulators) {
-      if (categoryEnabled(category)) {
-        val levelDescription = if (optionalLevel.isDefined) s" at level ${optionalLevel.get}" else ""
-        val removalPadding = if (optionalLevel.isDefined) atLevelLength else 0
-        statements += IR_Print(stdOut,
-          IR_StringConstant(s"Mean mean total time for sum of ${vAcc.name}${levelDescription}:"),
-          IR_StringLiteral(s"std::setw(${padding(vAcc.name.length) - removalPadding})"),
-          vAcc,
-          IR_Print.endl
-        )
-      }
-    }
-
-    IR_AutomaticTimingCategory.values.toList.sortBy(_.toString).foreach(enum =>
-      if (categoryEnabled(enum)) {
-        statements += IR_Print(stdOut,
-          IR_StringConstant(s"Mean mean total time for all automatic ${enum.toString} timers:"),
-          IR_StringLiteral(s"std::setw(${padding(enum.toString.length)})"),
-          filterAndReduce(sortedAccumulators, enum),
-          IR_Print.endl
-        )
-      }
-    )
-
-    statements += IR_Print(stdOut,
-      IR_StringConstant("Mean mean total time for all automatic timers:"),
-      IR_StringLiteral(s"std::setw(${padding("automatic".length)})"),
-      sortedAccumulators.map(_._2 : IR_Expression).reduce(_ + _),
-      IR_Print.endl
-    )
-     */
 
     val statements : ListBuffer[IR_Statement] = ListBuffer()
     val stdOut = IR_VariableAccess("std::cout", IR_UnknownDatatype)
