@@ -762,6 +762,8 @@ test:CUDA:
     script:
         # CUDA_SISC_2D_ConstCoeff
         - python3 run_test.py CUDA_SISC_2D_ConstCoeff CUDA 2D_ConstCoeff.knowledge "2D_ConstCoeff.exa4" ../SISC/2D_ConstCoeff.results Platform/chimaira-gpu.platform output
+        # CUDA_SISC_2D_ConstCoeff_VarFieldSize
+        - python3 run_test.py CUDA_SISC_2D_ConstCoeff_VarFieldSize CUDA 2D_ConstCoeffVarFieldSize.knowledge "2D_ConstCoeff.exa4" ../SISC/2D_ConstCoeff.results Platform/chimaira-gpu.platform output
         # CUDA_SISC_2D_VarCoeff: has its own expected results due to rounding differences compared to original SISC version
         - python3 run_test.py CUDA_SISC_2D_VarCoeff CUDA 2D_VarCoeff.knowledge "2D_VarCoeff.exa4" 2D_VarCoeff.results Platform/chimaira-gpu.platform output
         # CUDA_SISC_3D_ConstCoeff
