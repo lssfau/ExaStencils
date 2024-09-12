@@ -30,6 +30,7 @@ import exastencils.core._
 import exastencils.datastructures.Node
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.optimization.ir.EvaluationException
 import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// CUDA_Kernel
@@ -94,8 +95,8 @@ case class CUDA_Kernel(
 
   var evaluatedExecutionConfiguration = false
   var requiredThreadsPerDim = Array[Long]()
-  var numThreadsPerBlock = Array[Long]()
-  var numBlocksPerDim = Array[Long]()
+  var numThreadsPerBlock = Array[IR_Expression]()
+  var numBlocksPerDim = Array[IR_Expression]()
 
   // thread ids
   //var localThreadId = Array[IR_Expression]()
@@ -179,38 +180,52 @@ case class CUDA_Kernel(
         evalThreadIds()
       }
 
-      // 2.3 calculate the required amount of shared memory
-      val numDupLayersLeft = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersLeft)
-      val numDupLayersRight = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersRight)
-      val numInnerLayers = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numInnerLayers)
-      val numPointsInStencil = (numDupLayersLeft, numInnerLayers, numDupLayersRight).zipped.map((x, y, z) => x + y + z)
-      val numPointsInStencilPerThreadBlock = (numPointsInStencil, numThreadsPerBlock).zipped.map((x, y) => math.min(x, y))
-      val arraySize = ((numPointsInStencilPerThreadBlock, leftDeviationFromBaseIndex).zipped.map(_ + _), rightDeviationFromBaseIndex).zipped.map(_ + _)
-      requiredMemoryInByte = arraySize.product * (fieldAccesses.head.field.layout.datatype match {
-        case IR_RealDatatype   => if (Knowledge.useDblPrecision) 8 else 4
-        case IR_DoubleDatatype => 8
-        case IR_FloatDatatype  => 4
-        case _                 => -1
-      })
+      // 2.3 calculate the required amount of shared memory (only if data dimensions are known)
+      var numThreadsPerBlockIsInt = true
+      val numThreadsPerBlockAsInt : Array[Long] = numThreadsPerBlock.map(expr =>
+        try {
+          IR_SimplifyExpression.evalIntegral(expr)
+        } catch {
+          case _ : EvaluationException =>
+            numThreadsPerBlockIsInt = false
+            0
+        }
+      )
 
-      // 2.4 consider this field for shared memory if all conditions are met
-      if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
-        val access = IR_DirectFieldAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
-        access.allowLinearization = false
-        fieldNames += name
-        fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
-        fieldForSharedMemory(name) = access
-        fieldAccesses.indices.foreach(x => fieldAccesses(x).annotate(ConstantIndexPart, fieldIndicesConstantPart(name)(x)))
-        fieldAccessesForSharedMemory(name) = fieldAccesses
-        fieldOffset(name) = Duplicate(offset)
-        leftDeviations(name) = leftDeviationFromBaseIndex
-        leftDeviation(name) = leftDeviationFromBaseIndex.head
-        rightDeviations(name) = rightDeviationFromBaseIndex
-        rightDeviation(name) = rightDeviationFromBaseIndex.head
-        sharedArraySize(name) = arraySize
-        fieldDatatype(name) = access.field.layout.datatype
-        foundSomeAppropriateField = true
-        availableSharedMemory -= requiredMemoryInByte
+      // only compute required memory
+      if (numThreadsPerBlockIsInt) {
+        val numDupLayersLeft = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersLeft)
+        val numDupLayersRight = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersRight)
+        val numInnerLayers = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numInnerLayers)
+        val numPointsInStencil = (numDupLayersLeft, numInnerLayers, numDupLayersRight).zipped.map((x, y, z) => x + y + z)
+        val numPointsInStencilPerThreadBlock = (numPointsInStencil, numThreadsPerBlockAsInt).zipped.map((x, y) => math.min(x, y))
+        val arraySize = ((numPointsInStencilPerThreadBlock, leftDeviationFromBaseIndex).zipped.map(_ + _), rightDeviationFromBaseIndex).zipped.map(_ + _)
+        requiredMemoryInByte = arraySize.product * (fieldAccesses.head.field.layout.datatype match {
+          case IR_RealDatatype   => if (Knowledge.useDblPrecision) 8 else 4
+          case IR_DoubleDatatype => 8
+          case IR_FloatDatatype  => 4
+          case _                 => -1
+        })
+
+        // 2.4 consider this field for shared memory if all conditions are met
+        if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
+          val access = IR_DirectFieldAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
+          access.allowLinearization = false
+          fieldNames += name
+          fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
+          fieldForSharedMemory(name) = access
+          fieldAccesses.indices.foreach(x => fieldAccesses(x).annotate(ConstantIndexPart, fieldIndicesConstantPart(name)(x)))
+          fieldAccessesForSharedMemory(name) = fieldAccesses
+          fieldOffset(name) = Duplicate(offset)
+          leftDeviations(name) = leftDeviationFromBaseIndex
+          leftDeviation(name) = leftDeviationFromBaseIndex.head
+          rightDeviations(name) = rightDeviationFromBaseIndex
+          rightDeviation(name) = rightDeviationFromBaseIndex.head
+          sharedArraySize(name) = arraySize
+          fieldDatatype(name) = access.field.layout.datatype
+          foundSomeAppropriateField = true
+          availableSharedMemory -= requiredMemoryInByte
+        }
       }
     }
 
@@ -319,50 +334,52 @@ case class CUDA_Kernel(
 
         // TODO: replace 0 with sth more suitable
         requiredThreadsPerDim = zeroArray
-        numThreadsPerBlock = zeroArray
-        numBlocksPerDim = zeroArray
+        numThreadsPerBlock = zeroArray.map(IR_IntegerConstant)
+        numBlocksPerDim = zeroArray.map(IR_IntegerConstant)
 
         evaluatedExecutionConfiguration = true
       } else {
-        def getIntersectionWithIterationSpace(blockSizes : Array[Long]) =
-          blockSizes.zipWithIndex.map { case (blockSize, idx) => scala.math.min(blockSize, requiredThreadsPerDim(idx)) }
+        def getIntersectionWithIterationSpace(blockSizes : Array[IR_IntegerConstant]) : Array[IR_IntegerConstant] =
+          blockSizes.zipWithIndex.map { case (blockSize, idx) => IR_IntegerConstant(scala.math.min(blockSize.v, requiredThreadsPerDim(idx))) }
 
         // use user-defined block sizes as initial config and intersect iteration space with cuda block sizes
-        var blockSizes = getIntersectionWithIterationSpace(Knowledge.cuda_blockSizeAsVec.take(executionDim))
+        var blockSizes = getIntersectionWithIterationSpace(Knowledge.cuda_blockSizeAsVec.map(IR_IntegerConstant).take(executionDim))
         var done = false
-        if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
+        if (blockSizes.map(_.v).product >= Knowledge.cuda_minimalBlockSize) {
           // case 1: greater than min block size -> use intersection
           numThreadsPerBlock = blockSizes.map(identity)
           done = true
         }
 
+        def getBlockSizeProduct() : Long = blockSizes.map(_.v).product
+
         var prevTrimSize = 0L
         val resizeOrder = if (executionDim == 3) List(0, 2, 1) else 0 until executionDim
-        while (blockSizes.product != prevTrimSize && !done) {
-          prevTrimSize = blockSizes.product
+        while (getBlockSizeProduct() != prevTrimSize && !done) {
+          prevTrimSize = getBlockSizeProduct()
 
           // case 2: intersected block is equivalent to iter space -> return
-          if (blockSizes.zip(requiredThreadsPerDim.take(executionDim)).forall(tup => tup._1 == tup._2)) {
+          if (blockSizes.zip(requiredThreadsPerDim.map(IR_IntegerConstant).take(executionDim)).forall(tup => tup._1 == tup._2)) {
             numThreadsPerBlock = blockSizes.map(identity)
             done = true
           } else {
             // double block size in each dimension until block is large enough (or case 2 triggers)
             for (d <- resizeOrder) {
               // resize
-              blockSizes(d) *= 2
+              blockSizes(d).v *= 2
 
               // optional: trim innermost dim to multiples of warp size
-              if (d == 0 && blockSizes(d) > Platform.hw_cuda_warpSize && blockSizes(d) % Platform.hw_cuda_warpSize != 0)
-                blockSizes(d) = blockSizes(d) - (blockSizes(d) % Platform.hw_cuda_warpSize) // subtract remainder
+              if (d == 0 && blockSizes(d).v > Platform.hw_cuda_warpSize && blockSizes(d).v % Platform.hw_cuda_warpSize != 0)
+                blockSizes(d).v = blockSizes(d).v - (blockSizes(d).v % Platform.hw_cuda_warpSize) // subtract remainder
 
               // check if block sizes are within hardware capabilities
-              blockSizes(d) = math.min(blockSizes(d), Platform.hw_cuda_maxBlockSizes(d))
+              blockSizes(d).v = math.min(blockSizes(d).v, Platform.hw_cuda_maxBlockSizes(d))
 
               // intersect again
               blockSizes = getIntersectionWithIterationSpace(blockSizes.map(identity))
 
               // case 3: intersected block is large enough
-              if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
+              if (getBlockSizeProduct() >= Knowledge.cuda_minimalBlockSize) {
                 numThreadsPerBlock = blockSizes.map(identity)
                 done = true
               }
@@ -371,15 +388,15 @@ case class CUDA_Kernel(
         }
 
         // shrink if max number of threads is exceeded
-        while (blockSizes.product >= Platform.hw_cuda_maxNumThreads) {
+        while (getBlockSizeProduct() >= Platform.hw_cuda_maxNumThreads) {
           var shrink = true
           var d = 0
           while (shrink && d < resizeOrder.length) {
             val idx = resizeOrder.reverse(d)
-            blockSizes(idx) /= 2
-            blockSizes(idx) = math.max(1, blockSizes(idx))
+            blockSizes(idx).v /= 2
+            blockSizes(idx).v = math.max(1, blockSizes(idx).v)
 
-            if (blockSizes.product < Platform.hw_cuda_maxNumThreads)
+            if (getBlockSizeProduct() < Platform.hw_cuda_maxNumThreads)
               shrink = false
 
             d = d + 1
