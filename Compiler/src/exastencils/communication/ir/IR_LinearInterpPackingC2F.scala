@@ -32,11 +32,11 @@ object LinearInterpPackingC2FHelper {
   /* shift helper variables */
 
   // shifts for accessing cell centers for interpolation with bases at [-h, 0]
-  private val CenteredBasesShifts = LinearBaseShifts(false)
+  private val CenteredBasesShifts = LinearBaseShifts(-1, 0)
 
   // shifts for accessing cell centers for extrapolation/interpolation with bases at [0, h]
   // these shifts are chosen such that values are not reconstructed with values from the ghost layers
-  private val RemappedBasesShifts = LinearBaseShifts(true)
+  private val RemappedBasesShifts = LinearBaseShifts(0, 1)
 
   /* helper functions */
 

@@ -8,8 +8,8 @@ import exastencils.optimization.ir.IR_GeneralSimplify
 
 /// LinearBaseShifts
 
-sealed case class LinearBaseShifts(var remapped : Boolean) extends BaseShifts {
-  def toArray : Array[Int] = if (remapped) Array(0, 1) else Array(-1, 0)
+sealed case class LinearBaseShifts(var a0 : Int, var a1 : Int) extends BaseShifts {
+  def toArray : Array[Int] = Array(a0, a1)
 }
 
 /// LinearBasePositions

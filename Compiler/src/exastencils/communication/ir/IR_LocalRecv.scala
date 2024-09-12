@@ -57,6 +57,7 @@ case class IR_LocalRecv(
 
   def fineToCoarseCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderF2C match {
     case 1 => IR_LinearInterpPackingF2CLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+    case 2 => IR_QuadraticInterpPackingF2CLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
     case v => Logger.error(s"Invalid value $v for flag 'refinement_interpOrderF2C' when using generated communication with refinement")
   }
 

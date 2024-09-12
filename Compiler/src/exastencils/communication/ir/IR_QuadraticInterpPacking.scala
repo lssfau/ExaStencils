@@ -7,8 +7,8 @@ import exastencils.optimization.ir.IR_GeneralSimplify
 
 /// QuadraticBaseShift
 
-sealed case class QuadraticBaseShifts(var remapped : Boolean) extends BaseShifts {
-  def toArray : Array[Int] = if (remapped) Array(0, 1, 2) else Array(-1, 0, 1)
+sealed case class QuadraticBaseShifts(var a0 : Int, var a1 : Int, var a2 : Int) extends BaseShifts {
+  def toArray : Array[Int] = Array(a0, a1, a2)
 }
 
 /// QuadraticBasePositions

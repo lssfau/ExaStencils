@@ -30,11 +30,11 @@ object QuadraticInterpPackingC2FHelper {
   /* shift helper variables */
 
   // shifts for accessing cell centers for interpolation with bases at [-h, 0, h]
-  private val CenteredBasesShifts = QuadraticBaseShifts(remapped = false)
+  private val CenteredBasesShifts = QuadraticBaseShifts(-1, 0, 1)
 
   // shifts for accessing cell centers for extrapolation/interpolation with bases at [0, h, 2h]
   // these shifts are chosen such that values are not reconstructed with values from the ghost layers
-  private val RemappedBasesShifts = QuadraticBaseShifts(remapped = true)
+  private val RemappedBasesShifts = QuadraticBaseShifts(0, 1, 2)
 
   /* helper functions */
 

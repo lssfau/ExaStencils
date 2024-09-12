@@ -81,6 +81,7 @@ case class IR_CopyToSendBuffer(
 
   override def fineToCoarseCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderF2C match {
     case 1 => IR_LinearInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
+    case 2 => IR_QuadraticInterpPackingF2CRemote(send = true, field, slot, refinementCase, packInfo, concurrencyId, indexOfRefinedNeighbor, condition)
     case v => Logger.error(s"Invalid value $v for flag 'refinement_interpOrderF2C' when using generated communication with refinement")
   }
 

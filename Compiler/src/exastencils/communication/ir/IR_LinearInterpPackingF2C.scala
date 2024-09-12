@@ -18,7 +18,7 @@ object LinearInterpPackingF2CHelper {
   import IR_InterpPackingBaseHelper._
   import exastencils.communication.ir.IR_InterpPackingHelper._
 
-  private val shifts = LinearBaseShifts(remapped = true)
+  private val shifts = LinearBaseShifts(0, 1)
 
   def generateInterpExpr(field : IR_FieldLike, origin : IR_ExpressionIndex, slot : IR_Expression, packInfo : IR_PackInfo) : IR_Expression = {
     def level : Int = field.level
