@@ -149,9 +149,8 @@ case class CUDA_ExecutionConfigurationDynamic(
 
   override def datatype : IR_Datatype = IR_UnknownDatatype
 
-  // TODO: generate functions for determining suitable grid/block dimensions for current iteration space and call
-  def getNumBlocks = IR_FunctionCall("foo")
-  def getNumThreads = IR_FunctionCall("bar")
+  def getNumBlocks = IR_FunctionCall(CUDA_ComputeGridDimConfiguration(executionDim, stepSize).name, (lowerBounds, upperBounds).zipped.map((a, b) => b - a) : _*)
+  def getNumThreads = IR_FunctionCall(CUDA_ComputeBlockDimConfiguration(executionDim).name, (lowerBounds, upperBounds).zipped.map((a, b) => b - a) : _*)
 
   override def numBlocksPerDim : Array[IR_Expression] = (0 until executionDim).toArray.map(d => IR_ArrayAccess(getNumBlocks, d))
   override def numThreadsPerBlock : Array[IR_Expression] = (0 until executionDim).toArray.map(d => IR_ArrayAccess(getNumThreads, d))
@@ -167,4 +166,85 @@ case class CUDA_ExecutionConfigurationDynamic(
 
     out << ">>>"
   }
+}
+
+sealed trait CUDA_ComputeExecutionConfigurationFunction extends IR_FuturePlainFunction {
+  def executionDim : Int
+
+  def dt = IR_SpecialDatatype("dim3")
+
+  def getNumberOfThreads() = {
+    val numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
+
+    // adapt thread count for reduced dimensions
+    if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
+      for (d <- executionDim until Knowledge.dimensionality)
+        numThreadsPerBlock(0) *= Knowledge.cuda_blockSizeAsVec(d)
+
+    numThreadsPerBlock
+  }
+
+  def wrappedGenerateFct() : IR_PlainFunction
+  override def generateFct() : IR_PlainFunction = {
+    val fct = wrappedGenerateFct()
+
+    fct.functionQualifiers = "inline"
+    fct.allowInlining = false
+    fct.allowFortranInterface = false
+
+    fct
+  }
+
+  override def name_=(newName : String) : Unit = name = newName
+  override def prettyprint_decl() : String = prettyprint
+}
+
+sealed case class CUDA_ComputeBlockDimConfiguration(
+    var executionDim : Int
+) extends CUDA_ComputeExecutionConfigurationFunction {
+
+  override def wrappedGenerateFct() : IR_PlainFunction = {
+    var body = ListBuffer[IR_Statement]()
+
+    body += IR_Return(IR_FunctionCall(dt.typeName, getNumberOfThreads().map(IR_IntegerConstant) : _*))
+
+    IR_PlainFunction(name, dt, ListBuffer[IR_FunctionArgument](), body)
+  }
+
+  override def name : String = "getThreads"
+}
+
+sealed case class CUDA_ComputeGridDimConfiguration(
+    var executionDim : Int,
+    var stepSize : ListBuffer[IR_Expression]
+) extends CUDA_ComputeExecutionConfigurationFunction {
+
+  override def wrappedGenerateFct() : IR_PlainFunction = {
+    val requiredThreadsPerDim = (0 until executionDim).map(d => IR_VariableAccess(s"numThreads_${('x' + d).toChar}", IR_IntegerDatatype))
+
+    var body = ListBuffer[IR_Statement]()
+
+    val numThreadsPerBlock = getNumberOfThreads()
+
+    val numBlocksPerDim = (0 until executionDim).map(dim => {
+      val inc = stepSize(dim) match {
+        case IR_IntegerConstant(i) => i
+        case _                     => 1
+      }
+      val nrThreads = (requiredThreadsPerDim(dim) + inc - 1) / inc
+      (nrThreads + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
+    }).toArray
+
+    body += IR_Return(IR_FunctionCall(dt.typeName, numBlocksPerDim : _*))
+
+    IR_PlainFunction(name, IR_SpecialDatatype("dim3"), requiredThreadsPerDim.map(IR_FunctionArgument(_)).to[ListBuffer], body)
+  }
+
+  private val stepSizeProd = stepSize.reduce(_ * _)
+  private val postFix = stepSizeProd match {
+    case IR_IntegerConstant(1) => ""
+    case IR_IntegerConstant(v) => "s" + v
+    case _ => "s" + stepSize.map(_.prettyprint()).mkString("_")
+  }
+  override def name : String = s"${name}_$postFix"
 }
