@@ -246,5 +246,5 @@ sealed case class CUDA_ComputeGridDimConfiguration(
     case IR_IntegerConstant(v) => "s" + v
     case _ => "s" + stepSize.map(_.prettyprint()).mkString("_")
   }
-  override def name : String = s"${name}_$postFix"
+  override def name : String = s"getBlocks_$postFix"
 }
