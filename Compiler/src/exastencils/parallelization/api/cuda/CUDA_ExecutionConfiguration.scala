@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
 
 trait CUDA_ExecutionConfiguration extends IR_Expression {
@@ -192,6 +193,11 @@ sealed trait CUDA_ComputeExecutionConfigurationFunction extends IR_FuturePlainFu
     fct.allowInlining = false
     fct.allowFortranInterface = false
 
+    val cudaFcts = CUDA_KernelFunctions.get
+
+    if (!cudaFcts.functions.exists(_.name == fct.name))
+      cudaFcts.functions += fct
+
     fct
   }
 
@@ -220,7 +226,7 @@ sealed case class CUDA_ComputeGridDimConfiguration(
 ) extends CUDA_ComputeExecutionConfigurationFunction {
 
   override def wrappedGenerateFct() : IR_PlainFunction = {
-    val requiredThreadsPerDim = (0 until executionDim).map(d => IR_VariableAccess(s"numThreads_${('x' + d).toChar}", IR_IntegerDatatype))
+    val requiredThreadsPerDim = (0 until executionDim).map(d => IR_VariableAccess(s"numThreads_${ ('x' + d).toChar }", IR_IntegerDatatype))
 
     var body = ListBuffer[IR_Statement]()
 
@@ -240,11 +246,11 @@ sealed case class CUDA_ComputeGridDimConfiguration(
     IR_PlainFunction(name, IR_SpecialDatatype("dim3"), requiredThreadsPerDim.map(IR_FunctionArgument(_)).to[ListBuffer], body)
   }
 
-  private val stepSizeProd = stepSize.reduce(_ * _)
+  private val stepSizeProd = IR_SimplifyExpression.simplifyIntegralExpr(stepSize.reduce(_ * _))
   private val postFix = stepSizeProd match {
     case IR_IntegerConstant(1) => ""
-    case IR_IntegerConstant(v) => "s" + v
-    case _ => "s" + stepSize.map(_.prettyprint()).mkString("_")
+    case IR_IntegerConstant(v) => "s_" + v
+    case _                     => "s_" + stepSize.map(_.prettyprint()).mkString("_")
   }
   override def name : String = s"getBlocks_$postFix"
 }
