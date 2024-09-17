@@ -313,7 +313,7 @@ object QuadraticInterpPackingF2CHelper {
           val f3_val = interpolate2D(defIt + IR_ExpressionIndex(orthoDirUpwind3D), f0_up_3D,
             orthoDirUpwind2D, orthoDirDownwind2D, f0_diag_3D(2), f0_diag_3D(3))
 
-          val f1 = IR_VariableAccess("f2", IR_RealDatatype)
+          val f1 = IR_VariableAccess("f1", IR_RealDatatype)
           val f2 = IR_VariableAccess("f2", IR_RealDatatype)
           val f3 = IR_VariableAccess("f3", IR_RealDatatype)
 
