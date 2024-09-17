@@ -52,15 +52,25 @@ object QuadraticInterpPackingF2CHelper {
       case _                               => Logger.error("Unsupported PackInfo type used in (cell-based) quadratic F2C interp")
     }
 
-    def isAtBlockCornerForDir3D(commDir : Array[Int], orthoDir : Array[Int]) : IR_Expression = {
-      val ival = getUnsplitPackInterval()
+    def isAtBlockCornerForDir3D(commDir : Array[Int], orthoDir : Array[Int], min : Boolean) : IR_Expression = {
+      val unsplitIval = getUnsplitPackInterval()
 
       val commDirDim = getDimFromDir(commDir)
       val orthoDirDim = getDimFromDir(orthoDir)
       val remainingDim = ((0 until 3).toSet diff Set(commDirDim, orthoDirDim)).head
 
-      // remapping only occurs in min corners
-      isAtBlockCornerForDir2D(orthoDir) AndAnd (defIt(remainingDim) EqEq ival.begin(remainingDim))
+      isAtBlockCornerForDir2D(orthoDir) AndAnd (defIt(remainingDim) EqEq (if (min) unsplitIval.begin(remainingDim) else (unsplitIval.end(remainingDim) - 1)))
+    }
+
+    def isAtBlockCornerForDir2D(orthoDir : Array[Int]) : IR_Expression = {
+      val unsplitIval = getUnsplitPackInterval()
+
+      val dim = getDimFromDir(orthoDir)
+
+      if (isUpwindDir(orthoDir))
+        defIt(dim) EqEq (unsplitIval.end(dim) - 1)
+      else
+        defIt(dim) EqEq unsplitIval.begin(dim)
     }
 
     // wrapper to check for equality of conditions
@@ -70,23 +80,11 @@ object QuadraticInterpPackingF2CHelper {
       case _                                                                              => false
     }
 
-    def isAtBlockCornerForDir2D(orthoDir : Array[Int]) : IR_Expression = {
-      val ival = getUnsplitPackInterval()
-
-      val dim = getDimFromDir(orthoDir)
-
-      // remapping only occurs at min corner
-      if (!isUpwindDir(orthoDir))
-        defIt(dim) EqEq ival.begin(dim)
-      else
-        false
-    }
-
     def getBasePositionsForInterp(it : IR_ExpressionIndex) =
-      getBasePositions(level, localization, invCommDir, it, if (isUpwindDir(commDir)) CenteredBasesShifts else RemappedBasesShifts)
+      getBasePositions(level, localization, invCommDir, it, RemappedBasesShifts)
 
     def getBaseValuesForInterp(it : IR_ExpressionIndex) =
-      getBaseValues(field, slot, if (isUpwindDir(commDir)) commDir else invCommDir, it, if (isUpwindDir(commDir)) CenteredBasesShifts else RemappedBasesShifts)
+      getBaseValues(field, slot, invCommDir, it, RemappedBasesShifts)
 
     // generate statements
     var innerStmts : ListBuffer[IR_Statement] = ListBuffer()
@@ -133,15 +131,19 @@ object QuadraticInterpPackingF2CHelper {
           casesForOrthoDir += (isCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePos, remappedOrthoBaseVals))
 
           markStencilAdapted(isCorner, orthoDir, adapted = true)
-
         case 3 =>
-          val isCorner = isAtBlockCornerForDir3D(commDir, orthoDir)
+          val isMinCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = true)
+          val isMaxCorner = isAtBlockCornerForDir3D(commDir, orthoDir, min = false)
 
-          casesForOrthoDir += (isCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePos, remappedOrthoBaseVals))
+          casesForOrthoDir += (isMinCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePos, remappedOrthoBaseVals))
+          casesForOrthoDir += (isMaxCorner -> interpolate1D(x0_remapOrtho, remappedOrthoBasePos, remappedOrthoBaseVals))
 
           val remainingDirs = orthogonalNeighDirs.filter(dir => !(dir sameElements orthoDir) && !(dir sameElements orthoDir.map(_ * -1)))
-          markStencilAdapted(isCorner, orthoDir, adapted = true)
-          markStencilAdapted(isCorner, remainingDirs(0), adapted = true)
+          markStencilAdapted(isMinCorner, orthoDir, adapted = true)
+          markStencilAdapted(isMinCorner, remainingDirs(0), adapted = true)
+
+          markStencilAdapted(isMaxCorner, orthoDir, adapted = true)
+          markStencilAdapted(isMaxCorner, remainingDirs(1), adapted = true)
 
           val isEdge = isAtBlockCornerForDir2D(orthoDir)
 
@@ -151,10 +153,10 @@ object QuadraticInterpPackingF2CHelper {
       }
 
       // regular case without remap in second direction
-      val orthoBasePos = getBasePositionsForInterp(defIt + IR_ExpressionIndex(orthoDir))
-      val orthoBaseVals = getBaseValuesForInterp(defIt + IR_ExpressionIndex(orthoDir))
+      val orthoBasePosInvCommDir = getBasePositionsForInterp(defIt + IR_ExpressionIndex(orthoDir))
+      val orthoBaseValsInvCommDir = getBaseValuesForInterp(defIt + IR_ExpressionIndex(orthoDir))
 
-      casesForOrthoDir += (isRegularCase() -> interpolate1D(x0_ortho, orthoBasePos, orthoBaseVals))
+      casesForOrthoDir += (isRegularCase() -> interpolate1D(x0_ortho, orthoBasePosInvCommDir, orthoBaseValsInvCommDir))
 
       markStencilAdapted(isRegularCase(), orthoDir, adapted = false)
 
@@ -231,24 +233,28 @@ object QuadraticInterpPackingF2CHelper {
         val dirDim = getDimFromDir(upwindDir)
         val x1 = getCellWidth(level, dirDim, center) / IR_RealConstant(2)
 
-        // 2 Cases:
-        // stencil adapted for downwind ortho dir -> bases at remapped ortho positions
-        // stencil NOT adapted -> bases at regular ortho positions
+        // 3 Cases:
+        // stencil adapted for upwind ortho dir -> bases at remapped ortho positions -> first value interp, second extrap
+        // stencil adapted for downwind ortho dir -> bases at remapped ortho positions -> first value extrap, second interp
+        // stencil NOT adapted -> bases at regular ortho positions -> both values interpolated
         if (stencilAdapted(cond, upwindDir)) {
-          // should not occur
-          0
+          // upwind remap
+          val basePosOrtho = getBasePositions(level, localization, upwindDir, center, RemappedBasesShifts)
+          val remappedBaseValues = QuadraticBaseValues(centerValue, downwindValue, upwindValue)
+
+          interpolate1D(x1, basePosOrtho, remappedBaseValues)
         } else if (stencilAdapted(cond, downwindDir)) {
           // downwind remap
-          val remappedBasePos = getBasePositions(level, localization, upwindDir, center, RemappedBasesShifts)
+          val basePosOrtho = getBasePositions(level, localization, upwindDir, center, RemappedBasesShifts)
           val remappedBaseValues = QuadraticBaseValues(centerValue, upwindValue, downwindValue)
 
-          interpolate1D(x1, remappedBasePos, remappedBaseValues)
+          interpolate1D(x1, basePosOrtho, remappedBaseValues)
         } else {
           // no remap
-          val basePos = getBasePositions(level, localization, upwindDir, center, CenteredBasesShifts)
+          val basePosOrtho = getBasePositions(level, localization, upwindDir, center, CenteredBasesShifts)
           val baseValues = QuadraticBaseValues(centerValue, upwindValue, downwindValue)
 
-          interpolate1D(x1, basePos, baseValues)
+          interpolate1D(x1, basePosOrtho, baseValues)
         }
       }
 
