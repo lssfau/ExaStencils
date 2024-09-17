@@ -154,7 +154,7 @@ case class CUDA_ExecutionConfigurationDynamic(
   val getThreadsFunc = CUDA_ComputeExecutionConfigurationFunction.getBlockDimConfig(executionDim)
 
   def getNumBlocks = IR_FunctionCall(getBlocksFunc.name, (lowerBounds, upperBounds).zipped.map((a, b) => b - a).take(executionDim) : _*)
-  def getNumThreads = IR_FunctionCall(getThreadsFunc.name, (lowerBounds, upperBounds).zipped.map((a, b) => b - a).take(executionDim) : _*)
+  def getNumThreads = IR_FunctionCall(getThreadsFunc.name) //, (lowerBounds, upperBounds).zipped.map((a, b) => b - a).take(executionDim) : _*)
 
   override def numBlocksPerDim : Array[IR_Expression] = (0 until executionDim).toArray.map(d => IR_ArrayAccess(getNumBlocks, d))
   override def numThreadsPerBlock : Array[IR_Expression] = (0 until executionDim).toArray.map(d => IR_ArrayAccess(getNumThreads, d))
