@@ -116,6 +116,9 @@ case class CUDA_ExecutionConfigurationStatic(
       val nrThreads = (requiredThreadsPerDim(dim) + inc - 1) / inc
       (nrThreads + numThreads(dim) - 1) / numThreads(dim)
     }).toArray
+
+    numThreadsPerBlock = numThreads.map(IR_IntegerConstant)
+    numBlocksPerDim = numBlocks.map(IR_IntegerConstant)
   }
 
   override def prettyprint(out : PpStream) : Unit = {
