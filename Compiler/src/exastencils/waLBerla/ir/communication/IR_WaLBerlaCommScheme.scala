@@ -81,8 +81,6 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
       case base : IR_Access => base
       case _                => Logger.error("Invalid access used for de-referencing a IR_WaLBerlaCommScheme instance.")
     })
-    val comm = IR_FunctorCall(deref)
-
-    commSchemeNecessaryWrapper(ListBuffer(comm))
+    IR_FunctorCall(deref)
   }
 }

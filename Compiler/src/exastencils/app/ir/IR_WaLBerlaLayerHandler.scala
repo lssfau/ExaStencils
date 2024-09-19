@@ -29,6 +29,8 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     /* extend schedule of default IR layer handler */
 
     // add comm replacements
+    List(true, false).foreach(b => scheduler.prependToAllFound(IR_SetupCommunicationWrapper(b),
+      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaWrapCommunication)))
     List(true, false).foreach(b => scheduler.appendToAllFound(IR_SetupCommunicationWrapper(b),
       ConditionedSingleStrategyWrapper(Knowledge.waLBerla_generateCommSchemes, IR_WaLBerlaReplaceCommunication)))
 
