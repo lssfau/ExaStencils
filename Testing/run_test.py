@@ -89,7 +89,7 @@ def main():
             print(f"Test for problem \"{ctx.problem_name}\" finished successfully.")
             return result.returncode
         else:
-            return -1
+            sys.exit(1)
 
 
 if __name__ == "__main__":
