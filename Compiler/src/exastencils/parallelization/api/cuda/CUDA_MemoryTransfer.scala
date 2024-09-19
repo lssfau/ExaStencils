@@ -84,7 +84,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_AbstractFieldLikeData, stre
     val field = fieldData.field
     val fragIdx = fieldData.fragmentIdx
     val domainIdx = field.domain.index
-    val isDirty = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
+    val isDirty = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx)) EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
@@ -118,7 +118,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_AbstractFieldLikeData, st
     val field = fieldData.field
     val fragIdx = fieldData.fragmentIdx
     val domainIdx = field.domain.index
-    val isDirty = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
+    val isDirty = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx)) EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
@@ -147,7 +147,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBufferLike, stream :
     val field = buffer.field
     val fragIdx = buffer.fragmentIdx
     val domainIdx = field.domain.index
-    val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx))
+    val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx)) EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
@@ -175,7 +175,7 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBufferLike, stream
     val field = buffer.field
     val fragIdx = buffer.fragmentIdx
     val domainIdx = field.domain.index
-    val isDirty = CUDA_HostBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx))
+    val isDirty = CUDA_HostBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx)) EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
