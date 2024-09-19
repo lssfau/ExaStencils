@@ -62,11 +62,11 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
       .groupBy(wbf => (wbf.name, wbf.fragIdx, wbf.level)).map(_._2.head) // distinctBy name, fragIdx and level
 
     // ensure consistency of data flow between wb and exa fields
-    if (!Knowledge.waLBerla_useGridPartFromExa) {
+    if (!Knowledge.domain_isPartitioningKnown) {
       IR_CollectFieldAccesses.applyStandalone(body)
 
       if (IR_CollectFieldAccesses.fieldAccesses.exists(!_.field.isInstanceOf[IR_WaLBerlaField]))
-        Logger.error("Exchange between ExaStencils and waLBerla fields is currently only available when both grids are identical (i.e. waLBerla_useGridPartFromExa = true).")
+        Logger.error("Exchange between ExaStencils and waLBerla fields is currently only available when both grids are identical (i.e. domain_isPartitioningKnown = true).")
     }
 
     // find out if block loop contains loop over dimensions and if it is executed (in parallel) on CPU/GPU

@@ -55,7 +55,7 @@ abstract class IR_WaLBerlaCommScheme extends IR_WaLBerlaInterfaceMember(false, t
   }
 
   def commSchemeNecessaryWrapper(stmts : ListBuffer[IR_Statement]) : IR_IfCondition = {
-    if (Knowledge.waLBerla_useGridPartFromExa)
+    if (Knowledge.domain_isPartitioningKnown)
       IR_IfCondition(Knowledge.domain_numFragmentsTotal > 1, stmts)
     else
       IR_IfCondition(blockForest.getNumberOfAllRootBlocks() > 1 OrOr blockForest.getNumberOfAllLocalBlocks() > 1, stmts)

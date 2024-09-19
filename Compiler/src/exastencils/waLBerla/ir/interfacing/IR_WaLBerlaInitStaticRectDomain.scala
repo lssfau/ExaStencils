@@ -94,7 +94,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
     /* error checks to ensure consistency */
 
-    if (Knowledge.waLBerla_useGridPartFromExa) {
+    if (Knowledge.domain_isPartitioningKnown) {
       def checkError(cond : IR_Expression, msg : String) = IR_Assert(cond, ListBuffer(IR_StringConstant(msg)), IR_FunctionCall("exit", 1))
 
       // check if number of fragments, blocks and processes coincide
@@ -117,7 +117,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     fragStatements ++= setupFragmentPosBeginAndEnd()
 
     if (Knowledge.mpi_enabled) {
-      if (Knowledge.waLBerla_useGridPartFromExa && Knowledge.waLBerla_createCartComm) {
+      if (Knowledge.domain_isPartitioningKnown && Knowledge.waLBerla_createCartComm) {
         init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "resetMPI")
         init += IR_MemberFunctionCallArrow(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "createCartesianComm",
           ListBuffer[IR_Expression](

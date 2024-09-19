@@ -1061,11 +1061,11 @@ object Knowledge {
     Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
     Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
     Constraints.condEnsureValue(data_genVariableFieldSizes, true, !waLBerla_useFixedLayoutsFromExa && waLBerla_generateInterface, "Enable 'data_genVariableFieldSizes' when waLberla fields without fixed layouts are used.")
-    Constraints.condError(!waLBerla_useGridPartFromExa && waLBerla_createCartComm, "Knowledge flag 'waLBerla_createCartComm' is only available with Exa grid partitioning (waLBerla_useGridPartFromExa = true).")
+    Constraints.condError(!domain_isPartitioningKnown && waLBerla_createCartComm, "Knowledge flag 'waLBerla_createCartComm' is only available with Exa grid partitioning (waLBerla_useGridPartFromExa = true).")
 
     Constraints.condEnsureValue(refinement_enabled, true, waLBerla_useRefinement, "Flag 'refinement_enabled' must be enabled when 'waLBerla_useRefinement' is true")
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
-    Constraints.condError(waLBerla_useRefinement && waLBerla_useGridPartFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
+    Constraints.condError(waLBerla_useRefinement && domain_isPartitioningKnown, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
 
     Constraints.condError(!waLBerla_cacheFieldPointers && experimental_cuda_useStreams, "CUDA streams can only be combined with waLBerla when 'waLBerla_cacheFieldPointers = true'.")
 
@@ -1077,8 +1077,8 @@ object Knowledge {
     Constraints.condWarn(refinement_enabled && comm_syncGhostData, "Flag 'comm_syncGhostData' is currently ignored for F2C and C2F communication.")
     Constraints.condWarn(refinement_enabled && !comm_pushLocalData, "Pull scheme is not available for communication with mesh refinement (c.f. 'comm_pushLocalData').")
 
-    Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
-    Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
-    Constraints.condEnsureValue(experimental_l2_resolveVirtualFields, false, !waLBerla_useGridPartFromExa && waLBerla_generateInterface, "Resolving virtual fields on L2 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
+    Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L4 must be disabled, when the Compiler does not know about the grid partitioning.")
+    Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L3 must be disabled, when the Compiler does not know about the grid partitioning.")
+    Constraints.condEnsureValue(experimental_l2_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L2 must be disabled, when the Compiler does not know about the grid partitioning.")
   }
 }
