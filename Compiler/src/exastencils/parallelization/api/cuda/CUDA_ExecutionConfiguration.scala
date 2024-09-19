@@ -128,9 +128,9 @@ case class CUDA_ExecutionConfigurationStatic(
     out << "<<<"
 
     if (1 == numDims)
-      out << numBlocksPerDim(0) << ", " << numThreadsPerBlock(0) // only one dimensions -> wrapping not necessary
+      out << numBlocksPerDim(0) << ", " << numThreadsPerBlock(0) // only one dimension -> wrapping not necessary
     else
-      out << s"dim3(" << numBlocksPerDim.take(numDims).mkString(",") << "), " << s"dim3(" << numThreadsPerBlock.take(numDims).mkString(",") << ")"
+      out << s"dim3(" <<< (numBlocksPerDim.take(numDims), ",") << "), " << s"dim3(" <<< (numThreadsPerBlock.take(numDims), ",") << ")"
 
     if (sharedMemPerBlock != CUDA_ExecutionConfiguration.defaultSharedMemPerBlock || stream.useNonDefaultStreams)
       out << ", " << sharedMemPerBlock
