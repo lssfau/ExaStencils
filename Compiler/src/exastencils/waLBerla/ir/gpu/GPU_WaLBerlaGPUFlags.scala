@@ -81,7 +81,7 @@ case class GPU_WaLBerlaHostBufferDataUpdated(
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.DIRTY.id)
+  override def resolveDefValue() = Some(CUDA_DirtyFlagCase.CLEAR.id)
 
   override def baseDatatype : IR_Datatype = IR_IntegerDatatype
 

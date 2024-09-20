@@ -102,6 +102,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_AbstractFieldLikeData, stre
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
+        IR_Assignment(isDirty, CUDA_DirtyFlagCase.INTERMEDIATE.id),
         CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
@@ -136,6 +137,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_AbstractFieldLikeData, st
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
+        IR_Assignment(isDirty, CUDA_DirtyFlagCase.INTERMEDIATE.id),
         CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
@@ -164,6 +166,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBufferLike, stream :
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
+        IR_Assignment(isDirty, CUDA_DirtyFlagCase.INTERMEDIATE.id),
         CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
@@ -192,6 +195,7 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBufferLike, stream
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
+        IR_Assignment(isDirty, CUDA_DirtyFlagCase.INTERMEDIATE.id),
         CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
