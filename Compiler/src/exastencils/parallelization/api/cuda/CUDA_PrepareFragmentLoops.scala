@@ -105,7 +105,7 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_Executi
       val fieldData = access._2
       if (syncBeforeHost(access._1, fieldAccesses.keys)) {
         val dirtyFlag = CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
-        beforeHost += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id,
+        beforeHost += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id,
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(fieldData.field, Duplicate(fieldData.fragmentIdx)), stream, "D2H"),
             IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
@@ -115,7 +115,7 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_Executi
       val buffer = access._2
       if (syncBeforeHost(access._1, bufferAccesses.keys)) {
         val dirtyFlag = CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx))
-        beforeHost += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id,
+        beforeHost += IR_IfCondition(dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id,
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "D2H"),
             IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
@@ -137,7 +137,7 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_Executi
         val domainIdx = field.domain.index
         val dirtyFlag = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx))
         val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
-        beforeDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id),
+        beforeDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(field, Duplicate(fieldData.fragmentIdx)), stream, "H2D"),
             IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
@@ -151,7 +151,7 @@ trait CUDA_PrepareFragmentLoops extends CUDA_PrepareBufferSync with CUDA_Executi
         val domainIdx = field.domain.index
         val dirtyFlag = CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx))
         val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
-        beforeDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.DIRTY.id),
+        beforeDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
           ListBuffer[IR_Statement](
             CUDA_WaitEvent(CUDA_PendingStreamTransfers(buffer.field, Duplicate(buffer.fragmentIdx)), stream, "H2D"),
             IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.CLEAR.id)))
