@@ -45,6 +45,10 @@ case class IR_LoopOverFragments(
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
 
+    // if there is no loop found, we determine here if omp parallelization is reasonable
+    if (Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments & !body.exists(_.isInstanceOf[IR_HasParallelizationInfo]))
+      parallelization.potentiallyParallel &&= parallelizationOverFragmentsIsReasonable(Array(Knowledge.domain_numFragmentsPerBlock))
+
     val loop = IR_ForLoop(
       IR_VariableDeclaration(defIt, 0),
       IR_Lower(defIt, Knowledge.domain_numFragmentsPerBlock),
