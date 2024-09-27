@@ -27,6 +27,13 @@ object QuadraticInterpPackingF2CHelper {
   // shifts for accessing cell centers for extrapolation/interpolation with bases at [0, h, 2h]
   private val RemappedBasesShifts = QuadraticBaseShifts(0, 1, 2)
 
+  // wrapper to check for equality of conditions
+  def isSameCondition(condA : IR_Expression, condB : IR_Expression) : Boolean = (condA, condB) match {
+    case (c1 : IR_AndAnd, c2 : IR_AndAnd) if c1.left == c2.right && c1.right == c2.left => true
+    case (c1 : IR_Expression, c2 : IR_Expression) if c1 == c2                           => true
+    case _                                                                              => false
+  }
+
   def generateInterpStmts(result : IR_VariableAccess, field : IR_FieldLike, slot : IR_Expression, packInfo : IR_PackInfo) : ListBuffer[IR_Statement] = {
 
     def level : Int = field.level
@@ -71,13 +78,6 @@ object QuadraticInterpPackingF2CHelper {
         defIt(dim) EqEq (unsplitIval.end(dim) - 1)
       else
         defIt(dim) EqEq unsplitIval.begin(dim)
-    }
-
-    // wrapper to check for equality of conditions
-    def isSameCondition(condA : IR_Expression, condB : IR_Expression) : Boolean = (condA, condB) match {
-      case (c1 : IR_AndAnd, c2 : IR_AndAnd) if c1.left == c2.right && c1.right == c2.left => true
-      case (c1 : IR_Expression, c2 : IR_Expression) if c1 == c2                           => true
-      case _                                                                              => false
     }
 
     def getBasePositionsForInterp(it : IR_ExpressionIndex) =
@@ -286,12 +286,13 @@ object QuadraticInterpPackingF2CHelper {
 
           // get directions to diagonal neighbor cells
           val diagOrigins : Array[Array[Int]] = {
+            def adaptForRemap(d : Array[Int]) = if (stencilAdapted(cond, d)) d.map(_ * -2) else d
 
             Array(
-              dirSum(orthoDirDownwind3D, orthoDirUpwind2D),
-              dirSum(orthoDirDownwind3D, orthoDirDownwind2D),
-              dirSum(orthoDirUpwind3D, orthoDirUpwind2D),
-              dirSum(orthoDirUpwind3D, orthoDirDownwind2D),
+              dirSum(adaptForRemap(orthoDirDownwind3D), adaptForRemap(orthoDirUpwind2D)),
+              dirSum(adaptForRemap(orthoDirDownwind3D), adaptForRemap(orthoDirDownwind2D)),
+              dirSum(adaptForRemap(orthoDirUpwind3D), adaptForRemap(orthoDirUpwind2D)),
+              dirSum(adaptForRemap(orthoDirUpwind3D), adaptForRemap(orthoDirDownwind2D)),
             )
           }
 
@@ -321,7 +322,7 @@ object QuadraticInterpPackingF2CHelper {
           interpStmts += IR_VariableDeclaration(f2, f2_val)
           interpStmts += IR_VariableDeclaration(f3, f3_val)
 
-          interpStmts += IR_Assignment(result, interpolate2D(defIt, f0, orthoDirUpwind3D, orthoDirDownwind3D, f3, f2))
+          interpStmts += IR_Assignment(result, interpolate2D(defIt, f1, orthoDirUpwind3D, orthoDirDownwind3D, f3, f2))
       }
 
       IR_IfCondition(cond, interpStmts)
