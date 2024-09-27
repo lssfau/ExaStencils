@@ -373,7 +373,7 @@ class IR_PolyExtractor extends Collector {
         mergeStmts : Boolean) : Unit = {
 
       this.scop_ = new Scop(root, localContext, globalContext, optLevel,
-        Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationOverDimensionsIsReasonable, root.maxIterationCount())
+        Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationOverDimensionsIsReasonable(root.maxIterationCount()), root.maxIterationCount())
       if (mergeWithPrev)
         scops.last.nextMerge = this.scop_
       this.modelLoopVars_ = modelLoopVars
@@ -500,7 +500,7 @@ class IR_PolyExtractor extends Collector {
             if (loop.parallelization.reduction.isDefined)
               loop.parallelization.reduction.get.annotate(SKIP_ANNOT)
             // loop.at1stIt is a list of tuple, StateManager does not handle these, so a skip annotation is not required
-            if (loop.parallelizationOverDimensionsIsReasonable && loop.polyOptLevel >= 1)
+            if (loop.parallelizationOverDimensionsIsReasonable(loop.maxIterationCount()) && loop.polyOptLevel >= 1)
               enterLoop(loop, merge)
 
           case _ =>

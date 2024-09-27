@@ -149,28 +149,8 @@ case class IR_LoopOverDimensions(
     }
   }
 
-  def parallelizationOverDimensionsIsReasonable : Boolean = if (Knowledge.omp_parallelizeLoopOverDimensions) {
-    val maxItCount = maxIterationCount()
-    if (maxItCount == null)
-      return true // cannot determine iteration count, default is no change in parallelizability, i.e. true
-
-    maxItCount.product > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads
-  } else {
-    false
-  }
-
-  def parallelizationOverFragmentsIsReasonable : Boolean = if (Knowledge.omp_parallelizeLoopOverFragments) {
-    val maxItCount = maxIterationCount()
-    if (maxItCount == null)
-      return true // cannot determine iteration count, default is no change in parallelizability, i.e. true
-
-    math.max(Knowledge.domain_numFragmentsPerBlock / Knowledge.omp_numThreads, 1) * maxItCount.product > Knowledge.omp_minWorkItemsPerThread
-  } else {
-    false
-  }
-
   def explParLoop = lcCSEApplied && parallelization.potentiallyParallel &&
-    Knowledge.omp_enabled && parallelizationOverDimensionsIsReasonable
+    Knowledge.omp_enabled && parallelizationOverDimensionsIsReasonable(maxIterationCount())
 
   def createOMPThreadsWrapper(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     if (explParLoop) {
@@ -225,7 +205,7 @@ case class IR_LoopOverDimensions(
 
   def expandSpecial(collector : IR_FragmentLoopCollector) : ListBuffer[IR_Statement] = {
     def parallelizable(d : Int) = parallelization.potentiallyParallel && parDims.contains(d)
-    def parallelize(d : Int) = parallelizable(d) && parallelizationOverDimensionsIsReasonable
+    def parallelize(d : Int) = parallelizable(d) && parallelizationOverDimensionsIsReasonable(maxIterationCount())
 
     // TODO: check interaction between at1stIt and condition (see also: TODO in polyhedron.Extractor.enterLoop)
     var wrappedBody : ListBuffer[IR_Statement] = body
@@ -263,9 +243,9 @@ case class IR_LoopOverDimensions(
     if (Knowledge.omp_parallelizeLoopOverFragments && collector.getEnclosingFragmentLoop().isDefined) {
       collector.getEnclosingFragmentLoop().get match {
         case fragLoop : IR_LoopOverProcessLocalBlocks                                                                            =>
-          fragLoop.parallelization.parallelizationReasonable &&= parallelizationOverFragmentsIsReasonable
+          fragLoop.parallelization.parallelizationReasonable &&= parallelizationOverFragmentsIsReasonable(maxIterationCount())
         case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
-          fragLoop.parallelization.parallelizationReasonable &&= parallelizationOverFragmentsIsReasonable
+          fragLoop.parallelization.parallelizationReasonable &&= parallelizationOverFragmentsIsReasonable(maxIterationCount())
       }
     }
 
