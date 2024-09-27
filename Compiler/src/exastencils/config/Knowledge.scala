@@ -137,7 +137,7 @@ object Knowledge {
 
   var refinement_interpOrderC2F : Int = 2
 
-  var refinement_interpOrderF2C : Int = 1
+  var refinement_interpOrderF2C : Int = 2
 
   def refinement_availableC2FInterpOrders : List[Int] = List(1, 2)
 
