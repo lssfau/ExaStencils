@@ -344,7 +344,7 @@ case class CUDA_Kernel(
       } else {
         // all dimensions are known during codegen -> static determination
         val cfg = CUDA_ExecutionConfigurationStatic(stream)
-        cfg.computeGridAndBlockDimensions(executionDim, reqThreadsPerDim, stepSize)
+        cfg.computeGridAndBlockDimensions(executionDim, Duplicate(reqThreadsPerDim), Duplicate(stepSize))
 
         executionConfiguration = Some(cfg)
         requiredThreadsPerDim = reqThreadsPerDim.map(IR_IntegerConstant)
