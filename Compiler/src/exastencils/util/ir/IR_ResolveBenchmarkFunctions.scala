@@ -21,12 +21,14 @@ package exastencils.util.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.logger.Logger
 import exastencils.parallelization.api.omp.OMP_Parallel
 import exastencils.timing.ir.IR_TimerFunctionReference
+import exastencils.util.ir.DLB_Monitor.getMonitorName
 
 /// IR_ResolveBenchmarkFunctions
 
@@ -58,45 +60,75 @@ object IR_ResolveBenchmarkFunctions extends DefaultStrategy("ResolveBenchmarkFun
       }
   })
 
+  private def likwidFunctionBuilder(functionCall : IR_FunctionCall, functionName : String) : IR_Statement = {
+    val args = functionCall.arguments
+    if (1 != args.length)
+      Logger.error(s"$startFunction takes a single argument of type String for benchmark_backend 'likwid'")
+    functionCall.arguments = handleArgs(args)
+
+    // change function name
+    functionCall.function.name = functionName
+    val funcCall = IR_ExpressionStatement(functionCall)
+
+    if (Knowledge.omp_enabled)
+      OMP_Parallel(ListBuffer(funcCall))
+    else
+      funcCall
+  }
+
+  private def talpFunctionBuilder(functionCall : IR_FunctionCall, functionName : String) : IR_Statement = {
+    val args = functionCall.arguments
+    if (1 == args.length) {
+      val str = args.head match {
+        case strConst : IR_StringConstant => strConst.value
+        case strLit : IR_StringLiteral    => strLit.value
+        case arg                          => Logger.error("Unknown argument type for benchmark function: " + arg.prettyprint)
+      }
+      functionCall.arguments = ListBuffer(DLB_Monitor(str))
+
+      functionCall.function.name = functionName
+      val funcCall = IR_ExpressionStatement(functionCall)
+
+      if (Knowledge.omp_enabled)
+        OMP_Parallel(ListBuffer(funcCall))
+      else
+        funcCall
+    } else {
+      Logger.error(s"$startFunction takes a single argument of type String for benchmark_backend 'talp'")
+      IR_NullStatement
+    }
+  }
+
+
   this += new Transformation("ResolveFunctionCalls", {
     case IR_ExpressionStatement(f @ IR_FunctionCall(IR_UnresolvedFunctionReference(s : String, _), args)) if s == startFunction =>
       Knowledge.benchmark_backend match {
         case "likwid" =>
-          // handle args
-          if (1 != args.length)
-            Logger.warn(s"$startFunction takes a single argument of type String for benchmark_backend 'likwid'")
-          f.arguments = handleArgs(args)
-
-          // change function name
-          f.function.name = "LIKWID_MARKER_START"
-          val funcCall = IR_ExpressionStatement(f)
-
-          if (Knowledge.omp_enabled)
-            OMP_Parallel(ListBuffer(funcCall))
-          else
-            funcCall
-
+          likwidFunctionBuilder(f, "LIKWID_MARKER_START")
+        case "talp" =>
+          talpFunctionBuilder(f, "DLB_MonitoringRegionStart")
         case _ => IR_NullStatement
       }
 
     case IR_ExpressionStatement(f @ IR_FunctionCall(IR_UnresolvedFunctionReference(s : String, _), args)) if s == stopFunction =>
       Knowledge.benchmark_backend match {
         case "likwid" =>
-          // handle args
-          if (1 != args.length)
-            Logger.warn(s"$stopFunction takes a single argument of type String for benchmark_backend 'likwid'")
-          f.arguments = handleArgs(args)
-
-          // change function name
-          f.function.name = "LIKWID_MARKER_STOP"
-          val funcCall = IR_ExpressionStatement(f)
-
-          if (Knowledge.omp_enabled)
-            OMP_Parallel(ListBuffer(funcCall))
-          else
-            funcCall
-
+          likwidFunctionBuilder(f, "LIKWID_MARKER_STOP")
+        case "talp" =>
+          talpFunctionBuilder(f, "DLB_MonitoringRegionStop")
         case _ => IR_NullStatement
       }
   })
+}
+
+
+case class DLB_Monitor(name : String) extends IR_UnduplicatedVariable {
+
+  override def resolveName() : String = getMonitorName(name)
+  override def resolveDatatype() : IR_Datatype = IR_SpecialDatatype("dlb_monitor_t *")
+  override def getCtor() : Option[IR_Statement] = None
+}
+
+object DLB_Monitor {
+  def getMonitorName(name : String) : String = "monitor_" + name.replaceAll("[^a-zA-Z0-9]", "_")
 }

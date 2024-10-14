@@ -30,6 +30,7 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp.OMP_Parallel
 import exastencils.timing.ir.IR_CollectUnresolvedBenchmarkFunctions
+import exastencils.util.ir.DLB_Monitor
 
 /// IR_HandleMainApplication
 
@@ -53,18 +54,25 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
           body
       }
 
-      if ("likwid" == Knowledge.benchmark_backend) {
+      if (Knowledge.benchmark_backend != "None") {
         // register timers
         var registerMarkers = ListBuffer[IR_Statement]()
         IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
-        IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
-          registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
-        }
-        func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
+        if (Knowledge.benchmark_backend == "likwid") {
+          IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
+            registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
+          }
+          func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
 
-        func.body.prependAll(wrapAroundParallelRegion(ListBuffer[IR_Statement](IR_Native("LIKWID_MARKER_THREADINIT"))))
-        func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
-        func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
+          func.body.prependAll(wrapAroundParallelRegion(ListBuffer[IR_Statement](IR_Native("LIKWID_MARKER_THREADINIT"))))
+          func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
+          func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
+        } else if (Knowledge.benchmark_backend == "talp") {
+          IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
+            registerMarkers += IR_Native(DLB_Monitor.getMonitorName(name) + " = DLB_MonitoringRegionRegister(\"" + DLB_Monitor.getMonitorName(name) + "\")")
+          }
+          func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
+        }
       }
 
       if (Knowledge.mpi_enabled) {
