@@ -21,11 +21,10 @@ case class IR_StdVectorDatatype(var datatype: IR_Datatype) extends IR_ContainerD
 
 case class IR_StdVectorDatatype_VS(var datatype: IR_Datatype, var numElements : IR_Expression) extends IR_ContainerDatatypeSTL {
 
-  // todo this does not work correctly yet
   override def dimensionality : Int = 1 + this.datatype.dimensionality
   override def getSizeArray : Array[Int] = ???
   override def resolveDeclType : IR_Datatype = this
-  override def resolveDeclPostscript : String = s"(${numElements.prettyprint()})" // todo seems fishy
+  override def resolveDeclPostscript : String = s"(${numElements.prettyprint()})"
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 

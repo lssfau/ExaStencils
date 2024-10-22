@@ -42,7 +42,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_TimerGathe
     var it = 0
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
-      val name = timer._2 match { // todo check this changes for correctness
+      val name = timer._2 match {
         case plainTimer : IR_PlainTimingIV          =>
           plainTimer.name
         case leveledTimer : IR_LeveledTimingIV =>
