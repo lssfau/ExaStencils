@@ -82,11 +82,10 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
   override def expand() : Output[IR_Statement] = {
     val field = fieldData.field
     val fragIdx = fieldData.fragmentIdx
-    val isDirty = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
-    val isValid = if (fragIdx != IR_LoopOverFragments.defIt)
-      fragIdx >= 0 AndAnd fragIdx < Knowledge.domain_numFragmentsPerBlock AndAnd IR_IV_IsValidForDomain(field.domain.index, fragIdx)
-    else
-      IR_IV_IsValidForDomain(field.domain.index, fragIdx)
+    val domainIdx = field.domain.index
+    val flag = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
+    val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
+    val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isValid AndAnd isDirty,
@@ -102,6 +101,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
+        IR_Assignment(flag, CUDA_DirtyFlagCase.INTERMEDIATE.id),
         CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
@@ -117,11 +117,10 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
   override def expand() : Output[IR_Statement] = {
     val field = fieldData.field
     val fragIdx = fieldData.fragmentIdx
-    val isDirty = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
-    val isValid = if (fragIdx != IR_LoopOverFragments.defIt)
-      fragIdx >= 0 AndAnd fragIdx < Knowledge.domain_numFragmentsPerBlock AndAnd IR_IV_IsValidForDomain(field.domain.index, fragIdx)
-    else
-      IR_IV_IsValidForDomain(field.domain.index, fragIdx)
+    val domainIdx = field.domain.index
+    val flag = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
+    val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
+    val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
       return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isValid AndAnd isDirty,
@@ -137,6 +136,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
+        IR_Assignment(flag, CUDA_DirtyFlagCase.INTERMEDIATE.id),
         CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
@@ -146,15 +146,19 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
 case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = buffer.field
-    val isDirty = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
+    val fragIdx = buffer.fragmentIdx
+    val domainIdx = field.domain.index
+    val flag = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
+    val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
+    val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
+      return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isDirty AndAnd isValid,
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
           IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), true)))
 
-    IR_IfCondition(isDirty,
+    IR_IfCondition(isValid AndAnd isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           Duplicate(buffer),
@@ -162,7 +166,8 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
-        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, buffer.fragmentIdx), stream)))
+        IR_Assignment(flag, CUDA_DirtyFlagCase.INTERMEDIATE.id),
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
 
@@ -171,15 +176,19 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
 case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = buffer.field
-    val isDirty = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
+    val fragIdx = buffer.fragmentIdx
+    val domainIdx = field.domain.index
+    val flag = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
+    val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
+    val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
     if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
-      return IR_IfCondition(IR_AndAnd(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()), isDirty),
+      return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isDirty AndAnd isValid,
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
           IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), true)))
 
-    IR_IfCondition(isDirty,
+    IR_IfCondition(isValid AndAnd isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           Duplicate(buffer),
@@ -187,6 +196,7 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : C
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),
-        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, buffer.fragmentIdx), stream)))
+        IR_Assignment(flag, CUDA_DirtyFlagCase.INTERMEDIATE.id),
+        CUDA_EventRecord(CUDA_PendingStreamTransfers(field, fragIdx), stream)))
   }
 }
