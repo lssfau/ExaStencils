@@ -333,8 +333,11 @@ case class CUDA_HandleFragmentLoops(
       val redTarget = Duplicate(red.target)
 
       // move reduction towards "synchroFragLoop"
-      // -> OpenMP/MPI reduction occurs after accumulation in "synchroFragLoop"
-      loop.parallelization.reduction = None
+      // -> MPI reduction occurs after accumulation in "synchroFragLoop" (i.e. skip in enclosing frag loop and its inner dimension loop)
+      // -> OMP reduction occurs only for parallelization over IR_LoopOverDimensions, otherwise skipped as MPI reduction
+      loop.parallelization.reduction.get.skipMpi = true
+      loop.parallelization.reduction.get.skipOpenMP = !Knowledge.omp_parallelizeLoopOverDimensions
+
       syncAfterFragLoop.parallelization.reduction = Some(red)
 
       // force comp stream sync if comp kernels are not synced explicitly

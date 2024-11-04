@@ -123,7 +123,7 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
     case target : IR_ForLoop if target.parallelization.potentiallyParallel && target.parallelization.parallelizationReasonable && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       val additionalOMPClauses = ListBuffer[OMP_Clause]()
 
-      if (target.parallelization.reduction.isDefined)
+      if (target.parallelization.reduction.isDefined && !target.parallelization.reduction.get.skipOpenMP)
         additionalOMPClauses += OMP_Reduction(target.parallelization.reduction.get)
 
       if (target.parallelization.privateVars.nonEmpty)
