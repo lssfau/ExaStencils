@@ -221,28 +221,42 @@ case class CUDA_HandleFragmentLoops(
 
     for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldData = access._2
-      val transferStream = CUDA_TransferStream(fieldData.field, Duplicate(fieldData.fragmentIdx))
+      val field = fieldData.field
+      val fragIdx = fieldData.fragmentIdx
+      val domainIdx = field.domain.index
+      val transferStream = CUDA_TransferStream(field, Duplicate(fragIdx))
 
       // add data sync statements
       if (syncBeforeHost(access._1, fieldAccesses.keys))
         beforeHost += CUDA_UpdateHostData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
-      if (syncAfterHost(access._1, fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(true))
+      if (syncAfterHost(access._1, fieldAccesses.keys)) {
+        val dirtyFlag = CUDA_HostDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
+        val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
+        afterHost += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
+          IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
+      }
     }
 
     for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
-      val transferStream = CUDA_TransferStream(buffer.field, Duplicate(buffer.fragmentIdx))
+      val field = buffer.field
+      val fragIdx = buffer.fragmentIdx
+      val domainIdx = field.domain.index
+      val transferStream = CUDA_TransferStream(field, Duplicate(fragIdx))
 
       // add buffer sync statements
       if (syncBeforeHost(access._1, bufferAccesses.keys))
         beforeHost += CUDA_UpdateHostBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written buffers
-      if (syncAfterHost(access._1, bufferAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
+      if (syncAfterHost(access._1, bufferAccesses.keys)) {
+        val dirtyFlag = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
+        val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
+        afterHost += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
+          IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
+      }
     }
 
     // - device sync stmts -
@@ -250,27 +264,41 @@ case class CUDA_HandleFragmentLoops(
     if (isParallel) {
       for (access <- fieldAccesses.toSeq.sortBy(_._1)) {
         val fieldData = access._2
-        val transferStream = CUDA_TransferStream(fieldData.field, Duplicate(fieldData.fragmentIdx))
+        val field = fieldData.field
+        val fragIdx = fieldData.fragmentIdx
+        val domainIdx = field.domain.index
+        val transferStream = CUDA_TransferStream(field, Duplicate(fragIdx))
 
         // add data sync statements
         if (syncBeforeDevice(access._1, fieldAccesses.keys))
           beforeDevice += CUDA_UpdateDeviceData(Duplicate(fieldData), transferStream).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
-        if (syncAfterDevice(access._1, fieldAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldData.field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)), IR_BooleanConstant(true))
+        if (syncAfterDevice(access._1, fieldAccesses.keys)) {
+          val dirtyFlag = CUDA_DeviceDataUpdated(field, Duplicate(fieldData.slot), Duplicate(fragIdx))
+          val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
+          afterDevice += IR_IfCondition(isValid AndAnd dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id,
+            IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
+        }
       }
       for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
         val buffer = access._2
-        val transferStream = CUDA_TransferStream(buffer.field, Duplicate(buffer.fragmentIdx))
+        val field = buffer.field
+        val fragIdx = buffer.fragmentIdx
+        val domainIdx = field.domain.index
+        val transferStream = CUDA_TransferStream(field, Duplicate(fragIdx))
 
         // add data sync statements
         if (syncBeforeDevice(access._1, bufferAccesses.keys))
           beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(buffer), transferStream).expand().inner // expand here to avoid global expand afterwards
 
         // update flags for written fields
-        if (syncAfterDevice(access._1, bufferAccesses.keys))
-          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(buffer.fragmentIdx)), IR_BooleanConstant(true))
+        if (syncAfterDevice(access._1, bufferAccesses.keys)) {
+          val dirtyFlag = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
+          val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
+          afterDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
+            IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
+        }
       }
     }
 
@@ -305,8 +333,11 @@ case class CUDA_HandleFragmentLoops(
       val redTarget = Duplicate(red.target)
 
       // move reduction towards "synchroFragLoop"
-      // -> OpenMP/MPI reduction occurs after accumulation in "synchroFragLoop"
-      loop.parallelization.reduction = None
+      // -> MPI reduction occurs after accumulation in "synchroFragLoop" (i.e. skip in enclosing frag loop and its inner dimension loop)
+      // -> OMP reduction occurs only for parallelization over IR_LoopOverDimensions, otherwise skipped as MPI reduction
+      loop.parallelization.reduction.get.skipMpi = true
+      loop.parallelization.reduction.get.skipOpenMP = !Knowledge.omp_parallelizeLoopOverDimensions
+
       syncAfterFragLoop.parallelization.reduction = Some(red)
 
       // force comp stream sync if comp kernels are not synced explicitly

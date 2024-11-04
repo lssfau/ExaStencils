@@ -33,6 +33,7 @@ import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 
 /// CUDA_PrepareHostCode
 
@@ -75,7 +76,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     bufferAccesses ++= gatherBuffers.bufferAccesses
   }
 
-  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream: CUDA_Stream) = {
+  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream : CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
 
@@ -86,11 +87,15 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
     beforeHost ++= syncEventsBeforeHost(executionStream)
 
+    afterHost ++= syncFlagsAfterHost()
+
     // device sync stmts
 
     if (isParallel) {
       if (!Knowledge.experimental_cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
+
+      afterDevice ++= syncFlagsAfterDevice()
     }
 
     beforeDevice ++= syncEventsBeforeDevice(executionStream)
@@ -99,7 +104,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   }
 
   // extract estimated times for host/device from performance evaluation strategy (zero if estimation doesn't exist)
-  def getTimeEstimation(loop: IR_LoopOverDimensions, host: Boolean) =
+  def getTimeEstimation(loop : IR_LoopOverDimensions, host : Boolean) =
     loop.getAnnotation(if (host) "perf_timeEstimate_host" else "perf_timeEstimate_device").getOrElse(0.0).asInstanceOf[Double]
 
   // use condWrapper to prevent automatic removal of branching from simplification strategies
