@@ -21,6 +21,7 @@ package exastencils.parallelization.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 
 /// IR_ParallelizationInfo
 
@@ -49,4 +50,22 @@ case class IR_ParallelizationInfo(
 
 trait IR_HasParallelizationInfo {
   var parallelization : IR_ParallelizationInfo
+
+  def parallelizationOverDimensionsIsReasonable(maxIterationCount : Array[Long]) : Boolean = if (Knowledge.omp_parallelizeLoopOverDimensions) {
+    if (maxIterationCount == null)
+      return true // cannot determine iteration count, default is no change in parallelizability, i.e. true
+
+    maxIterationCount.product > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads
+  } else {
+    false
+  }
+
+  def parallelizationOverFragmentsIsReasonable(maxIterationCount : Array[Long]) : Boolean = if (Knowledge.omp_parallelizeLoopOverFragments) {
+    if (maxIterationCount == null)
+      return true // cannot determine iteration count, default is no change in parallelizability, i.e. true
+
+    math.max(Knowledge.domain_numFragmentsPerBlock / Knowledge.omp_numThreads, 1) * maxIterationCount.product > Knowledge.omp_minWorkItemsPerThread
+  } else {
+    false
+  }
 }
