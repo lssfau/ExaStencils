@@ -54,29 +54,31 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
           body
       }
 
-      Knowledge.benchmark_backend match {
-        case "likwid" => {
-          val registerMarkers = ListBuffer[IR_Statement]()
-          IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
+      if (Knowledge.benchmark_backend != "None") {
+        val registerMarkers = ListBuffer[IR_Statement]()
+        IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
 
-          IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
-            registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
+        Knowledge.benchmark_backend match {
+          case "likwid" => {
+            IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
+              registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
+            }
+            func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
+
+            func.body.prependAll(wrapAroundParallelRegion(ListBuffer[IR_Statement](IR_Native("LIKWID_MARKER_THREADINIT"))))
+            func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
+            func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
           }
-          func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
-
-          func.body.prependAll(wrapAroundParallelRegion(ListBuffer[IR_Statement](IR_Native("LIKWID_MARKER_THREADINIT"))))
-          func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
-          func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
+          case "talp" =>
+            IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
+              registerMarkers += IR_Native(DLB_Monitor.getMonitorName(name) + " = DLB_MonitoringRegionRegister(\"" + DLB_Monitor.getMonitorName(name) + "\")")
+            }
+            func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
+          case _ =>
+            Logger.error("Unknown benchmark")
         }
-        case "talp" =>
-          val registerMarkers = ListBuffer[IR_Statement]()
-          IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
-
-          IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
-            registerMarkers += IR_Native(DLB_Monitor.getMonitorName(name) + " = DLB_MonitoringRegionRegister(\"" + DLB_Monitor.getMonitorName(name) + "\")")
-          }
-          func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
       }
+
 
       if (Knowledge.mpi_enabled) {
         func.body.prepend(MPI_Init)
