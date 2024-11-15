@@ -68,7 +68,7 @@ object IR_WaLBerlaReplaceCommunication extends DefaultStrategy("Communication ha
       // add automatic timers for waLBerla comm
       val timingCategory = IR_AutomaticTimingCategory.COMM
       if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
-        val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_${comm.name}", timingCategory)
+        val timer = IR_IV_AutomaticLeveledTimer(s"autoTime_${ timingCategory.toString }_${comm.name}", timingCategory, comm.level)
 
         body.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
         body.append(IR_FunctionCall(IR_StopTimer().name, timer))
