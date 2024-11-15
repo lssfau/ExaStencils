@@ -54,11 +54,11 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
           body
       }
 
-      if (Knowledge.benchmark_backend != "None") {
-        // register timers
-        var registerMarkers = ListBuffer[IR_Statement]()
-        IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
-        if (Knowledge.benchmark_backend == "likwid") {
+      Knowledge.benchmark_backend match {
+        case "likwid" => {
+          val registerMarkers = ListBuffer[IR_Statement]()
+          IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
+
           IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
             registerMarkers += IR_Native("LIKWID_MARKER_REGISTER(\"" + name + "\")")
           }
@@ -67,12 +67,15 @@ object IR_HandleMainApplication extends DefaultStrategy("HandleMainApplication")
           func.body.prependAll(wrapAroundParallelRegion(ListBuffer[IR_Statement](IR_Native("LIKWID_MARKER_THREADINIT"))))
           func.body.prepend(IR_Native("LIKWID_MARKER_INIT"))
           func.body.append(IR_Native("LIKWID_MARKER_CLOSE"))
-        } else if (Knowledge.benchmark_backend == "talp") {
+        }
+        case "talp" =>
+          val registerMarkers = ListBuffer[IR_Statement]()
+          IR_CollectUnresolvedBenchmarkFunctions.applyStandalone(StateManager.root)
+
           IR_CollectUnresolvedBenchmarkFunctions.benchmarkNames foreach { name =>
             registerMarkers += IR_Native(DLB_Monitor.getMonitorName(name) + " = DLB_MonitoringRegionRegister(\"" + DLB_Monitor.getMonitorName(name) + "\")")
           }
           func.body.prependAll(wrapAroundParallelRegion(registerMarkers))
-        }
       }
 
       if (Knowledge.mpi_enabled) {
