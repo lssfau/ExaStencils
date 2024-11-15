@@ -75,7 +75,7 @@ case class IR_PrintField(
     // begin file access
     val fileAccess = generateFileAccess(Some(altSep), Some(printPos))
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-    statements ++= fileAccess.createOrOpenFile()
+    statements ++= fileAccess.createOrOpenFileWithTimer()
     val fileHeader : ListBuffer[IR_Statement] = {
       var ret : ListBuffer[IR_Statement] = ListBuffer()
       var tmp : ListBuffer[IR_Statement] = ListBuffer()
@@ -105,7 +105,7 @@ case class IR_PrintField(
     fileAccess.handleDependencies()
     statements ++= fileHeader
     statements ++= fileAccess.fileAccess(0)
-    statements ++= fileAccess.closeFile()
+    statements ++= fileAccess.closeFileWithTimer()
 
     statements
   }

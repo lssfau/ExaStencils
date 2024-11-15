@@ -19,6 +19,18 @@ case class IR_StdVectorDatatype(var datatype: IR_Datatype) extends IR_ContainerD
   override def prettyprint(out : PpStream) : Unit = out << "std::vector< " << this.datatype << " >"
 }
 
+case class IR_StdVectorDatatype_VS(var datatype: IR_Datatype, var numElements : IR_Expression) extends IR_ContainerDatatypeSTL {
+
+  override def dimensionality : Int = 1 + this.datatype.dimensionality
+  override def getSizeArray : Array[Int] = ???
+  override def resolveDeclType : IR_Datatype = this
+  override def resolveDeclPostscript : String = s"(${numElements.prettyprint()})"
+  override def resolveFlattendSize : Int = ???
+  override def typicalByteSize = ???
+
+  override def prettyprint(out : PpStream) : Unit = out << "std::vector< " << this.datatype << " >"
+}
+
 case class IR_StdArrayDatatype(var datatype: IR_Datatype, numElements : Int) extends IR_ContainerDatatypeSTL {
 
   override def dimensionality : Int = 1 + this.datatype.dimensionality

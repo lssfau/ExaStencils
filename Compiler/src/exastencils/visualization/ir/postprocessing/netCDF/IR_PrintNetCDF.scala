@@ -133,7 +133,7 @@ case class IR_PrintNetCDF(
     lazy val varIdBuffer = handler.varIdBuffer
 
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
-    stmts ++= handler.createOrOpenFile()
+    stmts ++= handler.createOrOpenFileWithTimer()
 
     // setup
     if (!appendedMode) {
@@ -301,7 +301,7 @@ case class IR_PrintNetCDF(
 
     // cleanup and close file
     stmts ++= handler.cleanupAccess()
-    stmts ++= handler.closeFile()
+    stmts ++= handler.closeFileWithTimer()
 
     stmts
   }

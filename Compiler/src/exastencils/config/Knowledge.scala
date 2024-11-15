@@ -332,7 +332,7 @@ object Knowledge {
   var timer_automaticIOTiming : Boolean = false
 
   // library/tool to use for benchmarking
-  // may be one of the following: 'None', 'likwid'
+  // may be one of the following: 'None', 'likwid', 'talp'
   var benchmark_backend = "None"
 
   /// --- interfacing ---
