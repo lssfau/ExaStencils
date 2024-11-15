@@ -21,12 +21,13 @@ package exastencils.timing.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.l4.L4_LevelSpecification
 import exastencils.datastructures._
 import exastencils.logger.Logger
 
 /// IR_TimerFunctionReference
 
-case class IR_TimerFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference
+case class IR_TimerFunctionReference(var name : String, var returnType : IR_Datatype, var level : Option[Int]) extends IR_FunctionReference
 
 /// IR_ResolveTimerFunctions
 
@@ -42,12 +43,17 @@ object IR_AdaptTimerFunctions extends DefaultStrategy("Adapt function calls to t
 
       // adapt arguments
       function.name match {
-        case "startTimer" | "stopTimer" | "getMeanTime" | "getTotalTime" =>
+        case "startTimer" | "stopTimer" | "getMeanTime" | "getTotalTime"                            =>
           // functions expecting exactly one timer
           if (args.length != 1) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
-          fctCall.arguments = ListBuffer[IR_Expression](IR_IV_Timer(args(0)))
-        case "printAllTimers" | "printAllTimersToFile" | "printAllAutomaticTimers" | "reduceTimers"  =>
+          if (function.level.isDefined) {
+            fctCall.arguments = ListBuffer[IR_Expression](IR_IV_LeveledTimer(args(0), function.level.get))
+          } else {
+            fctCall.arguments = ListBuffer[IR_Expression](IR_IV_Timer(args(0)))
+          }
+        case "printAllTimers" | "printAllTimersToFile" | "reduceTimers" | "printTimerStatistics" =>
           // functions expecting no parameters
+          if (function.level.isDefined) Logger.warn("Found level at non-leveled function " + function.name + ". Level ist ignored.")
           if (args.nonEmpty) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
           fctCall.arguments = ListBuffer()
       }

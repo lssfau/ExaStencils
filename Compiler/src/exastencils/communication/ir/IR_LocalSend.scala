@@ -29,6 +29,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
+import exastencils.timing.ir._
 
 /// IR_LocalSend
 
@@ -56,13 +57,24 @@ case class IR_LocalSend(
     loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 
+    val ifCondStmts = ListBuffer[IR_Statement](
+      // wait until the fragment to be written to is ready for communication
+      IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
+        field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index)))),
+      loop,
+      // signal other threads that the data reading step is completed
+      IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true)))
+
+    // add automatic timers for packing
+    val timingCategory = IR_AutomaticTimingCategory.PACK
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }", timingCategory)
+
+      ifCondStmts.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+      ifCondStmts.append(IR_FunctionCall(IR_StopTimer().name, timer))
+    }
+
     IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor.index)),
-      ListBuffer[IR_Statement](
-        // wait until the fragment to be written to is ready for communication
-        IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-          field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index)))),
-        loop,
-        // signal other threads that the data reading step is completed
-        IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true))))
+      ifCondStmts)
   }
 }

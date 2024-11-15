@@ -21,11 +21,12 @@ package exastencils.timing.ir
 import scala.collection.mutable.HashMap
 
 import exastencils.datastructures._
+import exastencils.logger.Logger
 
 /// IR_CollectTimers
 
 object IR_CollectTimers extends DefaultStrategy("Collect all timers used") {
-  var timers : HashMap[String, IR_TimingIV] = HashMap()
+  var timers : HashMap[(String, Option[Int]), IR_TimingIV] = HashMap()
 
   override def apply(node : Option[Node] = None) = {
     timers.clear
@@ -38,8 +39,11 @@ object IR_CollectTimers extends DefaultStrategy("Collect all timers used") {
   }
 
   this += new Transformation("Collect", {
-    case timer : IR_TimingIV =>
-      timers += (timer.resolveName -> timer)
+    case timer : IR_PlainTimingIV           =>
+      timers += ((timer.resolveName(), None) -> timer)
       timer
+    case leveledTimer : IR_LeveledTimingIV =>
+      timers += ((leveledTimer.resolveName(), Option(leveledTimer.level)) -> leveledTimer)
+      leveledTimer
   })
 }

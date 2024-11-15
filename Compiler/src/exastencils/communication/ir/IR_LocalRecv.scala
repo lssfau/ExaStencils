@@ -30,6 +30,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
+import exastencils.timing.ir._
 
 /// IR_LocalRecv
 
@@ -84,6 +85,15 @@ case class IR_LocalRecv(
     }
     // signal other threads that the data reading step is completed
     ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true)) // TODO here too
+
+    // add automatic timers for unpacking
+    val timingCategory = IR_AutomaticTimingCategory.UNPACK
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }", timingCategory)
+
+      ifCondStmts.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+      ifCondStmts.append(IR_FunctionCall(IR_StopTimer().name, timer))
+    }
 
     IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor.index)),
       ifCondStmts)
