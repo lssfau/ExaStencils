@@ -68,7 +68,7 @@ case class CUDA_WaitEvent(event : CUDA_Event, stream : CUDA_Stream, direction : 
   def flags = 0
 
   override def expand() : OutputType = {
-    if (event.synchronizationNecessary) {
+    if (stream.useNonDefaultStreams && event.synchronizationNecessary) {
       direction match {
         case "D2H" => CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventSynchronize"), event))
         case "H2D" => CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaStreamWaitEvent"), stream, event, flags))

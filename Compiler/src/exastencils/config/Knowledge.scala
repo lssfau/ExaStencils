@@ -648,6 +648,8 @@ object Knowledge {
   var experimental_cuda_useStreams : Boolean = false
   // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
   var cuda_omitSyncDeviceAfterKernelCalls : Boolean = false
+  // specifies if compute kernels shall be executed on (implicitly synchronized) default stream
+  var experimental_cuda_useDefaultStreamForComputation : Boolean = false
   // specifies if CUDA streams are to be synchronized before each compute kernel call
   var experimental_cuda_syncStreamsBeforeComputeKernelCalls : String = "none"
   // specifies if CUDA streams are to be synchronized after each compute kernel call
@@ -959,6 +961,7 @@ object Knowledge {
     Constraints.condEnsureValue(experimental_cuda_syncStreamsAfterComputeKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
     Constraints.condEnsureValue(experimental_cuda_syncStreamsBeforeCommunicateKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
     Constraints.condEnsureValue(experimental_cuda_syncStreamsAfterCommunicateKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condError(experimental_cuda_useDefaultStreamForComputation && !experimental_cuda_useStreams, "Flag 'experimental_cuda_useDefaultStreamForComputation' can only be used when streams are enabled.")
     Constraints.condError(cuda_enabled && !experimental_cuda_useStreams && (experimental_cuda_syncStreamsBeforeCommunicateKernelCalls != "none" || experimental_cuda_syncStreamsAfterCommunicateKernelCalls != "none"
       || experimental_cuda_syncStreamsBeforeComputeKernelCalls != "none" || experimental_cuda_syncStreamsAfterComputeKernelCalls != "none"), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"experimental_cuda_useStreams = true\"")
     Constraints.condError(cuda_enabled && experimental_cuda_useStreams && (!cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsBeforeCommunicateKernelCalls) || !cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsAfterCommunicateKernelCalls)
