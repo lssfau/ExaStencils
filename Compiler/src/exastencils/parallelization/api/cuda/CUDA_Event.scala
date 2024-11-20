@@ -56,7 +56,7 @@ case class CUDA_PendingStreamTransfers(
 
 case class CUDA_EventRecord(event : CUDA_Event, stream : CUDA_Stream) extends IR_Statement with IR_Expandable {
   override def expand() : OutputType = {
-    if (stream.useNonDefaultStreams && event.synchronizationNecessary)
+    if (event.synchronizationNecessary)
       CUDA_CheckError(IR_FunctionCall(IR_ExternalFunctionReference("cudaEventRecord"), event, stream))
     else
       IR_NullStatement
