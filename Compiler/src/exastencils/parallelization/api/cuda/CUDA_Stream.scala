@@ -34,8 +34,6 @@ object CUDA_Stream {
 
     if (neighCommKernel.isDefined)
       CUDA_CommunicateStream(Duplicate(neighCommKernel.get))
-    else if (Knowledge.experimental_cuda_useDefaultStreamForComputation)
-      CUDA_DefaultStream()
     else
       CUDA_ComputeStream()
   }
@@ -164,14 +162,6 @@ sealed case class CUDA_CommunicateStreamMode() extends CUDA_StreamMode("commStre
 
 sealed case class CUDA_DummyStreamMode() extends CUDA_StreamMode("dummyStreamMode") {
   override def resolveDefValue() : Option[IR_Expression] = Some(3)
-}
-
-/// CUDA_DefaultStream
-
-case class CUDA_DefaultStream() extends CUDA_Stream(false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveName()
-  override def useNonDefaultStreams : Boolean = false
-  override def resolveName() = "DEFAULT_STREAM_PLACEHOLDER"
 }
 
 /// CUDA_ComputeStream
