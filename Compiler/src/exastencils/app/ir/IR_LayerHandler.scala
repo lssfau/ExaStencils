@@ -216,7 +216,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_AdaptKernelDimensionality,
       CUDA_HandleFragmentLoops,
       CUDA_HandleReductions,
-      CUDA_ReplaceStdFunctionCallsWrapper))
+      CUDA_ReplaceStdFunctionCallsWrapper,
+      CUDA_SetExecutionBranching))
 
     scheduler.register(IR_LayoutTansformation)
 

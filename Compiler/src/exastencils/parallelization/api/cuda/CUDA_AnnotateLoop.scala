@@ -172,12 +172,6 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
       }
   }, false)
 
-  this += new Transformation("Set final condition for host/device selection", {
-    case c : IR_IfCondition if c.hasAnnotation(CUDA_Util.CUDA_BRANCH_CONDITION) =>
-      c.condition = c.removeAnnotation(CUDA_Util.CUDA_BRANCH_CONDITION).get.asInstanceOf[NoDuplicateWrapper[IR_Expression]].value
-      c
-  }, false)
-
   /// CUDA_GatherLoopIteratorUsage
   object CUDA_GatherLoopIteratorUsage extends QuietDefaultStrategy("Gather surrounding loop iterator accesses") {
     var loopIterators : Set[String] = Set[String]()
