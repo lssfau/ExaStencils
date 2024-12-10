@@ -104,7 +104,7 @@ case class IR_RemoteCommunicationStart(
     // add automatic timers for waiting (send)
     val timingCategory = IR_AutomaticTimingCategory.WAIT
     if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
-      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_send", timingCategory)
+      val timer = IR_IV_AutomaticLeveledTimer(s"autoTime_${ timingCategory.toString }_send", timingCategory, field.level)
 
       IR_Scope(
         IR_FunctionCall(IR_StartTimer().name, timer),

@@ -93,7 +93,7 @@ case class IR_CopyToSendBuffer(
     // add automatic timers for packing
     val timingCategory = IR_AutomaticTimingCategory.PACK
     if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
-      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }", timingCategory)
+      val timer = IR_IV_AutomaticLeveledTimer(s"autoTime_${ timingCategory.toString }", timingCategory, field.level)
 
       ret.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
       ret.append(IR_FunctionCall(IR_StopTimer().name, timer))
