@@ -81,7 +81,7 @@ case class IR_RemoteCommunicationFinish(
     // add automatic timers for waiting (recv)
     val timingCategory = IR_AutomaticTimingCategory.WAIT
     if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
-      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_recv", timingCategory)
+      val timer = IR_IV_AutomaticLeveledTimer(s"autoTime_${ timingCategory.toString }_recv", timingCategory, field.level)
 
       IR_Scope(
         IR_FunctionCall(IR_StartTimer().name, timer),
