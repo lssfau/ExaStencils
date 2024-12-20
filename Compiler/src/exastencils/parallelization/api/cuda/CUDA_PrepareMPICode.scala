@@ -33,6 +33,7 @@ import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.timing.ir.IR_TimerFunctions
+import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir._
 
 /// CUDA_PrepareMPICode
@@ -251,7 +252,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
         deviceStmts ++= afterDevice
 
         /// compile final switch
-        getHostDeviceBranchingMPI(hostStmts, deviceStmts)
+        val condWrapper = NoDuplicateWrapper[IR_Expression](null)
+        getHostDeviceBranchingMPICondWrapper(condWrapper, hostStmts, deviceStmts)
       }
   }, false)
 }
