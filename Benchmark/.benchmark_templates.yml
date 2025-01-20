@@ -27,10 +27,8 @@ include:
                 python3 -m pip uninstall $PACKAGE # cleanup
             done
 
-.build_generator: &build_generator
-    - sbt sbtVersion
-    - java -version
-    - sbt assembly
+.fetch_generator: &fetch_generator
+    - cp -n $WORK/ci-pipeline-$PARENT_PIPELINE_ID/Compiler.jar Compiler
 
 .module_gcc: &module_load_gcc
     #- module load gcc/10.2.0
@@ -105,7 +103,7 @@ include:
         - testcluster
     before_script:
         - !reference [ .module_tree_build, before_script ]
-        - *build_generator
+        - *fetch_generator
         - cd Benchmark
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
@@ -186,7 +184,7 @@ include:
         OUTPUT_PATH: "output"
     before_script:
         - !reference [ .module_tree_build, before_script ]
-        - *build_generator
+        - *fetch_generator
         - cd Benchmark
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform

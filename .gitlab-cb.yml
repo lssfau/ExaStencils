@@ -3,11 +3,29 @@ variables:
     GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
+    - setup
     - pipeline
+    - cleanup
 
 include:
     - 'Benchmark/.benchmark_templates.yml'
     - 'Benchmark/lock.yml'
+
+compiler_build:
+    stage: setup
+    tags:
+        - testcluster
+    script:
+        - echo $CI_PIPELINE_ID
+        - echo $PARENT_PIPELINE_ID
+        - !reference [ .module_tree_build, before_script ]
+        - sbt sbtVersion
+        - java -version
+        - sbt assembly
+        - cp Compiler/Compiler.jar $WORK/ci-pipeline-$CI_PIPELINE_ID
+    variables:
+        NO_SLURM_SUBMIT: 1
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
 pipeline_gen:
     stage: pipeline
@@ -38,3 +56,16 @@ pipeline_exec:
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
     needs:
         - pipeline_gen
+
+compiler_delete:
+    stage: cleanup
+    tags:
+        - testcluster
+    script:
+        - echo $CI_PIPELINE_ID
+        - echo $PARENT_PIPELINE_ID
+        - rm -rf $WORK/ci-pipeline-$CI_PIPELINE_ID
+    variables:
+        NO_SLURM_SUBMIT: 1
+        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+    when: always
