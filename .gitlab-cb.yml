@@ -16,8 +16,6 @@ compiler_build:
     tags:
         - testcluster
     script:
-        - echo $CI_PIPELINE_ID
-        - echo $PARENT_PIPELINE_ID
         - !reference [ .module_tree_build, before_script ]
         - sbt sbtVersion
         - java -version
@@ -25,7 +23,6 @@ compiler_build:
         - cp Compiler/Compiler.jar $WORK/ci-pipeline-$CI_PIPELINE_ID
     variables:
         NO_SLURM_SUBMIT: 1
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
 pipeline_gen:
     stage: pipeline
@@ -34,6 +31,7 @@ pipeline_gen:
     script:
         - echo $CI_PIPELINE_ID
         - echo $PARENT_PIPELINE_ID
+        - echo $GRANDPARENT_PIPELINE_ID
         - chmod +x Benchmark/generate_cb_yml_stages.sh
         - ./Benchmark/generate_cb_yml_stages.sh > pipeline.yml
     artifacts:
@@ -44,6 +42,7 @@ pipeline_gen:
     variables:
         NO_SLURM_SUBMIT: 1
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+        GRANDPARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
 pipeline_exec:
     stage: pipeline
@@ -54,6 +53,7 @@ pipeline_exec:
         strategy: depend
     variables:
         PARENT_PIPELINE_ID: $CI_PIPELINE_ID
+        GRANDPARENT_PIPELINE_ID: $CI_PIPELINE_ID
     needs:
         - pipeline_gen
 
@@ -62,10 +62,7 @@ compiler_delete:
     tags:
         - testcluster
     script:
-        - echo $CI_PIPELINE_ID
-        - echo $PARENT_PIPELINE_ID
         - rm -rf $WORK/ci-pipeline-$CI_PIPELINE_ID
     variables:
         NO_SLURM_SUBMIT: 1
-        PARENT_PIPELINE_ID: $CI_PIPELINE_ID
     when: always
