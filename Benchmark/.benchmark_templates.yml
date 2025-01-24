@@ -102,7 +102,7 @@ include:
         - !reference [ .module_tree_build, before_script ]
         - echo $CI_PIPELINE_ID
         - echo $PARENT_PIPELINE_ID
-        - cp --update=none $COMPILER_PATH Compiler
+        - cp --update=none $WORK/$COMPILER_PATH Compiler
         - cd Benchmark
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
@@ -138,7 +138,7 @@ include:
         KNOWLEDGE_FILE: "TO_BE_REPLACED"
         PLATFORM_FILE: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
-        COMPILER_PATH: $WORK/ci-pipeline-$PARENT_PIPELINE_ID/Compiler.jar
+        COMPILER_PATH: ci-pipeline-$PARENT_PIPELINE_ID/Compiler.jar
 
 .gen_bench_job_template:
     stage: bench_gen
@@ -182,13 +182,13 @@ include:
         EXASLANG_FILES: "TO_BE_REPLACED"
         KNOWLEDGE_FILE: "TO_BE_REPLACED"
         OUTPUT_PATH: "output"
-        COMPILER_PATH: $WORK/ci-pipeline-$GRANDPARENT_PIPELINE_ID/Compiler.jar
+        COMPILER_PATH: ci-pipeline-$GRANDPARENT_PIPELINE_ID/Compiler.jar
     before_script:
         - !reference [ .module_tree_build, before_script ]
         - echo $CI_PIPELINE_ID
         - echo $PARENT_PIPELINE_ID
         - echo $GRANDPARENT_PIPELINE_ID
-        - cp --update=none $COMPILER_PATH Compiler
+        - cp --update=none $WORK/$COMPILER_PATH Compiler
         - cd Benchmark
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
         - python3 unzip.py artifacts.zip Platform
