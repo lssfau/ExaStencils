@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
-if [ $# -ne 3 ]; then
-  echo "Wrong number of arguments. Should be ./<script_name>.sh <EXA_PROBLEM_NAME> <EXA_PROBLEM_PATH> <PARENT_PIPELINE_ID>"
+if [ $# -ne 4 ]; then
+  echo "Wrong number of arguments. Should be ./<script_name>.sh <EXA_PROBLEM_NAME> <EXA_PROBLEM_PATH> <PARENT_PIPELINE_ID> <GRANDPARENT_PIPELINE_ID>"
 fi
 
 # get idle hosts (and filter out drained hosts)
@@ -33,6 +33,8 @@ for HOST in ${HOST_LIST[@]}; do
   echo -e "    variables:"
   echo -e "        EXA_PROBLEM_PATH: "$2""
   echo -e "        SLURM_NODELIST: "$HOST""
+  echo -e "        PARENT_PIPELINE_ID: "$3""
+  echo -e "        GRANDPARENT_PIPELINE_ID: "$4""
   echo -e "    needs:"
   echo -e "        - pipeline: '$3'"
   echo -e "          job: bench_gen:$1"

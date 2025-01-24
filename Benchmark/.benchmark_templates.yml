@@ -102,7 +102,6 @@ include:
         - !reference [ .module_tree_build, before_script ]
         - echo $CI_PIPELINE_ID
         - echo $PARENT_PIPELINE_ID
-        - echo $GRANDPARENT_PIPELINE_ID
         - cp --update=none $COMPILER_PATH Compiler
         - cd Benchmark
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
@@ -151,9 +150,8 @@ include:
     script:
         - echo $CI_PIPELINE_ID
         - echo $PARENT_PIPELINE_ID
-        - echo $GRANDPARENT_PIPELINE_ID
         - chmod +x generate_bench_jobs_for_hosts.sh
-        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH $CI_PIPELINE_ID > $EXA_PROBLEM_NAME-child-pipe.yml
+        - ./generate_bench_jobs_for_hosts.sh $EXA_PROBLEM_NAME $EXA_PROBLEM_PATH $CI_PIPELINE_ID $PARENT_PIPELINE_ID > $EXA_PROBLEM_NAME-child-pipe.yml
     after_script:
         - !reference [ .module_tree_build, after_script ]
     artifacts:
