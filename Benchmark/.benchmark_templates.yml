@@ -103,6 +103,8 @@ include:
         - echo $CI_PIPELINE_ID
         - echo $PARENT_PIPELINE_ID
         - echo "Copy compiler from $WORK/$COMPILER_PATH to ${PWD##*/}/Compiler"
+        - ls $WORK/ci-pipeline-$PARENT_PIPELINE_ID
+        - ls $WORK/$COMPILER_PATH
         - cp --update=none $WORK/$COMPILER_PATH Compiler
         - cd Benchmark
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
@@ -190,6 +192,8 @@ include:
         - echo $PARENT_PIPELINE_ID
         - echo $GRANDPARENT_PIPELINE_ID
         - echo "Copy compiler from $WORK/$COMPILER_PATH to ${PWD##*/}/Compiler"
+        - ls $WORK/ci-pipeline-$PARENT_PIPELINE_ID
+        - ls $WORK/$COMPILER_PATH
         - cp --update=none $WORK/$COMPILER_PATH Compiler
         - cd Benchmark
         - 'curl -L --header "PRIVATE-TOKEN: $API_TOKEN" "https://gitlab.rrze.fau.de/api/v4/projects/ExaStencils%2Fpfgen/jobs/artifacts/master/download?job=collect-artifacts" --output artifacts.zip'
