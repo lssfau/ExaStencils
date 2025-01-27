@@ -192,7 +192,7 @@ include:
         - echo $PARENT_PIPELINE_ID
         - echo $GRANDPARENT_PIPELINE_ID
         - echo "Copy compiler from $WORK/$COMPILER_PATH to ${PWD##*/}/Compiler"
-        - ls $WORK/ci-pipeline-$PARENT_PIPELINE_ID
+        - ls $WORK/ci-pipeline-$GRANDPARENT_PIPELINE_ID
         - ls $WORK/$COMPILER_PATH
         - cp --update=none $WORK/$COMPILER_PATH Compiler
         - cd Benchmark
