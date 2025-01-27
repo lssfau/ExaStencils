@@ -21,8 +21,8 @@ compiler_build:
         - java -version
         - sbt assembly
         - echo "Copy compiler from ${PWD##*/}/Compiler/Compiler.jar to $WORK/ci-pipeline-$CI_PIPELINE_ID"
+        - mkdir -p $WORK/ci-pipeline-$CI_PIPELINE_ID
         - cp Compiler/Compiler.jar $WORK/ci-pipeline-$CI_PIPELINE_ID
-        - ls $WORK/ci-pipeline-$CI_PIPELINE_ID
     variables:
         NO_SLURM_SUBMIT: 1
 
