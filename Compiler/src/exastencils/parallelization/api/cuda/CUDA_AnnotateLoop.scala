@@ -54,6 +54,21 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
     }
   }
 
+  object FindLoopBoundsFromVariableSizedField extends QuietDefaultStrategy("Find instances of IR_IV_IndexFromField in non-evaluable loop bound expression") {
+    var found = false
+
+    override def applyStandalone[T](nodes : mutable.Buffer[T]) : Unit = {
+      found = false
+      super.applyStandalone(nodes)
+    }
+
+    this += Transformation("..", {
+      case idx : IR_IV_IndexFromField =>
+        found = true
+        idx
+    })
+  }
+
   /**
     * Calculate the CUDA loops that are part of the band.
     *
@@ -79,7 +94,10 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
         } catch {
           case e : EvaluationException =>
             Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${ e.msg }'""")
-            if (lower.isInstanceOf[IR_IV_IndexFromField] || upper.isInstanceOf[IR_IV_IndexFromField]) {
+
+            // try to get loop bounds from fields with variable size
+            FindLoopBoundsFromVariableSizedField.applyStandalone(ListBuffer(lower, upper))
+            if (FindLoopBoundsFromVariableSizedField.found) {
               innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_PART)
               calculateLoopsInBand(extremaMap, innerLoop)
             } else {
