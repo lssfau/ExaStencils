@@ -180,7 +180,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
       if (!addedFunctions.contains(NameAndLevel(functionName, level))) {
         addedFunctions += NameAndLevel(functionName, level)
-        commFunctions += IR_ApplyBCFunction(functionName, applyBCsStatement.field, "slot", IR_LoopOverFragments.defIt, DefaultNeighbors.neighbors, insideFragLoop)
+        commFunctions += IR_ApplyBCFunction(functionName, applyBCsStatement.field, "slot", IR_LoopOverFragments.defIt,
+          DefaultNeighbors.neighbors, insideFragLoop)
       }
 
       applyBCsStatement.slot match {

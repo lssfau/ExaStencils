@@ -21,6 +21,7 @@ package exastencils.base.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.prettyprinting.PpStream
+import exastencils.prettyprinting.PrettyPrintable
 
 /// IR_ObjectInstantiation
 
@@ -40,12 +41,27 @@ case class IR_ObjectInstantiation(var datatype : IR_Datatype, var name : String,
   }
 }
 
+/// IR_MemberAccessLike
+
+trait IR_MemberAccessLike extends IR_Access {
+  def base : IR_Access
+  def member : String
+}
+
 /// IR_MemberAccess
 
-case class IR_MemberAccess(var base : IR_Access, var member : String) extends IR_Access {
+case class IR_MemberAccess(var base : IR_Access, var member : String) extends IR_MemberAccessLike {
   // FIXME: datatype
   override def datatype = base.datatype
   override def prettyprint(out : PpStream) : Unit = out << base << '.' << member
+}
+
+/// IR_MemberFunctionCallLike
+
+trait IR_MemberFunctionCallLike extends IR_Expression {
+  def objectName : IR_Expression
+  def name : String
+  def arguments : ListBuffer[IR_Expression]
 }
 
 /// IR_MemberFunctionCall
@@ -55,9 +71,143 @@ object IR_MemberFunctionCall {
     new IR_MemberFunctionCall(objectName, name, args.to[ListBuffer])
 }
 
-case class IR_MemberFunctionCall(var objectName : IR_Expression, var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+case class IR_MemberFunctionCall(
+    var objectName : IR_Expression,
+    var name : String,
+    var arguments : ListBuffer[IR_Expression]
+) extends IR_MemberFunctionCallLike {
 
-  // FIXME: datatype
-  override def datatype = IR_UnitDatatype
+  override def datatype : IR_Datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
+}
+
+object IR_MemberFunctionCallWithDt {
+  def apply(objectName : IR_Expression, name : String, dt : IR_Datatype, args : IR_Expression*) =
+    new IR_MemberFunctionCallWithDt(objectName, name, args.to[ListBuffer], dt)
+}
+
+case class IR_MemberFunctionCallWithDt(
+    var objectName : IR_Expression,
+    var name : String,
+    var arguments : ListBuffer[IR_Expression],
+    var datatype : IR_Datatype = IR_UnitDatatype
+) extends IR_MemberFunctionCallLike {
+
+  override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
+}
+
+object IR_MemberFunctionCallArrow {
+  def apply(objectName : IR_Expression, name : String, args : IR_Expression*) =
+    new IR_MemberFunctionCallArrow(objectName, name, args.to[ListBuffer])
+}
+
+case class IR_MemberFunctionCallArrow(
+    var objectName : IR_Expression,
+    var name : String,
+    var arguments : ListBuffer[IR_Expression],
+) extends IR_MemberFunctionCallLike {
+
+  override def datatype : IR_Datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << objectName << "->" << name << '(' <<< (arguments, ", ") << ')'
+}
+
+object IR_MemberFunctionCallArrowWithDt {
+  def apply(objectName : IR_Expression, name : String, dt : IR_Datatype, args : IR_Expression*) =
+    new IR_MemberFunctionCallArrowWithDt(objectName, name, args.to[ListBuffer], dt)
+}
+
+case class IR_MemberFunctionCallArrowWithDt(
+    var objectName : IR_Expression,
+    var name : String,
+    var arguments : ListBuffer[IR_Expression],
+    var datatype : IR_Datatype = IR_UnitDatatype
+) extends IR_MemberFunctionCallLike {
+
+  override def prettyprint(out : PpStream) : Unit = out << objectName << "->" << name << '(' <<< (arguments, ", ") << ')'
+}
+
+/// IR_ClassOperatorCall
+
+trait IR_ClassOperatorCallLike extends IR_Expression {
+  def objectName : IR_Expression
+  def operatorLeft : String
+  def operatorRight : Option[String]
+  def arguments : ListBuffer[IR_Expression]
+  override def prettyprint(out : PpStream) : Unit = {
+    out << objectName << operatorLeft <<< (arguments, ", ")
+    if (operatorRight.isDefined)
+      out << operatorRight.get
+  }
+}
+
+/// IR_FunctorCall
+
+object IR_FunctorCall {
+  def apply(objectName : IR_Expression, args : IR_Expression*) =
+    new IR_FunctorCall(objectName, args.to[ListBuffer])
+}
+
+case class IR_FunctorCall(
+    var objectName : IR_Expression,
+    var arguments : ListBuffer[IR_Expression]
+) extends IR_ClassOperatorCallLike {
+  override def datatype : IR_Datatype = IR_UnitDatatype
+  override def operatorLeft = "("
+  override def operatorRight = Some(")")
+}
+
+/// IR_MemberInitializerList
+
+object IR_MemberInitializerList {
+  def apply(args : (IR_Access, IR_Expression)*) = new IR_MemberInitializerList(args.to[ListBuffer])
+}
+
+case class IR_MemberInitializerList(var arguments : ListBuffer[(IR_Access, IR_Expression)]) extends IR_Expression {
+  def addEntry(member : IR_Access, newVal : IR_Expression) = arguments += Tuple2(member, newVal)
+  def addEntry(newEntry : (IR_Access, IR_Expression)) = arguments += newEntry
+
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = {
+    if (arguments.nonEmpty)
+      out << " : "
+    for (((member, initVal), i) <- arguments.zipWithIndex) {
+      initVal match {
+        case _ : IR_InitializerList =>
+          out << member << initVal << (if (i != arguments.size - 1) ", " else " ")
+        case _                      =>
+          out << member << "(" << initVal << ")" << (if (i != arguments.size - 1) ", " else " ")
+      }
+    }
+  }
+}
+
+/// IR_Constructor
+
+case class IR_Constructor(
+    var name : String,
+    var params : ListBuffer[IR_FunctionArgument],
+    var initializerList : IR_MemberInitializerList,
+    var body : ListBuffer[IR_Statement]) extends IR_Node with PrettyPrintable {
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << name
+    out << "(" <<< (params, ", ") << ")"
+    out << initializerList
+    out << " {"
+    out <<< (body, "\n") << '\n'
+    out << "}\n"
+  }
+}
+
+/// IR_Destructor
+
+case class IR_Destructor(
+    var name : String,
+    var body : ListBuffer[IR_Statement]) extends IR_Node with PrettyPrintable {
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "~" << name << " ( ) {"
+    out <<< (body, "\n") << '\n'
+    out << "}\n"
+  }
 }

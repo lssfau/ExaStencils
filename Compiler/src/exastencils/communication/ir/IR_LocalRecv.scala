@@ -28,63 +28,83 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir._
+import exastencils.logger.Logger
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
 import exastencils.timing.ir._
 
 /// IR_LocalRecv
 
 case class IR_LocalRecv(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
-    var neighbor : NeighborInfo,
-    var dest : IR_ExpressionIndexRange,
-    var src : IR_ExpressionIndexRange,
+    var refinementCase : RefinementCase.Access,
+    var packInfo : IR_LocalPackInfo,
     var insideFragLoop : Boolean,
-    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable with IR_ApplyLocalCommunication with IR_HasRefinedPacking {
+
+  def indexOfRefinedNeighbor = getIndexOfRefinedNeighbor(packInfo)
 
   def numDims = field.layout.numDimsData
 
+  def equalLevelCopyLoop() : IR_Statement =
+    IR_NoInterpPackingLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+
+  def coarseToFineCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderC2F match {
+    case 1 => IR_LinearInterpPackingC2FLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+    case 2 => IR_QuadraticInterpPackingC2FLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+  }
+
+  def fineToCoarseCopyLoop() : IR_Statement = Knowledge.refinement_interpOrderF2C match {
+    case 1 => IR_LinearInterpPackingF2CLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+    case 2 => IR_QuadraticInterpPackingF2CLocal(send = false, field, slot, refinementCase, packInfo, indexOfRefinedNeighbor, condition)
+    case v => Logger.error(s"Invalid value $v for flag 'refinement_interpOrderF2C' when using generated communication with refinement")
+  }
+
   override def expand() : Output[IR_Statement] = {
-    var innerStmt : IR_Statement = IR_Assignment(
-      IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims)),
-      IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index),
-        IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
+    val packIntervalDest = packInfo.getPackIntervalDest()
+    val packIntervalSrc = packInfo.getPackIntervalSrc()
 
-    if (condition.isDefined)
-      innerStmt = IR_IfCondition(condition.get, innerStmt)
-
-    val loop = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt))
-    loop.polyOptLevel = 1
-    loop.parallelization.potentiallyParallel = true
+    val neighbor = packInfo.neighbor
+    val domainIdx = field.domain.index
+    val neighborIdx = neighbor.index
 
     def loopWithCommTrafos(trafo : IR_CommTransformation) = {
-      val fieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
-      val neighFieldAccess = IR_DirectFieldAccess(field, Duplicate(slot), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index),
-        IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _))
-      val ret = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](IR_Assignment(fieldAccess, trafo.applyLocalTrafo(neighFieldAccess, neighbor))))
+      val fieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot), IR_LoopOverDimensions.defIt(numDims))
+      val neighFieldAccess = IR_DirectFieldLikeAccess(field, Duplicate(slot),
+        IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
+        IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), packIntervalSrc.begin, _ + _), packIntervalDest.begin, _ - _))
+      val ret = new IR_LoopOverDimensions(numDims, packIntervalDest, ListBuffer[IR_Statement](IR_Assignment(fieldAccess, trafo.applyLocalTrafo(neighFieldAccess, neighbor))))
       ret.polyOptLevel = 1
       ret.parallelization.potentiallyParallel = true
+
       ret
     }
 
     var ifCondStmts = ListBuffer[IR_Statement]()
     // wait until the fragment to be read from is ready for communication
     if (Knowledge.comm_enableCommTransformations) {
-      ifCondStmts += IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-        field, IR_IV_CommNeighNeighIdx(field.domain.index, neighbor.index), IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index)))) // TODO replace getOpposingNeigh
-      val trafoId = IR_IV_CommTrafoId(field.domain.index, neighbor.index)
+      if (Knowledge.refinement_enabled)
+        Logger.error("Comm transformations are not available with mesh refinement yet.") // TODO
+
+      ifCondStmts += IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(),
+        IR_AddressOf(IR_IV_LocalCommReady(field,
+          IR_IV_CommNeighNeighIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor),
+          IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor)))) // TODO replace getOpposingNeigh
+      val trafoId = IR_IV_CommTrafoId(domainIdx, neighborIdx, indexOfRefinedNeighbor)
       ifCondStmts += IR_Switch(trafoId, IR_CommTransformationCollection.trafos.zipWithIndex.map {
         case (trafo, i) => IR_Case(i, ListBuffer[IR_Statement](loopWithCommTrafos(trafo)))
       })
     }
     else {
-      ifCondStmts += IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
-        field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domain.index, neighbor.index))))
-      ifCondStmts += loop
+      ifCondStmts += IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(),
+        IR_AddressOf(IR_IV_LocalCommReady(field,
+          DefaultNeighbors.getOpposingNeigh(neighborIdx).index,
+          IR_IV_NeighborFragmentIdx(domainIdx, neighborIdx, indexOfRefinedNeighbor))))
+      ifCondStmts += getCopyLoop(packInfo.refinementCase)
     }
     // signal other threads that the data reading step is completed
-    ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighbor.index), IR_BooleanConstant(true)) // TODO here too
+    ifCondStmts += IR_Assignment(IR_IV_LocalCommDone(field, neighborIdx), IR_BooleanConstant(true)) // TODO here too
 
     // add automatic timers for unpacking
     val timingCategory = IR_AutomaticTimingCategory.UNPACK
@@ -95,9 +115,11 @@ case class IR_LocalRecv(
       ifCondStmts.append(IR_FunctionCall(IR_StopTimer().name, timer))
     }
 
-    IR_IfCondition(IR_IV_NeighborIsValid(field.domain.index, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domain.index, neighbor.index)),
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isLocalNeighbor(refinementCase, domainIdx, neighborIdx, indexOfRefinedNeighbor)),
       ifCondStmts)
-
   }
 }
 

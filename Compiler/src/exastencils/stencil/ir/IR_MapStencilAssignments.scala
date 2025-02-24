@@ -57,7 +57,7 @@ object IR_MapStencilAssignments extends DefaultStrategy("Map assignments to sten
 //          for (dim <- 0 until Knowledge.dimensionality)
 //            fieldIndex(dim) -= offsetsLeft(idx)(dim)
 //
-//        statements += IR_Assignment(IR_FieldAccess(fieldSelection, fieldIndex), coeff, op)
+//        statements += IR_Assignment(IR_FieldLikeAccess(fieldSelection, fieldIndex), coeff, op)
 //      }
 //
 //      statements

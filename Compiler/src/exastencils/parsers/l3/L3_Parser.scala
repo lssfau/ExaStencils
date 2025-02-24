@@ -34,6 +34,8 @@ import exastencils.operator.l3._
 import exastencils.parsers._
 import exastencils.solver.l3._
 import exastencils.util.l3.L3_OffsetAlias
+import exastencils.waLBerla.l3._
+import exastencils.waLBerla.l3.field._
 
 object L3_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L3_Lexer
@@ -77,6 +79,7 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| inlineKnowledge
       ||| domainDeclaration
       ||| fieldDeclaration
+      ||| waLBerlaFieldDeclaration
       ||| overrideFieldInformation
       ||| fieldCombinationDeclaration
       ||| stencilDeclaration
@@ -481,6 +484,22 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
     ^^ { case id ~ levels ~ combType ~ fields => L3_FieldCombinationDecl(id, levels, combType, fields) })
+
+
+  // ######################################
+  // ##### L3_WaLBerlaFieldDecl
+  // ######################################
+
+  lazy val waLBerlaFieldDeclaration = waLBerlaBaseFieldDeclaration ||| waLBerlaBoundaryFieldDeclaration ||| waLBerlaFieldFromOther
+
+  lazy val waLBerlaBaseFieldDeclaration = locationize(("waLBerla" ~ "Field" ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ (integerLit <~ "times").? ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ levels ~ datatype ~ numSlots ~ initial => L3_WaLBerlaBaseFieldDecl(id, levels, datatype, numSlots, initial) })
+
+  lazy val waLBerlaBoundaryFieldDeclaration = locationize("waLBerla" ~> boundaryFieldDeclaration
+    ^^ ( bcFieldDecl => L3_WaLBerlaBoundaryFieldDecl(bcFieldDecl.name, bcFieldDecl.levels, bcFieldDecl.boundary)))
+
+  lazy val waLBerlaFieldFromOther = locationize("waLBerla" ~> fieldFromOther
+    ^^ ( fieldFromOtherDecl => L3_WaLBerlaFieldFromOther(fieldFromOtherDecl.name, fieldFromOtherDecl.levels, fieldFromOtherDecl.src) ))
 
   // ######################################
   // ##### L3_FieldOverride

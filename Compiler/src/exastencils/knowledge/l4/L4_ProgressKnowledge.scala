@@ -18,7 +18,8 @@
 
 package exastencils.knowledge.l4
 
-import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLikeCollections
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollections
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.operator.l4._
 
@@ -28,10 +29,12 @@ object L4_ProgressKnowledge {
     //L4_DomainCollection.progress()
 
     // may require:
-    L4_FieldLayoutCollection.progress()
+    for (layoutCollection <- L4_FieldLikeLayoutCollections.collections)
+      layoutCollection.progress()
 
     // may require: Domain, FieldLayout
-    L4_FieldCollection.progress()
+    for (fieldCollection <- L4_FieldLikeCollections.collections)
+      fieldCollection.progress()
 
     // may require: FieldLayout, Field
     L4_ExternalFieldCollection.progress()

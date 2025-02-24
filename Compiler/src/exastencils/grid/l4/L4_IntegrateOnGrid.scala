@@ -27,7 +27,7 @@ import exastencils.baseExt.l4.L4_FieldIteratorAccess
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.field.l4.L4_FieldAccess
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.grid.ir.IR_IntegrateOnGrid
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -61,7 +61,7 @@ case class L4_IntegrateOnGrid(
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
-    if (offset.isDefined) out << offset
+    if (offset.isDefined) out << offset.get
     out << " ( " << expression << " ) "
   }
 
@@ -122,7 +122,7 @@ case class L4_IntegrateOnGrid(
       def addPIntAnnot(dim : Int, exp : L4_Expression) = { exp.annotate(s"${ pIntAnnot }_$dim"); exp }
 
       this += new Transformation("Wrap", {
-        case fieldAccess : L4_FieldAccess =>
+        case fieldAccess : L4_FieldLikeAccess =>
           if (stagDim.isEmpty) { // non-staggered cells
             fieldAccess.target.localization match {
               case L4_AtCellCenter => // interpolation

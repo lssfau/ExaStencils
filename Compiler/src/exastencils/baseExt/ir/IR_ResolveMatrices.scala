@@ -30,8 +30,8 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.HelperNode
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.field.ir.IR_FieldAccess
-import exastencils.field.ir.IR_MultiDimFieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
@@ -110,7 +110,7 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
 
   ///////////////////////////////////////////// matAccesses
   this += new Transformation("Wrap matAccesses around field accesses with defined matIndices", {
-    case fa : IR_FieldAccess =>
+    case fa : IR_FieldLikeAccess =>
       if (fa.matIndex.isDefined) {
         val ma = IR_MatrixAccess(fa, fa.matIndex.get.y, fa.matIndex.get.x)
         //fa.matIndex = None
@@ -174,11 +174,11 @@ object IR_PreItMOps extends DefaultStrategy("Prelimirary transformations") {
         stmt
       }
     /*
-  case stmt @ IR_Assignment(dest : IR_FieldAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype])    =>
+  case stmt @ IR_Assignment(dest : IR_FieldLikeAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype])    =>
     // resolve M = M * M into tmp = M * M; M = tmp
     var selfassign = false
     StateManager.findAll[IR_Multiplication](HelperNode(src)).foreach(mult =>
-      if (mult.factors.exists(p => p.isInstanceOf[IR_FieldAccess] && p.asInstanceOf[IR_FieldAccess].name == dest.name))
+      if (mult.factors.exists(p => p.isInstanceOf[IR_FieldLikeAccess] && p.asInstanceOf[IR_FieldLikeAccess].name == dest.name))
         selfassign = true
     )
 
@@ -273,13 +273,13 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
   )
 
   /** Transformation: replace special(eventually to resolve at runtime)
-    * function nodes with their resolvable counterparts if they are ready (considered for inline)
-    * and resolve
-    */
+   * function nodes with their resolvable counterparts if they are ready (considered for inline)
+   * and resolve
+   */
 
   this += new Transformation("Insert resolvables and resolve", {
     case decl @ IR_VariableDeclaration(dt, _, Some(r : IR_RuntimeMNode), _) if r.resolveAtRuntime =>
-      if(dt.isInstanceOf[IR_MatrixDatatype]) {
+      if (dt.isInstanceOf[IR_MatrixDatatype]) {
         IR_MatNodeUtils.splitDeclaration(decl, true)
       } else {
         IR_MatNodeUtils.splitDeclaration(decl)
@@ -302,7 +302,7 @@ object IR_ResolveMatFuncs extends DefaultStrategy("Resolve matFuncs") {
     // debug
     case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "compare")           =>
       IR_GenerateBasicMatrixOperations.compare(args(0), args(1), args(2), if (args.length == 4) false else true)
-    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "classifyMatShape")                 =>
+    case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "classifyMatShape")  =>
       val shape = IR_ClassifyMatShape(args(0).asInstanceOf[IR_MatrixExpression])
       IR_Print(IR_VariableAccess("std::cout", IR_StringDatatype), shape.toExprList() += IR_StringConstant("\\n"))
     case IR_ExpressionStatement(call @ IR_FunctionCall(_, args)) if (call.name == "evalMOpRuntimeExe") =>
@@ -434,7 +434,7 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
     //      IR_MatNodeUtils.splitDeclaration(decl)
 
     // use std::fill for assignments of matrices with constants
-    case IR_Assignment(dest : IR_Access, src, "=") if (dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_FieldAccess] && IR_MatNodeUtils.isScalar(src)) =>
+    case IR_Assignment(dest : IR_Access, src, "=") if (dest.datatype.isInstanceOf[IR_MatrixDatatype] && !dest.isInstanceOf[IR_FieldLikeAccess] && IR_MatNodeUtils.isScalar(src)) =>
       IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference("std::fill", IR_UnitDatatype), ListBuffer[IR_Expression](Duplicate(dest), Duplicate(dest) + IR_IntegerConstant(dest.datatype.asInstanceOf[IR_MatrixDatatype].resolveFlattendSize), src)))
 
     // assignment of a matrix with another matrix : copy other matrix
@@ -458,12 +458,12 @@ object IR_PostItMOps extends DefaultStrategy("Resolve matrix decls and assignmen
         for (col <- 0 until matrix.sizeN) {
           var cloned = Duplicate(stmt)
           StateManager.findAll[IR_Expression](cloned).foreach {
-            case _ : IR_FunctionArgument                                                                                                            => // do not mark function arguments to be resolved into individual accesses
-            case x @ (_ : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_MultiDimFieldAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+            case _ : IR_FunctionArgument                                                                                                                => // do not mark function arguments to be resolved into individual accesses
+            case x @ (_ : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_MultiDimFieldLikeAccess) if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
               x.annotate(annotationMatrixRow, row)
               x.annotate(annotationMatrixCol, col)
             }
-            case exp                                                                                                                                =>
+            case exp                                                                                                                                    =>
           }
           newStmts += cloned
         }
@@ -551,7 +551,7 @@ object IR_LinearizeMatrices extends DefaultStrategy("linearize matrices") {
    */
     case IR_HighDimAccess(base, _) if (!base.datatype.isInstanceOf[IR_MatrixDatatype] && !base.datatype.isInstanceOf[IR_TensorDatatype]) => base
 
-    case IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_Index) =>
+    case IR_HighDimAccess(base : IR_MultiDimFieldLikeAccess, idx : IR_Index) =>
       val hoIdx = idx.toExpressionIndex
       val fieldLayout = base.field.layout
       for (dim <- fieldLayout.numDimsGrid until fieldLayout.numDimsData) {

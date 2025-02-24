@@ -26,7 +26,7 @@ import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.layoutTransformation.ir._
 import exastencils.logger.Logger
@@ -36,10 +36,10 @@ import exastencils.prettyprinting.PpStream
 /// MPI_DataType
 
 object MPI_DataType {
-  def shouldBeUsed(field : IR_Field, indexRange : IR_ExpressionIndexRange, condition : Option[IR_Expression]) : Boolean = {
+  def shouldBeUsed(field : IR_FieldLike, indexRange : IR_ExpressionIndexRange, condition : Option[IR_Expression]) : Boolean = {
     // TODO: extend range of supported cases
     // honor user-give knowledge parameters
-    if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
+    if (!Knowledge.mpi_useCustomDatatypes || !field.layout.useFixedLayoutSizes)
       return false
 
     // skip communication steps with conditions for now
@@ -75,7 +75,7 @@ object MPI_DataType {
   // currently implements only the special case of field<complex>, which leads to use of MPI_CXX_DOUBLE_COMPLEX
   // (complex can be mapped to a built-in MPI datatype)
   // (matrices are mapped to buffers of IR_RealDatatype)
-  def determineInnerMPIDatatype(field : IR_Field) : IR_Datatype = {
+  def determineInnerMPIDatatype(field : IR_FieldLike) : IR_Datatype = {
     field.layout.datatype match {
       case cd : IR_ComplexDatatype => IR_ComplexDatatype(IR_RealDatatype)
       case _ => IR_RealDatatype
@@ -83,7 +83,7 @@ object MPI_DataType {
   }
 }
 
-case class MPI_DataType(var field : IR_Field, var indexRange : IR_ExpressionIndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
+case class MPI_DataType(var field : IR_FieldLike, var indexRange : IR_ExpressionIndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi : String = generateName
 

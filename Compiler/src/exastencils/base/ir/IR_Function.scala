@@ -92,7 +92,7 @@ case class IR_PlainFunction(
     override var datatype : IR_Datatype,
     override var parameters : ListBuffer[IR_FunctionArgument],
     override var body : ListBuffer[IR_Statement]
-) extends IR_Function {
+) extends IR_PlainFunctionLike {
 
 }
 
@@ -126,7 +126,7 @@ case class IR_LeveledFunction(
     override var datatype : IR_Datatype,
     override var parameters : ListBuffer[IR_FunctionArgument],
     override var body : ListBuffer[IR_Statement]
-) extends IR_Function {
+) extends IR_LeveledFunctionLike {
 
   override var name = baseName + '_' + level
 }

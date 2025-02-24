@@ -25,7 +25,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.grid.ir._
 import exastencils.timing.ir.IR_AutomaticTimingCategory
 import exastencils.timing.ir.IR_AutomaticTimingCategory.Access
@@ -34,7 +34,7 @@ import exastencils.timing.ir.IR_AutomaticTimingCategory.Access
 
 case class IR_ApplyBCFunction(
     var name : String,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var fragIdx : IR_Expression,
     var neighbors : ListBuffer[NeighborInfo],

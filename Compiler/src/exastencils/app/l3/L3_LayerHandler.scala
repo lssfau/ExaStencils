@@ -25,6 +25,8 @@ import exastencils.baseExt.l3._
 import exastencils.config._
 import exastencils.domain.l3.L3_DomainCollection
 import exastencils.field.l3._
+import exastencils.fieldlike.l3.L3_FieldLikeCollections
+import exastencils.fieldlike.l3.L3_ProcessBoundaryDeclarations
 import exastencils.grid.l3._
 import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
@@ -69,6 +71,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
 
   override def shutdown() : Unit = {
     L3_KnowledgeContainer.clear()
+    L3_FieldLikeCollections.clear()
   }
 
   override def print() : Unit = {

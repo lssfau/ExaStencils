@@ -21,10 +21,10 @@ package exastencils.field.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.config.Knowledge
-import exastencils.datastructures._
+import exastencils.field.ir.IR_FieldLayout
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutCollection
+import exastencils.fieldlike.l4.L4_FieldLikeLayoutDecl
 import exastencils.grid.l4._
-import exastencils.knowledge.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -54,7 +54,7 @@ case class L4_FieldLayoutDecl(
     var levels : Option[L4_DeclarationLevelSpecification],
     var datatype : L4_Datatype,
     var localization : L4_Localization,
-    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl {
+    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_FieldLikeLayoutDecl[L4_FieldLayout, IR_FieldLayout] {
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "Layout " << name << "< " << datatype << ", " << localization << " >"
@@ -62,58 +62,11 @@ case class L4_FieldLayoutDecl(
     out << " {\n" <<< (options, "\n") << "\n}"
   }
 
-  def evalFieldLayoutValue(optionName : String) : L4_ConstIndex = {
-    val option = options.find(_.name == optionName)
-    if (option.isDefined)
-      option.get.value
-    else
-      L4_FieldLayout.getDefaultValue(optionName, localization)
-  }
-
-  def evalFieldLayoutBoolean(optionName : String) : Boolean = {
-    val option = options.find(_.name == optionName)
-    if (option.isDefined)
-      option.get.hasCommunication
-    else
-      L4_FieldLayout.getDefaultBoolean(optionName, localization)
-  }
-
   def composeLayout(level : Int) : L4_FieldLayout = {
-    val numDimsGrid = Knowledge.dimensionality // TODO: adapt for edge data structures
 
     val numGhost = evalFieldLayoutValue("ghostLayers")
     val numDup = evalFieldLayoutValue("duplicateLayers")
-
-    // determine number of inner points
-    val providedInnerPoints = options.find(_.name == "innerPoints")
-    val innerPoints : L4_ConstIndex =
-      if (providedInnerPoints.isDefined) {
-        // user specified values are available -> use those
-        providedInnerPoints.get.value
-      } else {
-        // attempt automatic deduction - TODO: adapt for edge data structures
-        localization match {
-          case L4_AtNode       => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)).toArray)
-          case L4_AtCellCenter => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
-
-          case L4_AtFaceCenter(faceDim) => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (dim == faceDim)
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
-            else
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
-
-          case L4_HACK_OtherLocalization("edge_node") => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (0 == dim)
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
-            else
-              0).toArray)
-          case L4_HACK_OtherLocalization("edge_cell") => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (0 == dim)
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)
-            else
-              0).toArray)
-        }
-      }
+    val innerPoints = evalFieldLayoutInnerPoints(level, numDup, numGhost)
 
     // compile final layout
     L4_FieldLayout(
@@ -132,24 +85,6 @@ case class L4_FieldLayoutDecl(
   }
 
   override def progress = Logger.error(s"Trying to progress l4 field layout declaration for $name; this is not supported")
-}
 
-/// L4_PrepareFieldLayoutDeclaration
-
-object L4_PrepareFieldLayoutDeclarations extends DefaultStrategy("Prepare knowledge for L4 field layouts") {
-  this += Transformation("Process new field layouts", {
-    case decl : L4_FieldLayoutDecl =>
-      L4_FieldLayoutCollection.addDeclared(decl.name, decl.levels)
-      decl // preserve declaration statement
-  })
-}
-
-/// L4_ProcessFieldLayoutDeclarations
-
-object L4_ProcessFieldLayoutDeclarations extends DefaultStrategy("Integrate L4 field layout declarations with knowledge") {
-  this += Transformation("Process field layout declarations", {
-    case decl : L4_FieldLayoutDecl if L4_MayBlockResolution.isDone(decl) =>
-      decl.addToKnowledge()
-      None // consume declaration statement
-  })
+  override def associatedCollection : L4_FieldLikeLayoutCollection[L4_FieldLayout, IR_FieldLayout] = L4_FieldLayoutCollection
 }

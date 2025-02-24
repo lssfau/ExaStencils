@@ -23,6 +23,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
@@ -30,7 +31,7 @@ import exastencils.util.ir.IR_StackCollector
 
 /// IR_IV_ActiveSlot
 
-case class IR_IV_ActiveSlot(var field : IR_Field, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
+case class IR_IV_ActiveSlot(var field : IR_FieldLike, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -76,12 +77,12 @@ object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations
     case advanceSlot : IR_AdvanceSlot =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
-        case _ : IR_LoopOverFragments                                                                             => true
+        case _ : IR_LoopOverProcessLocalBlocks                                                                    => true
         case IR_ForLoop(IR_VariableDeclaration(_, it, _, _), _, _, _, _) if IR_LoopOverFragments.defIt.name == it => true
         case _                                                                                                    => false
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial()
       else
-        IR_LoopOverFragments(advanceSlot.expandSpecial(), IR_ParallelizationInfo(potentiallyParallel = true))
+        IR_LoopOverFragments(advanceSlot.expandSpecial())
   })
 }

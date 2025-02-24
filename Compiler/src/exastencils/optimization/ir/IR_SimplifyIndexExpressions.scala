@@ -20,7 +20,7 @@ package exastencils.optimization.ir
 
 import exastencils.base.ir._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_LinearizedFieldAccess
+import exastencils.fieldlike.ir.IR_LinearizedFieldLikeAccess
 
 object IR_SimplifyIndexExpressions extends DefaultStrategy("Simplify index expressions") {
   val loopExtremaCollector = new IR_LoopExtremaCollector()
@@ -33,7 +33,7 @@ object IR_SimplifyIndexExpressions extends DefaultStrategy("Simplify index expre
       a.index = IR_SimplifyExpression.simplifyIntegralExpr(a.index, loopExtremaCollector.extremaMap)
       a
 
-    case d : IR_LinearizedFieldAccess =>
+    case d : IR_LinearizedFieldLikeAccess =>
       d.index = IR_SimplifyExpression.simplifyIntegralExpr(d.index, loopExtremaCollector.extremaMap)
       d
   })

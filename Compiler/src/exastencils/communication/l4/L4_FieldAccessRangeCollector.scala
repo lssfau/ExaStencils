@@ -25,6 +25,10 @@ import exastencils.baseExt.l4._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.field.l4._
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLikeLayout
+import exastencils.fieldlike.l4.L4_FieldLike
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.grid.l4._
 import exastencils.logger.Logger
 import exastencils.operator.l4._
@@ -34,7 +38,7 @@ import exastencils.solver.l4.L4_LocalSolve
 
 object L4_FieldAccessRangeCollector {
 
-  case class L4_FieldWithSlot(var field : L4_Field, var slot : L4_SlotSpecification) {
+  case class L4_FieldWithSlot(var field : L4_FieldLike[_ <: IR_FieldLike, _ <: IR_FieldLikeLayout], var slot : L4_SlotSpecification) {
     def numDimsGrid = field.numDimsGrid
     def fieldLayout = field.fieldLayout
     def boundary = field.boundary
@@ -180,7 +184,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
         // enable collection mode
         ignore = false
 
-        val field = loop.field.asInstanceOf[L4_FieldAccess].target
+        val field = loop.field.asInstanceOf[L4_FieldLikeAccess].target
         val numDims = field.numDimsGrid
         beginOffset = extractMinOffsetArray(numDims, loop.startOffset)
         endOffset = extractMaxOffsetArray(numDims, loop.endOffset).map(-1 * _) // invert due to specification in DSL
@@ -199,13 +203,13 @@ class L4_FieldAccessRangeCollector() extends Collector {
         if (!contractionOffsetEnd.isEmpty)
           endOffset = (endOffset, contractionOffsetEnd).zipped.map(_ + _)
 
-      case L4_Assignment(field : L4_FieldAccess, _, _, cond) =>
+      case L4_Assignment(field : L4_FieldLikeAccess, _, _, cond) =>
         if (ignore) Logger.warn("Found assignment to field outside kernel")
 
         // store write access for lhs
         processWriteExtent(L4_FieldWithSlot(field.target, field.slot), field.offset)
 
-      // TODO: find a way to ignore recursive match on (lhs) L4_FieldAccess and the wrongfully detected read access
+      // TODO: find a way to ignore recursive match on (lhs) L4_FieldLikeAccess and the wrongfully detected read access
 
       case L4_OperatorTimesField(op, field) =>
         if (ignore) Logger.warn("Found stencil field convolution outside kernel")
@@ -218,7 +222,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
         // process access to stencil coefficients - no slot
         processReadExtent(L4_FieldWithSlot(access.target.field, L4_ActiveSlot), access.offset)
 
-      // TODO: find a way to ignore recursive match on L4_FieldAccess - issues if (0,0,0) entry is not present
+      // TODO: find a way to ignore recursive match on L4_FieldLikeAccess - issues if (0,0,0) entry is not present
 
       // TODO: other convolutions - or unify convolutions
       // TODO: model StencilFieldAccesses
@@ -226,7 +230,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
       case solve : L4_LocalSolve =>
         if (ignore) Logger.warn("Found local solve outside kernel")
 
-        def slot(field : L4_FieldAccess) : L4_SlotSpecification = {
+        def slot(field : L4_FieldLikeAccess) : L4_SlotSpecification = {
           field.slot match {
             case sth if !solve.jacobiType => sth
             case L4_ActiveSlot            => L4_NextSlot
@@ -235,11 +239,11 @@ class L4_FieldAccessRangeCollector() extends Collector {
           }
         }
 
-        solve.unknowns.map(_.asInstanceOf[L4_FieldAccess]).foreach(field => processWriteExtent(L4_FieldWithSlot(field.target, slot(field)), field.offset))
+        solve.unknowns.map(_.asInstanceOf[L4_FieldLikeAccess]).foreach(field => processWriteExtent(L4_FieldWithSlot(field.target, slot(field)), field.offset))
 
       // accesses in equations are handled recursively
 
-      case field : L4_FieldAccess =>
+      case field : L4_FieldLikeAccess =>
         if (!ignore)
           processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset)
 

@@ -70,6 +70,9 @@ object L3_Lexer extends ExaLexer {
   // baseExt => L3_ApplicationHints
   reserved += ("ApplicationHint", "ApplicationHints", "L4Hint", "L4Hints")
 
+  // waLBerla keywords
+  reserved += ("waLBerla", "waLBerlaSwapPtr", "blocks", "WaLBerlaVars")
+
   // baseExt => L3_ExpressionDeclaration
   reserved += ("Expr", "Expression")
 

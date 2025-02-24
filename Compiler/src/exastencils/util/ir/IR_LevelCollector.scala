@@ -36,7 +36,7 @@ class IR_LevelCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case fct : IR_LeveledFunction              => enterLevel(fct.level)
+      case fct : IR_LeveledFunctionLike          => enterLevel(fct.level)
       case loop : IR_LoopOverPoints              => enterLevel(loop.field.level)
       case loop : IR_LoopOverPointsInOneFragment => enterLevel(loop.field.level)
 
@@ -46,10 +46,11 @@ class IR_LevelCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case fct : IR_LeveledFunction              => leaveLevel(fct.level)
+      case fct : IR_LeveledFunctionLike          => leaveLevel(fct.level)
       case loop : IR_LoopOverPoints              => leaveLevel(loop.field.level)
       case loop : IR_LoopOverPointsInOneFragment => leaveLevel(loop.field.level)
-      case _                                     =>
+
+      case _ =>
     }
   }
 

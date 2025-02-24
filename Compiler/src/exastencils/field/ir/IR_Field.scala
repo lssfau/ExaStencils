@@ -18,38 +18,52 @@
 
 package exastencils.field.ir
 
+import exastencils.base.ir.IR_ConstIndex
+import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
+import exastencils.base.ir.IR_MatIndex
 import exastencils.baseExt.ir.IR_MatShape
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
-import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
+import exastencils.fieldlike.ir.IR_LinearizedFieldLikeAccess
 
 /// IR_Field
 
 case class IR_Field(
-    var name : String, // will be used to find the field
-    var level : Int, // the (geometric) level the field lives on
-    var index : Int, // (consecutive) index of the field, can be used as array subscript
-    var domain : IR_Domain, // the (sub)domain the field lives on
-    var codeName : String, // will be used in the generated source code
-    var layout : IR_FieldLayout, // represents the number of data points and their distribution in each dimension
-    var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
-    var boundary : IR_BoundaryCondition, // the boundary condition to be enforced when calling apply bc
-    var matShape: Option[IR_MatShape]
-) extends IR_LeveledKnowledgeObject {
+    var name : String,
+    var level : Int,
+    var index : Int,
+    var domain : IR_Domain,
+    var codeName : String,
+    var layout : IR_FieldLayout,
+    var numSlots : Int,
+    var boundary : IR_BoundaryCondition,
+    var matShape: Option[IR_MatShape],
+    var gpuCompatible : Boolean = true
+) extends IR_FieldLike {
 
   override def createDuplicate() : IR_Field = {
     IR_Field.tupled(Duplicate(IR_Field.unapply(this).get))
   }
 
-  def numDimsGrid = domain.numDims
+  override def getFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex, offset : Option[IR_ConstIndex], frozen : Boolean, matIndex : Option[IR_MatIndex]) : IR_FieldLikeAccess = {
+    IR_FieldAccess(this, slot, fragIdx, index, offset, frozen, matIndex)
+  }
 
-  // shortcuts to layout options
-  def gridDatatype = layout.datatype
-  def resolveBaseDatatype = layout.datatype.resolveBaseDatatype
-  def resolveDeclType = layout.datatype.resolveDeclType
-  def localization = layout.localization
-  def referenceOffset = layout.referenceOffset
-  def communicatesDuplicated = layout.communicatesDuplicated
-  def communicatesGhosts = layout.communicatesGhosts
+  override def getDirectFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_ExpressionIndex) : IR_DirectFieldLikeAccess = {
+    IR_DirectFieldAccess(this, slot, fragIdx, index)
+  }
+
+  override def getLinearizedFieldAccess(slot : IR_Expression, fragIdx : IR_Expression, index : IR_Expression) : IR_LinearizedFieldLikeAccess = {
+    IR_LinearizedFieldAccess(this, slot, fragIdx, index)
+  }
+
+  override def getFieldData(slot : IR_Expression, fragIdx : IR_Expression) : IR_IV_AbstractFieldLikeData = {
+    IR_IV_FieldData(this, slot, fragIdx)
+  }
 }

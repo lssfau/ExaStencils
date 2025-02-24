@@ -29,6 +29,7 @@ import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.ir._
 import exastencils.scheduling.NoStrategyWrapper
+import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// IR_AdaptAllocateDataFunction
 
@@ -39,7 +40,7 @@ object IR_AdaptAllocateDataFunction extends DefaultStrategy("Enable closely spac
         IR_GlobalCollection.get.externalDependencies += "malloc.h"
 
       val maxFieldSize = IR_FieldCollection.objects.map(field => (0 until field.layout.numDimsData).map(d =>
-        field.layout.defTotal(d)).product * field.resolveBaseDatatype.typicalByteSize).max
+        IR_SimplifyExpression.evalIntegral(field.layout.defTotal(d))).product * field.resolveBaseDatatype.typicalByteSize).max
       val allocSize = if (Knowledge.experimental_compactBufferAllocationSize > 0)
         Knowledge.experimental_compactBufferAllocationSize
       else

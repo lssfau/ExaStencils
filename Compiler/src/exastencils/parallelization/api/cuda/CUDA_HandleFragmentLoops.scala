@@ -6,14 +6,13 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.OutputType
-import exastencils.field.ir.IR_IV_FieldData
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda.CUDA_HandleFragmentLoops.getReductionCounter
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
@@ -41,8 +40,8 @@ object CUDA_HandleFragmentLoops extends DefaultStrategy("Handle synchronization 
 
 case class CUDA_AccessedElementsInFragmentLoop(
     var streams : ListBuffer[CUDA_Stream],
-    var fieldAccesses : mutable.HashMap[String, IR_IV_FieldData],
-    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBuffer],
+    var fieldAccesses : mutable.HashMap[String, IR_IV_AbstractFieldLikeData],
+    var bufferAccesses : mutable.HashMap[String, IR_IV_CommBufferLike],
     var isLoopParallel : Boolean,
     var fromMPIStatement : Boolean,
     var estimatedHostTime : Double,
@@ -63,11 +62,10 @@ case class CUDA_HandleFragmentLoops(
   def fasterHostExecEstimation = accessedElements.estimatedHostTime <= accessedElements.estimatedDeviceTime
 
   val iter = IR_LoopOverFragments.defIt
-  def currCopy(copies : IR_VariableAccess) = IR_ArrayAccess(copies, iter)
   def reductionDt(redTarget : IR_Expression) = CUDA_Util.getReductionDatatype(redTarget)
 
   // tmp buffer for reduction result (host)
-  val reductionTmp = if (fragLoop.parallelization.reduction.isDefined) {
+  var reductionTmp = if (fragLoop.parallelization.reduction.isDefined) {
     val red = Duplicate(fragLoop.parallelization.reduction.get)
     val redTarget = Duplicate(red.target)
 
@@ -98,7 +96,7 @@ case class CUDA_HandleFragmentLoops(
     IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference(stdFunc, IR_UnitDatatype),
       ListBuffer[IR_Expression](Duplicate(dst), Duplicate(dst) + IR_IntegerConstant(size), src)))
 
-  def copyReductionTarget(redTarget : IR_Expression, op : String, copies : IR_VariableAccess) = {
+  def copyReductionTarget(redTarget : IR_Expression, op : String, copy : CUDA_ReductionFragmentCopy) = {
     val tpe = redTarget.datatype.resolveBaseDatatype.prettyprint()
     val initVal : IR_Expression = op match {
       case "+" | "-" => 0
@@ -109,27 +107,18 @@ case class CUDA_HandleFragmentLoops(
 
     reductionDt(redTarget) match {
       case _ : IR_ScalarDatatype               =>
-        IR_Assignment(currCopy(copies), initVal)
+        IR_Assignment(copy, initVal)
       case hodt : IR_HigherDimensionalDatatype =>
-        matrixAssignment("std::fill", currCopy(copies), initVal, hodt.getSizeArray.product)
+        matrixAssignment("std::fill", copy, initVal, hodt.getSizeArray.product)
     }
   }
 
-  def initCopies(redTarget : IR_Expression, op : String, copies : IR_VariableAccess) = {
-    // TODO: should be handled in prettyprinter
-    val declCopies = copies.datatype match {
-      case _ @ IR_ArrayDatatype(mat : IR_MatrixDatatype, numElements) =>
-        IR_VariableDeclaration(IR_ArrayDatatype(IR_ArrayDatatype(mat.resolveBaseDatatype, mat.sizeN * mat.sizeM), numElements), copies.name)
-      case _ : IR_Datatype =>
-        IR_VariableDeclaration(copies)
-    }
-    val initCopies = IR_LoopOverFragments(copyReductionTarget(redTarget, op, copies)).expandSpecial().inner
-
-    ListBuffer(declCopies, initCopies)
+  def initCopies(redTarget : IR_Expression, op : String, copy : CUDA_ReductionFragmentCopy) = {
+    ListBuffer(IR_LoopOverFragments(copyReductionTarget(redTarget, op, copy)))
   }
 
   // finalize reduction
-  def updateReductionTarget(op : String, redTarget : IR_Expression, reductionTmp : CUDA_ReductionResultBuffer, copies : IR_VariableAccess) : (ListBuffer[IR_Statement], ListBuffer[IR_Statement]) = {
+  def updateReductionTarget(op : String, redTarget : IR_Expression, reductionTmp : CUDA_ReductionResultBuffer, copy : CUDA_ReductionFragmentCopy) : (ListBuffer[IR_Statement], ListBuffer[IR_Statement]) = {
 
     // update reduction target
     def getAssign(reductionResult : IR_Expression) = reductionDt(redTarget) match {
@@ -154,16 +143,16 @@ case class CUDA_HandleFragmentLoops(
     }
 
     // accumulate fragment copies into reduction variable
-    val host = ListBuffer(getAssign(currCopy(copies)))
+    val host = ListBuffer(getAssign(copy))
     val device = ListBuffer(getAssign(reductionTmp))
 
     (host, device)
   }
 
-  def replaceAccesses(redTarget : IR_Expression, copies : IR_VariableAccess, body : ListBuffer[IR_Statement]) : Unit = {
+  def replaceAccesses(redTarget : IR_Expression, copy : CUDA_ReductionFragmentCopy, body : ListBuffer[IR_Statement]) : Unit = {
     // replace redTarget accesses with accesses to frag copy
     CUDA_ReplaceReductionAccesses.redTarget = Duplicate(redTarget)
-    CUDA_ReplaceReductionAccesses.replacement = Duplicate(currCopy(copies))
+    CUDA_ReplaceReductionAccesses.replacement = Duplicate(copy)
     CUDA_ReplaceReductionAccesses.applyStandalone(IR_Scope(body))
   }
 
@@ -252,7 +241,7 @@ case class CUDA_HandleFragmentLoops(
 
       // update flags for written buffers
       if (syncAfterHost(access._1, bufferAccesses.keys)) {
-        val dirtyFlag = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
+        val dirtyFlag = CUDA_HostBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
         val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
         afterHost += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
           IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
@@ -294,7 +283,7 @@ case class CUDA_HandleFragmentLoops(
 
         // update flags for written fields
         if (syncAfterDevice(access._1, bufferAccesses.keys)) {
-          val dirtyFlag = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
+          val dirtyFlag = CUDA_DeviceBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx), Duplicate(fragIdx))
           val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
           afterDevice += IR_IfCondition(isValid AndAnd (dirtyFlag EqEq CUDA_DirtyFlagCase.INTERMEDIATE.id),
             IR_Assignment(dirtyFlag, CUDA_DirtyFlagCase.DIRTY.id))
@@ -305,7 +294,7 @@ case class CUDA_HandleFragmentLoops(
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def expandSpecial() : OutputType = {
+  def expandSpecial() : ListBuffer[IR_Statement] = {
     var stmts = ListBuffer[IR_Statement]()
 
     // sync before/after kernel calls in separate frag loop
@@ -351,7 +340,7 @@ case class CUDA_HandleFragmentLoops(
       }
 
       val counter = CUDA_HandleFragmentLoops.getReductionCounter(red.targetName)
-      val copies = IR_VariableAccess(red.targetName + "_fragCpy" + counter, IR_ArrayDatatype(reductionDt(redTarget), Knowledge.domain_numFragmentsPerBlock))
+      val copies = CUDA_ReductionFragmentCopy(red.targetName + "_fragCpy" + counter, reductionDt(redTarget))
 
       stmts ++= initCopies(redTarget, red.op, copies) // init frag copies
       replaceAccesses(redTarget, copies, body) // replace accesses to frag copies

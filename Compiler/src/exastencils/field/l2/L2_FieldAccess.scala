@@ -20,8 +20,8 @@ package exastencils.field.l2
 
 import exastencils.base.ProgressLocation
 import exastencils.base.l2._
-import exastencils.datastructures._
 import exastencils.field.l3._
+import exastencils.fieldlike.l2.L2_FieldLikeCollections
 import exastencils.knowledge.l2._
 import exastencils.prettyprinting.PpStream
 
@@ -29,7 +29,7 @@ import exastencils.prettyprinting.PpStream
 
 object L2_FieldAccess {
   def apply(access : L2_FutureFieldAccess) =
-    new L2_FieldAccess(L2_FieldCollection.getByIdentifier(access.name, access.level).get, access.offset, access.frozen)
+    new L2_FieldAccess(L2_FieldLikeCollections.getByIdentifier(access.name, access.level).get.toField, access.offset, access.frozen)
 }
 
 case class L2_FieldAccess(
@@ -47,14 +47,4 @@ case class L2_FieldAccess(
   def getOffset = offset.getOrElse(L2_ConstIndex(Array.fill(target.numDimsGrid)(0)))
 
   override def progress = ProgressLocation(L3_FieldAccess(target.getProgressedObj(), L3_ActiveSlot, L2_ProgressOption(offset)(_.progress), frozen))
-}
-
-/// L2_ResolveFieldAccesses
-
-object L2_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fields") {
-  this += new Transformation("Resolve applicable future accesses", {
-    // check if declaration has already been processed and promote access if possible
-    case access : L2_FutureFieldAccess if L2_FieldCollection.exists(access.name, access.level) =>
-      access.toFieldAccess
-  })
 }

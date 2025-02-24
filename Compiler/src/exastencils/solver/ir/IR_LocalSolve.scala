@@ -27,14 +27,16 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.field.ir.IR_SlotAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 
 /// IR_LocalSolve
 
 case class IR_LocalSolve(
-    var unknowns : ListBuffer[IR_FieldAccess],
+    var unknowns : ListBuffer[IR_FieldLikeAccess],
     var equations : ListBuffer[IR_Equation],
     var jacobiType : Boolean,
     var relax : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
@@ -45,13 +47,24 @@ case class IR_LocalSolve(
 
   var AInv : IR_Expression = _
 
-  def matchUnknowns(other : IR_FieldAccess) : Int = {
+  def matchUnknowns(other : IR_FieldLikeAccess) : Int = {
     if (other.frozen)
       return -1 // skip frozen fields
 
-    for (i <- unknowns.indices)
-      if (other.field.codeName == unknowns(i).field.codeName && other.index == unknowns(i).index)
+    for (i <- unknowns.indices) {
+      val sameSlot = if (other.field.numSlots == 1 && unknowns(i).field.numSlots == 1) {
+        true
+      } else {
+        (other.slot, unknowns(i).slot) match {
+          case (IR_SlotAccess(IR_IV_ActiveSlot(_, fragIdx0), o0), IR_SlotAccess(IR_IV_ActiveSlot(_, fragIdx1), o1)) => fragIdx0 == fragIdx1 && o0 == o1
+          case (IR_IntegerConstant(s0), IR_IntegerConstant(s1))                                                       => s0 == s1
+          case _                                                                                                      => false
+        }
+      }
+
+      if (other.field.codeName == unknowns(i).field.codeName && other.index == unknowns(i).index && sameSlot)
         return i // match
+    }
 
     -1 // no match => constant value
   }
@@ -66,7 +79,7 @@ case class IR_LocalSolve(
     }
 
     this += new Transformation("Match field accesses", {
-      case access : IR_FieldAccess if matchUnknowns(access) >= 0 =>
+      case access : IR_FieldLikeAccess if matchUnknowns(access) >= 0 =>
         found = true
         access
     })
@@ -91,7 +104,7 @@ case class IR_LocalSolve(
         processExpression(pos, sub.left, switchSign)
         processExpression(pos, sub.right, !switchSign)
 
-      case access : IR_FieldAccess =>
+      case access : IR_FieldLikeAccess =>
         val uPos = matchUnknowns(access)
         if (uPos < 0)
           fVals(pos).summands += (if (switchSign) access else IR_Negative(access)) // no match -> rhs
@@ -101,7 +114,7 @@ case class IR_LocalSolve(
       case mult : IR_Multiplication =>
         // split into known and unknown
         var localFactors = ListBuffer[IR_Expression]()
-        var localUnknowns = ListBuffer[IR_FieldAccess]()
+        var localUnknowns = ListBuffer[IR_FieldLikeAccess]()
         var localSwitchSign = switchSign
 
         def handleFactor(ex : IR_Expression) {
@@ -110,7 +123,7 @@ case class IR_LocalSolve(
               // generic expression not relying on field accesses to unknown values => handle as const
               localFactors += const
 
-            case access : IR_FieldAccess =>
+            case access : IR_FieldLikeAccess =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
               else
@@ -120,7 +133,7 @@ case class IR_LocalSolve(
               localSwitchSign = !localSwitchSign
               handleFactor(neg.left)
 
-            case e @ IR_Division(access : IR_FieldAccess, right) =>
+            case e @ IR_Division(access : IR_FieldLikeAccess, right) =>
               if (!IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(right))) {
                 localUnknowns += access
                 localFactors += IR_Division(1, right)
@@ -212,7 +225,7 @@ case class IR_LocalSolve(
     }
   }
 
-  def findMatShape(faccs : ListBuffer[IR_FieldAccess]) : Option[IR_MatShape] = {
+  def findMatShape(faccs : ListBuffer[IR_FieldLikeAccess]) : Option[IR_MatShape] = {
     //TODO shapes can differ for different fields
     // just use first shape found for now
     for (f <- faccs) {

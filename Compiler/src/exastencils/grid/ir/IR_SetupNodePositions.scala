@@ -28,7 +28,8 @@ import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
@@ -38,6 +39,8 @@ import exastencils.util.ir.IR_MathFunctionReference
 
 object IR_SetupNodePositions {
   // FIXME IR_Communicate where applicable
+
+  val indexOfRefinedNeighbor : Option[IR_Expression] = None
 
   def for_AA_Uniform(level : Int, dim : Int) : ListBuffer[IR_Statement] = {
     if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to global domain")
@@ -55,7 +58,7 @@ object IR_SetupNodePositions {
     // look up field and compile access to base element
     val field = IR_VF_NodePositionPerDim.find(level, dim).associatedField
     val baseIndex = IR_LoopOverDimensions.defIt(numDims)
-    val baseAccess = IR_FieldAccess(field, 0, baseIndex)
+    val baseAccess = IR_FieldLikeAccess(field, 0, baseIndex)
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
@@ -77,10 +80,10 @@ object IR_SetupNodePositions {
 
     val leftGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     leftGhostIndex(dim) = -2
-    val leftGhostAccess = IR_FieldAccess(field, 0, leftGhostIndex)
+    val leftGhostAccess = IR_FieldLikeAccess(field, 0, leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         IR_Assignment(IR_GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * IR_GridUtil.offsetAccess(leftGhostAccess, 2, dim) - IR_GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -93,10 +96,10 @@ object IR_SetupNodePositions {
 
     val rightGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     rightGhostIndex(dim) = numCellsPerFrag + 2
-    val rightGhostAccess = IR_FieldAccess(field, 0, rightGhostIndex)
+    val rightGhostAccess = IR_FieldLikeAccess(field, 0, rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         IR_Assignment(IR_GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * IR_GridUtil.offsetAccess(rightGhostAccess, -2, dim) - IR_GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
@@ -159,7 +162,7 @@ object IR_SetupNodePositions {
 
     def baseIndex = IR_LoopOverDimensions.defIt(numDims)
 
-    def baseAccess = IR_FieldAccess(field, 0, baseIndex)
+    def baseAccess = IR_FieldLikeAccess(field, 0, baseIndex)
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
@@ -182,10 +185,10 @@ object IR_SetupNodePositions {
     val leftGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     leftGhostIndex(dim) = -2
 
-    def leftGhostAccess = IR_FieldAccess(field, 0, leftGhostIndex)
+    def leftGhostAccess = IR_FieldLikeAccess(field, 0, leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         IR_Assignment(IR_GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * IR_GridUtil.offsetAccess(leftGhostAccess, 2, dim) - IR_GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -199,10 +202,10 @@ object IR_SetupNodePositions {
     val rightGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     rightGhostIndex(dim) = numCellsPerFrag + 2
 
-    def rightGhostAccess = IR_FieldAccess(field, 0, rightGhostIndex)
+    def rightGhostAccess = IR_FieldLikeAccess(field, 0, rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         IR_Assignment(IR_GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * IR_GridUtil.offsetAccess(rightGhostAccess, -2, dim) - IR_GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
@@ -250,16 +253,16 @@ object IR_SetupNodePositions {
 
     val field = IR_VF_NodePositionPerDim.find(level, dim).associatedField
     val baseIndex = IR_LoopOverDimensions.defIt(numDims)
-    val baseAccess = IR_FieldAccess(field, 0, baseIndex)
+    val baseAccess = IR_FieldLikeAccess(field, 0, baseIndex)
 
     val innerIt = IR_LoopOverDimensions.defItForDim(dim)
 
     val leftGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     leftGhostIndex(dim) = -1
-    val leftGhostAccess = IR_FieldAccess(field, 0, leftGhostIndex)
+    val leftGhostAccess = IR_FieldLikeAccess(field, 0, leftGhostIndex)
     val rightGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     rightGhostIndex(dim) = numCells + 1
-    val rightGhostAccess = IR_FieldAccess(field, 0, rightGhostIndex)
+    val rightGhostAccess = IR_FieldLikeAccess(field, 0, rightGhostIndex)
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
 
@@ -315,16 +318,16 @@ object IR_SetupNodePositions {
 
     val field = IR_VF_NodePositionPerDim.find(level, dim).associatedField
     val baseIndex = IR_LoopOverDimensions.defIt(numDims)
-    val baseAccess = IR_FieldAccess(field, 0, baseIndex)
+    val baseAccess = IR_FieldLikeAccess(field, 0, baseIndex)
 
     val innerIt = IR_LoopOverDimensions.defItForDim(dim)
 
     val leftGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     leftGhostIndex(dim) = -1
-    val leftGhostAccess = IR_FieldAccess(field, 0, leftGhostIndex)
+    val leftGhostAccess = IR_FieldLikeAccess(field, 0, leftGhostIndex)
     val rightGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     rightGhostIndex(dim) = numCells + 1
-    val rightGhostAccess = IR_FieldAccess(field, 0, rightGhostIndex)
+    val rightGhostAccess = IR_FieldLikeAccess(field, 0, rightGhostIndex)
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
 
@@ -375,7 +378,7 @@ object IR_SetupNodePositions {
       val field = IR_VF_NodePositionAsVec.find(level).associatedField
       val baseIndex = IR_LoopOverDimensions.defIt(numDims)
       baseIndex.indices ++= Array[IR_Expression](dim, 0)
-      val baseAccess = IR_FieldAccess(field, 0, baseIndex)
+      val baseAccess = IR_FieldLikeAccess(field, 0, baseIndex)
 
       // fix the inner iterator -> used for zone checks
       def innerIt =
@@ -437,10 +440,10 @@ object IR_SetupNodePositions {
     // look up field and compile access to base element
     val field = IR_VF_NodePositionAsVec.find(level).associatedField
 
-    def baseAccess(f : IR_Field, dim : Int) = {
+    def baseAccess(f : IR_FieldLike, dim : Int) = {
       val baseIndex = IR_LoopOverDimensions.defIt(numDims)
       baseIndex.indices ++= Array[IR_Expression](dim, 0)
-      IR_FieldAccess(f, 0, baseIndex)
+      IR_FieldLikeAccess(f, 0, baseIndex)
     }
 
     if (level == Knowledge.maxLevel) {
@@ -455,7 +458,7 @@ object IR_SetupNodePositions {
       stmts += innerLoop
 
       // communication
-      stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None, "")
+      stmts += IR_Communicate(field, 0, "both", ListBuffer(IR_CommunicateTarget("all", None, None)), None,  "")
     } else {
       val finerField = IR_VF_NodePositionAsVec.find(level + 1).associatedField
 
@@ -484,10 +487,10 @@ object IR_SetupNodePositions {
     // look up field and compile access to base element
     val coarseField = IR_VF_NodePositionPerDim.find(coarseLvl, dim).associatedField
     val coarseIndex = IR_LoopOverDimensions.defIt(numDims)
-    val coarseAccess = IR_FieldAccess(coarseField, 0, coarseIndex)
+    val coarseAccess = IR_FieldLikeAccess(coarseField, 0, coarseIndex)
     val fineField = IR_VF_NodePositionPerDim.find(fineLvl, dim).associatedField
     val fineIndex = IR_LoopOverDimensions.defIt(numDims)
-    val fineAccess = IR_FieldAccess(fineField, 0, fineIndex)
+    val fineAccess = IR_FieldLikeAccess(fineField, 0, fineIndex)
 
     // compile special boundary handling expressions
     val leftDir = Array.fill(numDims)(0)
@@ -496,10 +499,10 @@ object IR_SetupNodePositions {
 
     val leftGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     leftGhostIndex(dim) = -2
-    val leftGhostAccess = IR_FieldAccess(coarseField, 0, leftGhostIndex)
+    val leftGhostAccess = IR_FieldLikeAccess(coarseField, 0, leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(coarseField.domain.index, leftNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(coarseField.domain.index, leftNeighIndex, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         IR_Assignment(IR_GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * IR_GridUtil.offsetAccess(leftGhostAccess, 2, dim) - IR_GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -512,10 +515,10 @@ object IR_SetupNodePositions {
 
     val rightGhostIndex = IR_ExpressionIndex(Array.fill(numDims)(0))
     rightGhostIndex(dim) = coarseCellsPerFrag + 2
-    val rightGhostAccess = IR_FieldAccess(coarseField, 0, rightGhostIndex)
+    val rightGhostAccess = IR_FieldLikeAccess(coarseField, 0, rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(coarseField.domain.index, rightNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(coarseField.domain.index, rightNeighIndex, indexOfRefinedNeighbor)),
       ListBuffer[IR_Statement](
         IR_Assignment(IR_GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * IR_GridUtil.offsetAccess(rightGhostAccess, -2, dim) - IR_GridUtil.offsetAccess(rightGhostAccess, -3, dim)),

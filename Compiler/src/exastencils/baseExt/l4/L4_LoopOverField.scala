@@ -25,7 +25,9 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.communication.l4.L4_Communicate
-import exastencils.field.l4.L4_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
+import exastencils.fieldlike.l4.L4_FieldLikeCollections
 import exastencils.logger.Logger
 import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -114,8 +116,11 @@ case class L4_LoopOverField(
 
   override def progress : IR_LoopOverPoints = ProgressLocation {
     val resolvedField = field match {
-      case access : L4_FieldAccess        => access.target.getProgressedObj()
-      case access : L4_StencilFieldAccess => access.target.getProgressedObj().field
+      case access : L4_FieldLikeAccess        =>
+        // lookup fieldlike collections for (original) field type
+        L4_FieldLikeCollections.getByIdentifier(access.name, access.level).get.progress().asInstanceOf[IR_FieldLike]
+      case access : L4_StencilFieldAccess =>
+        access.target.getProgressedObj().field
       case _                              => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 
@@ -141,6 +146,7 @@ case class L4_LoopOverField(
     parallelization.potentiallyParallel = !seq
     parallelization.noVect = noVect
     parallelization.reduction = reduction.map(_.progress)
+    parallelization.gpuParallelizable = resolvedField.gpuCompatible
 
     val loop = IR_LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progress) else None,

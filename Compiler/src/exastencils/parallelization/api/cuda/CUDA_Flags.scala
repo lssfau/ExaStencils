@@ -24,7 +24,8 @@ import exastencils.baseExt.ir._
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_IV_FieldLikeFlag
 import exastencils.prettyprinting._
 
 /// CUDA_DirtyFlagHelper
@@ -53,7 +54,7 @@ object CUDA_DirtyFlagCase extends Enumeration {
 /// CUDA_HostDataUpdated
 
 // TODO: move to communication package?
-case class CUDA_HostDataUpdated(override var field : IR_Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FieldFlag {
+case class CUDA_HostDataUpdated(override var field : IR_FieldLike, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FieldLikeFlag {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -72,7 +73,7 @@ case class CUDA_HostDataUpdated(override var field : IR_Field, override var slot
 /// CUDA_DeviceDataUpdated
 
 // TODO: move to communication package?
-case class CUDA_DeviceDataUpdated(override var field : IR_Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FieldFlag {
+case class CUDA_DeviceDataUpdated(override var field : IR_FieldLike, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_FieldLikeFlag {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -91,7 +92,12 @@ case class CUDA_DeviceDataUpdated(override var field : IR_Field, override var sl
 /// CUDA_HostBufferDataUpdated
 
 // TODO: move to communication package?
-case class CUDA_HostBufferDataUpdated(var field : IR_Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
+case class CUDA_HostBufferDataUpdated(
+    var field : IR_FieldLike,
+    var send : Boolean,
+    var neighIdx : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable with IR_HasMessageDirection {
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName() = s"hostBufferDataUpdated_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
@@ -102,7 +108,12 @@ case class CUDA_HostBufferDataUpdated(var field : IR_Field, var direction : Stri
 /// CUDA_DeviceBufferDataUpdated
 
 // TODO: move to communication package?
-case class CUDA_DeviceBufferDataUpdated(var field : IR_Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
+case class CUDA_DeviceBufferDataUpdated(
+    var field : IR_FieldLike,
+    var send : Boolean,
+    var neighIdx : IR_Expression,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable with IR_HasMessageDirection {
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName() = s"deviceBufferDataUpdated_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)

@@ -29,6 +29,8 @@ import exastencils.config._
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.ir.IR_AddPaddingToFieldLayoutsWrapper
 import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLikeCollections
+import exastencils.fieldlike.l4.L4_UnresolveFieldLikeAccesses
 import exastencils.grid.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
@@ -83,6 +85,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
 
   override def shutdown() : Unit = {
     L4_KnowledgeContainer.clear()
+    L4_FieldLikeCollections.clear()
   }
 
   override def print() : Unit = {
@@ -110,7 +113,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       L4_UnresolveFieldFieldConvolutions,
       L4_UnresolveStencilAccesses,
       L4_UnresolveStencilFieldAccesses,
-      L4_UnresolveFieldAccesses,
+      L4_UnresolveFieldLikeAccesses,
       // FIXME: transform back to declarations and re-fold
       L4_ReplaceLevelsInFunctionDecls,
       L4_CombineLeveledFunctionDecls,

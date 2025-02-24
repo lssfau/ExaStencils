@@ -27,7 +27,7 @@ import exastencils.polyhedron.IR_PolyArrayAccessLike
 
 /// IR_TempBufferAccess
 
-case class IR_TempBufferAccess(var buffer : IR_IV_CommBuffer, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression with IR_SpecialExpandable with IR_PolyArrayAccessLike {
+case class IR_TempBufferAccess(var buffer : IR_IV_CommBufferLike, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression with IR_SpecialExpandable with IR_PolyArrayAccessLike {
   override def datatype = buffer.datatype
 
   override def uniqueID : String = {

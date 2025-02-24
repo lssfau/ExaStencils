@@ -28,8 +28,9 @@ import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.field.ir._
 
 /// CUDA_TransferUtil
 
@@ -72,11 +73,11 @@ case class CUDA_IssuedSyncForEliminatedTransfer() extends IR_UnduplicatedVariabl
 /// CUDA_UpdateHostData
 
 object CUDA_UpdateHostData {
-  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_TransferStream) =
-    new CUDA_UpdateHostData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)), stream)
+  def apply(access : IR_MultiDimFieldLikeAccess, stream : CUDA_TransferStream) =
+    new CUDA_UpdateHostData(IR_IV_AbstractFieldLikeData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)), stream)
 }
 
-case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateHostData(var fieldData : IR_IV_AbstractFieldLikeData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   // TODO: allow targeting of specific index ranges
 
   override def expand() : Output[IR_Statement] = {
@@ -96,8 +97,9 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
     IR_IfCondition(isValid AndAnd isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
-          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
-          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
+          // TODO: more clear separation between host and device field data
+          IR_IV_AbstractFieldLikeData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
+          CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fieldData.fragmentIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
@@ -109,11 +111,11 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_FieldData, stream : CUDA_Tr
 /// CUDA_UpdateDeviceData
 
 object CUDA_UpdateDeviceData {
-  def apply(access : IR_MultiDimFieldAccess, stream : CUDA_TransferStream) =
-    new CUDA_UpdateDeviceData(IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)), stream)
+  def apply(access : IR_MultiDimFieldLikeAccess, stream : CUDA_TransferStream) =
+    new CUDA_UpdateDeviceData(IR_IV_AbstractFieldLikeData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx)), stream)
 }
 
-case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateDeviceData(var fieldData : IR_IV_AbstractFieldLikeData, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = fieldData.field
     val fragIdx = fieldData.fragmentIdx
@@ -131,7 +133,8 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
     IR_IfCondition(isValid AndAnd isDirty,
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
-          IR_IV_FieldData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
+          // TODO: more clear separation between host and device field data
+          IR_IV_AbstractFieldLikeData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
           CUDA_FieldDeviceData(field, Duplicate(fieldData.slot), Duplicate(fragIdx)),
           (0 until field.layout.numDimsData).map(dim => field.layout.idxById("TOT", dim)).reduceLeft(_ * _) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
@@ -143,12 +146,12 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_FieldData, stream : CUDA_
 
 /// CUDA_UpdateHostBufferData
 
-case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBufferLike, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = buffer.field
     val fragIdx = buffer.fragmentIdx
     val domainIdx = field.domain.index
-    val flag = CUDA_DeviceBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
+    val flag = CUDA_DeviceBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx))
     val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
@@ -162,7 +165,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           Duplicate(buffer),
-          CUDA_BufferDeviceData(field, buffer.direction, Duplicate(buffer.size), Duplicate(buffer.neighIdx)),
+          CUDA_BufferDeviceData(field, buffer.send, Duplicate(buffer.size), Duplicate(buffer.neighIdx), Duplicate(buffer.concurrencyId), Duplicate(buffer.indexOfRefinedNeighbor)),
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "D2H",
           stream),
@@ -173,12 +176,12 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer, stream : CUD
 
 /// CUDA_UpdateDeviceData
 
-case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
+case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBufferLike, stream : CUDA_TransferStream) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     val field = buffer.field
     val fragIdx = buffer.fragmentIdx
     val domainIdx = field.domain.index
-    val flag = CUDA_HostBufferDataUpdated(field, buffer.direction, Duplicate(buffer.neighIdx))
+    val flag = CUDA_HostBufferDataUpdated(field, buffer.send, Duplicate(buffer.neighIdx))
     val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
@@ -192,7 +195,7 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer, stream : C
       ListBuffer[IR_Statement](
         CUDA_TransferUtil.genTransfer(
           Duplicate(buffer),
-          CUDA_BufferDeviceData(field, buffer.direction, Duplicate(buffer.size), Duplicate(buffer.neighIdx)),
+          CUDA_BufferDeviceData(field, buffer.send, Duplicate(buffer.size), Duplicate(buffer.neighIdx), Duplicate(buffer.concurrencyId), Duplicate(buffer.indexOfRefinedNeighbor)),
           Duplicate(buffer.size) * IR_SizeOf(field.resolveBaseDatatype),
           "H2D",
           stream),

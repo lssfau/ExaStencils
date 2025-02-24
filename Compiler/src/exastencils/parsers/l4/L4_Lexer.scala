@@ -41,6 +41,10 @@ class L4_Lexer extends ExaLexer {
   // declaration keywords - complex
   reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with", "tensN", "tens1", "tens2")
 
+  // waLBerla keywords
+  reserved += ("LatticeDomain","waLBerla", "waLBerlaSwapPtr", "blocks", "WaLBerlaVars")
+  reserved += ("RefinementSelection", "level")
+
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
   reserved += ("loop", "until", "while", "over", "fragments", "only", "on", "boundary", "where", "starting", "ending", "stepping", "reduction")

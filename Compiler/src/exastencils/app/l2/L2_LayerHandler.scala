@@ -25,6 +25,8 @@ import exastencils.baseExt.l2._
 import exastencils.config._
 import exastencils.domain.l2._
 import exastencils.field.l2._
+import exastencils.fieldlike.l2.L2_FieldLikeCollections
+import exastencils.fieldlike.l2.L2_ProcessBoundaryDeclarations
 import exastencils.grid.l2._
 import exastencils.knowledge.l2.L2_KnowledgeContainer._
 import exastencils.knowledge.l2._
@@ -34,6 +36,7 @@ import exastencils.prettyprinting.Indenter
 import exastencils.scheduling._
 import exastencils.solver.l2._
 import exastencils.util.l2._
+import exastencils.waLBerla.l2.field.L2_WaLBerlaFieldCollection
 
 /// L2_LayerHandler
 
@@ -59,6 +62,8 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     // activate default knowledge collections
 
     L2_DomainCollection
+    // TODO: can we make the field collection instantiation generic?
+    L2_WaLBerlaFieldCollection
     L2_FieldCollection
     L2_StencilCollection
     L2_StencilFieldCollection
@@ -69,6 +74,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
 
   override def shutdown() : Unit = {
     L2_KnowledgeContainer.clear()
+    L2_FieldLikeCollections.clear()
   }
 
   override def print() : Unit = {

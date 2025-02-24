@@ -37,6 +37,8 @@ import exastencils.prettyprinting.PpStream
 
 /// L3_SolverForEquation
 
+// TODO: Use FieldLikeCollections instead or FieldCollection
+
 object L3_SolverForEquation {
   def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)], modifications : List[L3_SolverModification], smootherHints : List[L3_GenerateSmootherHint]) = {
     val newOptions = HashMap[String, Any]()

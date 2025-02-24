@@ -40,6 +40,10 @@ import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.util.l4.L4_OffsetAlias
+import exastencils.waLBerla.l4.blockforest.L4_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.l4.field._
+import exastencils.waLBerla.l4.interfacing.L4_WaLBerlaVarsSection
+import exastencils.waLBerla.l4.refinement.L4_WaLBerlaRefinementSelectionDecl
 
 /// L4_Parser
 
@@ -85,15 +89,20 @@ object L4_Parser extends ExaParser with PackratParsers {
     import_
       ||| inlineKnowledge
       ||| domain
+      ||| latticeDomain
       ||| layout
       ||| field
       ||| fieldCombinationDeclaration
       ||| stencilField
       ||| externalField
+      ||| waLBerlaField
+      ||| waLBerlaFieldLayout
+      ||| waLBerlaRefinementSelection
       ||| stencilDeclaration
       ||| stencilFromDefault
       ||| equationDeclaration
       ||| globals
+      ||| waLBerlaVars
       ||| layoutTrafos
       ||| function
       ||| functionTemplate
@@ -225,6 +234,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| repeatWhile
       ||| loopOver
       ||| loopOverFragments
+      ||| loopOverBlocks
       ||| assignment
       ||| operatorassignment
       ||| locationize(functionCall ^^ { L4_ExpressionStatement(_) })
@@ -238,6 +248,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| colorWithStatement
       ||| repeatWithStatement
       ||| solveLinearSystemStatement
+      ||| waLBerlaSwapFieldPointers
       ||| breakStatement
     )
 
@@ -257,6 +268,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val breakStatement = locationize("break" ^^ (_ => L4_Break()))
 
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.* <~ "}") ^^ { case _ ~ red ~ stmts => L4_LoopOverFragments(stmts, red) })
+  lazy val loopOverBlocks = locationize(("loop" ~ "over" ~ "blocks") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.* <~ "}") ^^ { case _ ~ red ~ stmts => L4_WaLBerlaLoopOverBlocks(stmts.to[ListBuffer], red) })
   //  lazy val loopOver = locationize(("loop" ~ "over" ~> genericAccess) ~ //fieldAccess
   //    ("only" ~> regionSpecification).? ~
   //    "sequentially".? ~ // FIXME: seq HACK
@@ -338,12 +350,22 @@ object L4_Parser extends ExaParser with PackratParsers {
     case a ~ u ~ f ~ shape => L4_SolveMatrixSystem(a, u, f, shape)
   })
 
+  lazy val waLBerlaSwapFieldPointers = locationize(("waLBerlaSwapPtr" ~ "(" ~> genericAccess) ~ ("," ~> genericAccess <~ ")") ^^ {
+    case src ~ dst => L4_WaLBerlaSwapFieldPointers(src, dst)
+  })
+
   // ######################################
   // ##### Globals
   // ######################################
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L4_GlobalSection(_) })
   lazy val globalEntry = locationize(valueDeclaration ||| variableDeclaration ||| expressionDeclaration)
+
+  // ######################################
+  // ##### WaLBerla Variables
+  // ######################################
+
+  lazy val waLBerlaVars = locationize(("WaLBerlaVars" ~> "{" ~> globalEntry.* <~ "}") ^^ { L4_WaLBerlaVarsSection(_) })
 
   // ######################################
   // ##### Layout Transformations
@@ -371,6 +393,8 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val realIndex = /*locationize*/ "[" ~> repsep(realLit, ",") <~ "]" ^^ { l => l.toArray }
   lazy val domain = locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => L4_DomainFromAABBDecl(id, l, u) })
 
+  lazy val latticeDomain = locationize(("LatticeDomain" ~> ident) ^^ { case id => L4_LatticeDomainFromAABBDecl(id) })
+
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (localization <~ ">") ~ levelDecl.? ~ ("{" ~> repsep(layoutOption, ",".?) <~ "}")
     ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(id, level, dt, disc.toLowerCase, opts) })
   lazy val layoutOption = locationize((ident <~ "=") ~ constIndex ~ ("with" ~ "communication").?
@@ -381,6 +405,16 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.?
     ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level ~ shape => L4_BaseFieldDecl(id, level, domain, layout, boundary, slots.getOrElse(1), shape) })
+
+  lazy val waLBerlaField = locationize(("waLBerla" ~ "Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> fieldBoundary).? ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.? ~ matShapeOption.? ^^ {
+    case id ~ layout ~ bc ~ _ ~ slots ~ levels ~ shape => L4_WaLBerlaBaseFieldDecl(id, levels, L4_UnresolvedAccess(layout), bc, slots.getOrElse(1), shape)
+  })
+
+  lazy val waLBerlaFieldLayout = locationize(("waLBerla" ~ "Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (stringLit <~ ">") ~ levelDecl.? ~ ("{" ~> repsep(layoutOption, ",".?) <~ "}")
+    ^^ { case id ~ dt ~ layoutLit ~ levels ~ opts => L4_WaLBerlaFieldLayoutDecl(id, levels, dt, layoutLit, opts.to[ListBuffer]) })
+
+  lazy val waLBerlaRefinementSelection = locationize(("waLBerla" ~ "RefinementSelection" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ~ ("with" ~ "level" ~> integerLit)
+    ^^ { case id ~ l ~ u ~ lvl => L4_WaLBerlaRefinementSelectionDecl(id, l, u, lvl) })
 
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }

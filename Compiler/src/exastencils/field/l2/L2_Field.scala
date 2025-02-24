@@ -23,8 +23,8 @@ import exastencils.boundary.l2._
 import exastencils.core.Duplicate
 import exastencils.domain.l2.L2_Domain
 import exastencils.field.l3.L3_Field
+import exastencils.fieldlike.l2.L2_FieldLike
 import exastencils.grid.l2.L2_Localization
-import exastencils.knowledge.l2.L2_LeveledKnowledgeObject
 import exastencils.prettyprinting.PpStream
 
 /// L2_Field
@@ -43,7 +43,7 @@ case class L2_Field(
     var localization : L2_Localization,
     var numSlots : Int,
     var initial : Option[L2_Expression],
-    var boundary : L2_BoundaryCondition) extends L2_LeveledKnowledgeObject[L3_Field] {
+    var boundary : L2_BoundaryCondition) extends L2_FieldLike[L3_Field] {
 
   override def createDuplicate() : L2_Field = {
     L2_Field(name, level, Duplicate(domain), Duplicate(datatype), Duplicate(localization), numSlots, Duplicate(initial), Duplicate(boundary))
@@ -60,9 +60,6 @@ case class L2_Field(
     }
   }
 
-  def codeName = name + "_" + level
-  def numDimsGrid = domain.numDims
-
   override def progressImpl() = {
     L3_Field(
       name,
@@ -74,4 +71,6 @@ case class L2_Field(
       L2_ProgressOption(initial)(_.progress),
       boundary.progress)
   }
+
+  override def toField : L2_Field = this
 }

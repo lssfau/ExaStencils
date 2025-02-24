@@ -67,12 +67,12 @@ class L4_ExpressionDeclarationCollector extends Collector {
       case _ : L4_GlobalSection => openNewScope()
       case _ : L4_LayoutSection => openNewScope()
 
-      case _ : L4_Function          => openNewScope()
-      case _ : L4_LoopOverFragments => openNewScope()
-      case _ : L4_LoopOverField     => openNewScope()
-      case _ : L4_ForLoop           => openNewScope()
-      case _ : L4_UntilLoop         => openNewScope()
-      case _ : L4_IfCondition       => openNewScope()
+      case _ : L4_Function                   => openNewScope()
+      case _ : L4_LoopOverProcessLocalBlocks => openNewScope()
+      case _ : L4_LoopOverField              => openNewScope()
+      case _ : L4_ForLoop                    => openNewScope()
+      case _ : L4_UntilLoop                  => openNewScope()
+      case _ : L4_IfCondition                => openNewScope()
 
       case decl : L4_ExpressionDeclaration => addDecl(decl)
 
@@ -85,12 +85,12 @@ class L4_ExpressionDeclarationCollector extends Collector {
       case _ : L4_GlobalSection => closeScope()
       case _ : L4_LayoutSection => closeScope()
 
-      case _ : L4_Function          => closeScope()
-      case _ : L4_LoopOverFragments => closeScope()
-      case _ : L4_LoopOverField     => closeScope()
-      case _ : L4_ForLoop           => closeScope()
-      case _ : L4_UntilLoop         => closeScope()
-      case _ : L4_IfCondition       => closeScope()
+      case _ : L4_Function                   => closeScope()
+      case _ : L4_LoopOverProcessLocalBlocks => closeScope()
+      case _ : L4_LoopOverField              => closeScope()
+      case _ : L4_ForLoop                    => closeScope()
+      case _ : L4_UntilLoop                  => closeScope()
+      case _ : L4_IfCondition                => closeScope()
 
       case _ =>
     }

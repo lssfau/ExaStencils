@@ -23,6 +23,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.field.ir._
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -66,7 +67,7 @@ case class L4_AdvanceSlot(var field : L4_Access) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     // don't use field's prettyprinter -> slot modifiers are not required in advance statements
     field match {
-      case access : L4_FieldAccess =>
+      case access : L4_FieldLikeAccess =>
         out << "advance " << access.target.name << "@" << access.target.level
 
       case access : L4_UnresolvedAccess =>
@@ -82,7 +83,12 @@ case class L4_AdvanceSlot(var field : L4_Access) extends L4_Statement {
   override def progress = ProgressLocation {
     // TODO: check for unsupported modifiers (offset, etc)
 
-    IR_AdvanceSlot(IR_IV_ActiveSlot(field.asInstanceOf[L4_FieldAccess].target.getProgressedObj(),
-      IR_LoopOverFragments.defIt))
+    val f = field match {
+      case fAcc : L4_FieldLikeAccess => fAcc.target.getProgressedObj()
+      case access                    =>
+        Logger.error("Trying to advance slot of something that is not a field: " + access)
+    }
+
+    IR_AdvanceSlot(IR_IV_ActiveSlot(f, IR_LoopOverFragments.defIt))
   }
 }

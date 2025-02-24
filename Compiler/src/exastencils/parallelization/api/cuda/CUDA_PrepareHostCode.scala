@@ -24,11 +24,14 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_AdvanceSlot
+import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
@@ -51,8 +54,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
-  var fieldAccesses = HashMap[String, IR_IV_FieldData]()
-  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+  var fieldAccesses = HashMap[String, IR_IV_AbstractFieldLikeData]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBufferLike]()
 
   var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
 
@@ -72,7 +75,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     this.unregister(gatherBuffers)
     Logger.popLevel()
 
-    fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, acc) => str -> IR_IV_FieldData(acc.field, acc.slot, acc.fragIdx) }
+    fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, acc) => str -> IR_IV_AbstractFieldLikeData(acc.field, acc.slot, acc.fragIdx) }
     bufferAccesses ++= gatherBuffers.bufferAccesses
   }
 
@@ -130,6 +133,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   this += new Transformation("Create overlapping fragment loop structure", {
     case loop : IR_LoopOverFragments                                                                                     =>
       createFragLoopHandler(loop)
+    case loop : IR_LoopOverProcessLocalBlocks                                                                            =>
+      createFragLoopHandler(loop)
     case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
       createFragLoopHandler(loop)
   }, false)
@@ -139,7 +144,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val hostStmts = new ListBuffer[IR_Statement]()
       val deviceStmts = new ListBuffer[IR_Statement]()
       val fieldOffset = new mutable.HashMap[(String, Int), Int]()
-      val fields = new mutable.HashMap[(String, Int), IR_Field]()
+      val fields = new mutable.HashMap[(String, Int), IR_FieldLike]()
       var hostCondStmt : IR_IfCondition = null
       var deviceCondStmt : IR_IfCondition = null
 

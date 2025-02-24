@@ -22,13 +22,14 @@ import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_InternalVariable
+import exastencils.baseExt.ir.IR_InternalVariableLike
+import exastencils.baseExt.ir.IR_ProcessLocalBlockLoopVariable
 import exastencils.communication.ir.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.domain.ir._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir._
 import exastencils.interfacing.ir._
 import exastencils.logger._
 import exastencils.util.MathHelper
@@ -201,11 +202,19 @@ object IR_SimplifyExpression {
         res = new HashMap[IR_Expression, Long]()
         res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L
 
-      case m : IR_MemberAccess =>
+      case c : IR_CastLike =>
+        res = new mutable.HashMap[IR_Expression, Long]()
+        res(c) = 1L
+
+      case m : IR_MemberAccessLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
-      case m : IR_MemberFunctionCall =>
+      case m : IR_MemberFunctionCallLike =>
+        res = new mutable.HashMap[IR_Expression, Long]()
+        res(m) = 1L
+
+      case m : IR_ClassOperatorCallLike =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
@@ -335,11 +344,15 @@ object IR_SimplifyExpression {
           res(IR_Maximum(exprs)) = 1L
         }
 
-      case scalarIV : IR_InternalVariable if scalarIV.resolveDatatype().isInstanceOf[IR_ScalarDatatype] =>
+      case acc : IR_ProcessLocalBlockLoopVariable =>
+        res = new HashMap[IR_Expression, Long]()
+        res(acc) = 1L
+
+      case scalarIV : IR_InternalVariableLike if scalarIV.resolveDatatype().isInstanceOf[IR_ScalarDatatype] =>
         res = new HashMap[IR_Expression, Long]()
         res(scalarIV) = 1L
 
-      case anyIV : IR_InternalVariable =>
+      case anyIV : IR_InternalVariableLike =>
         Logger.warn(s"Found non-scalar iv ${ anyIV.prettyprint() } in extractIntegralSumRec")
         res = new HashMap[IR_Expression, Long]()
         res(anyIV) = 1L
@@ -532,13 +545,13 @@ object IR_SimplifyExpression {
         a.index = IR_SimplifyExpression.simplifyIntegralExpr(a.index)
         a
 
-      case d : IR_DirectFieldAccess =>
+      case d : IR_DirectFieldLikeAccess =>
         for (i <- 0 until 4)
           if (d.index(i) != IR_NullExpression)
             d.index(i) = IR_SimplifyExpression.simplifyIntegralExpr(d.index(i))
         d
 
-      case f : IR_FieldAccess =>
+      case f : IR_FieldLikeAccess =>
         for (i <- 0 until 4)
           if (f.index(i) != IR_NullExpression)
             f.index(i) = IR_SimplifyExpression.simplifyIntegralExpr(f.index(i))
@@ -581,33 +594,33 @@ object IR_SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(va) = 1d
 
+      case c : IR_CastLike =>
+        res = new mutable.HashMap[IR_Expression, Double]()
+        res(c) = 1d
+
+      case m : IR_MemberAccessLike =>
+        res = new mutable.HashMap[IR_Expression, Double]()
+        res(m) = 1d
+
+      case m : IR_MemberFunctionCallLike =>
+        res = new mutable.HashMap[IR_Expression, Double]()
+        res(m) = 1d
+
+      case m : IR_ClassOperatorCallLike =>
+        res = new mutable.HashMap[IR_Expression, Double]()
+        res(m) = 1d
+
       case IR_StringLiteral(varName) =>
         if (varName.contains("std::rand")) // HACK
           throw EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[IR_Expression, Double]()
         res(IR_VariableAccess(varName, IR_RealDatatype)) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
 
-      case frag : IR_IV_FragmentPosition =>
-        res = new HashMap[IR_Expression, Double]()
-        res(frag) = 1d
-
-      case frag : IR_IV_FragmentPositionBegin =>
-        res = new HashMap[IR_Expression, Double]()
-        res(frag) = 1d
-
-      case frag : IR_IV_FragmentPositionEnd =>
-        res = new HashMap[IR_Expression, Double]()
-        res(frag) = 1d
-
       case aAcc : IR_ArrayAccess =>
         res = new HashMap[IR_Expression, Double]()
         res(aAcc) = 1d
 
-      case mAcc : IR_MemberAccess =>
-        res = new HashMap[IR_Expression, Double]()
-        res(mAcc) = 1d
-
-      case fAcc : IR_MultiDimFieldAccess =>
+      case fAcc : IR_MultiDimFieldLikeAccess =>
         res = new HashMap[IR_Expression, Double]()
         res(fAcc) = 1d
 
@@ -776,6 +789,23 @@ object IR_SimplifyExpression {
         }
         if (res == null) // no better solution found, use trivial one
           res = HashMap(IR_Power(recreateExprFromFloatSum(mapL), recreateExprFromFloatSum(mapR)) -> 1d)
+
+      case scalarIV : IR_InternalVariableLike if scalarIV.resolveDatatype().isInstanceOf[IR_ScalarDatatype] =>
+        res = new HashMap[IR_Expression, Double]()
+        res(scalarIV) = 1d
+
+      case anyIV : IR_InternalVariableLike =>
+        Logger.warn(s"Found non-scalar iv ${ anyIV.prettyprint() } in extractIntegralSumRec")
+        res = new HashMap[IR_Expression, Double]()
+        res(anyIV) = 1d
+
+      case bExpr : IR_BoundedScalar =>
+        res = new HashMap[IR_Expression, Double]()
+        res(bExpr) = 1d
+
+      case acc : IR_ProcessLocalBlockLoopVariable =>
+        res = new HashMap[IR_Expression, Double]()
+        res(acc) = 1d
 
       case _ =>
         throw EvaluationException("unknown expression type for evaluation: " + expr.getClass + " in " + expr.prettyprint())

@@ -29,3 +29,10 @@ trait IR_FunctionLike extends IR_Statement {
   var allowFortranInterface : Boolean = true
   var functionQualifiers : String = "" // e.g. "__global__" etc
 }
+
+trait IR_PlainFunctionLike extends IR_Function
+
+trait IR_LeveledFunctionLike extends IR_Function {
+  def baseName : String
+  def level : Int
+}

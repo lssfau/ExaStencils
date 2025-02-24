@@ -21,6 +21,14 @@ package exastencils.communication.ir
 import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.config.Knowledge
 
+/// IR_HasMessageDirection
+
+trait IR_HasMessageDirection {
+  def send : Boolean
+
+  def direction : String = if (send) "Send" else "Recv"
+}
+
 /// IR_IV_CommVariable
 
 abstract class IR_IV_CommVariable extends IR_InternalVariable(Knowledge.comm_sepDataByFragment, false, Knowledge.comm_useFieldArrays, Knowledge.comm_useLevelArrays, Knowledge.comm_useNeighborArrays) {

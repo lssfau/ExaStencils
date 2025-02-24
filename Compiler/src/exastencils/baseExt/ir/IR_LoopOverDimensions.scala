@@ -242,7 +242,7 @@ case class IR_LoopOverDimensions(
     // propagate parallelization hints to enclosing fragment loop if parallel
     if (Knowledge.omp_parallelizeLoopOverFragments && collector.getEnclosingFragmentLoop().isDefined) {
       collector.getEnclosingFragmentLoop().get match {
-        case fragLoop : IR_LoopOverFragments                                                                            =>
+        case fragLoop : IR_LoopOverProcessLocalBlocks                                                                            =>
           fragLoop.parallelization.parallelizationReasonable &&= parallelizationOverFragmentsIsReasonable(maxIterationCount())
         case fragLoop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
           fragLoop.parallelization.parallelizationReasonable &&= parallelizationOverFragmentsIsReasonable(maxIterationCount())

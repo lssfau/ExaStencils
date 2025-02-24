@@ -19,6 +19,7 @@
 package exastencils.config
 
 import scala.collection.mutable.ListBuffer
+import scala.math.pow
 
 import exastencils.constraints._
 
@@ -79,10 +80,12 @@ object Knowledge {
 
   /// utility functions
 
+  // evaluates if domain partitioning is known to generator
+  def domain_isPartitioningKnown : Boolean = waLBerla_useGridPartFromExa
   // evaluates if fragments can have local (i.e. same block) neighbors, i.e. if local comm is required
-  def domain_canHaveLocalNeighs : Boolean = domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity
+  def domain_canHaveLocalNeighs : Boolean = !domain_isPartitioningKnown || refinement_enabled || domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity
   // evaluates if fragments can have remote (i.e. different block) neighbors, i.e. if mpi comm is required
-  def domain_canHaveRemoteNeighs : Boolean = domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
+  def domain_canHaveRemoteNeighs : Boolean = (mpi_enabled && (refinement_enabled || !domain_isPartitioningKnown)) || domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
 
   /// specific flags for setting rectangular domains
 
@@ -127,6 +130,22 @@ object Knowledge {
   def domain_rect_numFragsTotal : Int = domain_rect_numFragsTotal_x * domain_rect_numFragsTotal_y * domain_rect_numFragsTotal_z
   // shortcut to an array containing the values of domain_rect_numFragsTotal_*
   def domain_rect_numFragsTotalAsVec : Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
+
+  /// --- Mesh refinement ---
+
+  var refinement_enabled : Boolean = false
+
+  var refinement_interpOrderC2F : Int = 2
+
+  var refinement_interpOrderF2C : Int = 2
+
+  def refinement_availableC2FInterpOrders : List[Int] = List(1, 2)
+
+  // determines fine:coarse ratio (e.g., 2:1)
+  def refinement_maxFineNeighborsPerDim : Int = 2
+
+  // 1D: 1 neighbor, 2D: 2 neighbors, 3D: 4 neighbors
+  def refinement_maxFineNeighborsForCommAxis : Int = refinement_maxFineNeighborsPerDim << (-2 + Knowledge.dimensionality)
 
   //// specifications for field
 
@@ -477,6 +496,9 @@ object Knowledge {
   // the number of mpi threads to be used
   var mpi_numThreads : Int = 1
 
+  // [true|false] // employ compact MPI tag generation for MPI implementations with small upper bound for MPI tagd
+  var mpi_generateCompactTags : Boolean = false
+
   // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
   var mpi_useCustomDatatypes : Boolean = false
   // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
@@ -486,6 +508,47 @@ object Knowledge {
 
   // [true|false] // specifies if MPI_Test (true) or MPI_Wait (false) is to be used when waiting for async communication
   var mpi_useBusyWait : Boolean = false
+
+  /// --- waLBerla ---
+
+  // [true|false]
+  var waLBerla_createCartComm : Boolean = false
+
+  // [true|false]: use mesh refinement from waLBerla
+  var waLBerla_useRefinement : Boolean = false
+
+  // [0~inf] max mesh refinement levels, 0 = no refinement
+  var waLBerla_refinementLevels : Int = 0
+
+  // [true|false]: enforce generation of interface class
+  // needs to be enabled if waLBerla data structures are used
+  var waLBerla_generateInterface : Boolean = false
+
+  // [true|false]: conserving pack info provided by waLBerla (at the cost of accuracy)
+  // true -> constant C2F, linear F2C
+  // false -> quadratic C2F, linear/quadratic F2C
+  var waLBerla_useConservingRefinementPackInfo : Boolean = false
+
+  // [true|false]: optimization.
+  // generate comm schemes for waLBerla or use our internal communication
+  var waLBerla_generateCommSchemes : Boolean = false
+
+  // [true|false]: optimization.
+  // partition grid with info provided in knowledge file
+  var waLBerla_useGridPartFromExa : Boolean = true
+
+  // [true|false]: optimization.
+  // cache field pointers as members in interface
+  var waLBerla_cacheFieldPointers : Boolean = true
+
+  // [true|false]: optimization.
+  // use fixed layout sizes for waLBerla fields, required for optimizations and CUDA parallelization
+  var waLBerla_useFixedLayoutsFromExa : Boolean = false
+
+  // [true|false]: optimization.
+  // use internal waLBerla memory pointers for array accesses instead of using the get(x, y, z, f) accessors
+  // enables optimizations (address precalc, vect, ...) when enabled
+  var waLBerla_useInternalMemoryPointers : Boolean = true
 
   // --- Parallel I/O ---
 
@@ -962,6 +1025,8 @@ object Knowledge {
     Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticCommTiming = true'")
     Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticIOTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticIOTiming = true'")
 
+    Constraints.condError(timer_syncMpi && (timer_automaticPackingTiming || timer_automaticUnpackingTiming || timer_automaticWaitTiming), "Flags timer_syncMpi and timer_automaticPackingTiming, timer_automaticUnpackingTiming or timer_automaticWaitTiming are mutually exclusive")
+
     // benchmarking and performance estimation
 
     Constraints.condWarn(!List("None", "likwid").contains(benchmark_backend), "Unknown value for benchmark_backend")
@@ -991,5 +1056,29 @@ object Knowledge {
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
     Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
+
+    // waLBerla
+    Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
+    Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
+    Constraints.condEnsureValue(data_genVariableFieldSizes, true, !waLBerla_useFixedLayoutsFromExa && waLBerla_generateInterface, "Enable 'data_genVariableFieldSizes' when waLberla fields without fixed layouts are used.")
+    Constraints.condError(!domain_isPartitioningKnown && waLBerla_createCartComm, "Knowledge flag 'waLBerla_createCartComm' is only available with Exa grid partitioning (waLBerla_useGridPartFromExa = true).")
+
+    Constraints.condEnsureValue(refinement_enabled, true, waLBerla_useRefinement, "Flag 'refinement_enabled' must be enabled when 'waLBerla_useRefinement' is true")
+    Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
+    Constraints.condError(waLBerla_useRefinement && domain_isPartitioningKnown, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
+
+    Constraints.condError(!waLBerla_cacheFieldPointers && experimental_cuda_useStreams, "CUDA streams can only be combined with waLBerla when 'waLBerla_cacheFieldPointers = true'.")
+
+    // refinement
+    Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")
+    Constraints.condError(refinement_enabled && !refinement_availableC2FInterpOrders.contains(refinement_interpOrderC2F), s"C2F interpolation order $refinement_interpOrderC2F not supported yet.")
+    Constraints.condError(refinement_enabled && !grid_isAxisAligned, "Mesh refinement currently only supports aligned blocks.")
+    Constraints.condError(refinement_enabled && comm_enableCommTransformations, "Communication transformations are currently not supported with mesh refinement.")
+    Constraints.condWarn(refinement_enabled && comm_syncGhostData, "Flag 'comm_syncGhostData' is currently ignored for F2C and C2F communication.")
+    Constraints.condWarn(refinement_enabled && !comm_pushLocalData, "Pull scheme is not available for communication with mesh refinement (c.f. 'comm_pushLocalData').")
+
+    Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L4 must be disabled, when the Compiler does not know about the grid partitioning.")
+    Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L3 must be disabled, when the Compiler does not know about the grid partitioning.")
+    Constraints.condEnsureValue(experimental_l2_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L2 must be disabled, when the Compiler does not know about the grid partitioning.")
   }
 }
