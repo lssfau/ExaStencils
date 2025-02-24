@@ -9,7 +9,8 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLocalBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceMember
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
 
@@ -70,7 +71,7 @@ case class IR_IV_WaLBerlaGetField(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
     var onGPU : Boolean,
-    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverBlocks.defIt
+    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverLocalBlocks.defIt
 ) extends IR_IV_WaLBerlaGetFieldPointer {
 
   override def baseDatatype() : IR_Datatype = WB_FieldDatatype(field, onGPU)
@@ -95,7 +96,7 @@ case class IR_IV_WaLBerlaGetFieldData(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
     var onGPU : Boolean,
-    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverBlocks.defIt
+    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverLocalBlocks.defIt
 ) extends IR_IV_WaLBerlaGetFieldPointer {
 
   var level : IR_Expression = field.level
@@ -125,7 +126,7 @@ object IR_IV_WaLBerlaFieldData {
 case class IR_IV_WaLBerlaFieldData(
     var field : IR_WaLBerlaField,
     var slot : IR_Expression,
-    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverBlocks.defIt
+    var fragmentIdx : IR_Expression = IR_WaLBerlaLoopOverLocalBlocks.defIt
 ) extends IR_IV_AbstractWaLBerlaFieldData with IR_IV_GetWaLBerlaFieldFromScope {
 
   override var level : IR_Expression = field.level
@@ -139,7 +140,15 @@ case class IR_IV_WaLBerlaFieldData(
 
   // CPU/GPU execution information not incorporated in class -> we need to make sure it is initialized in the correct mode (see IR_WaLBerlaLoopOverBlocks)
   def initInBlockLoop(onGPU : Boolean) : ListBuffer[IR_Statement] = {
-    def getFieldDataPtr(slotIt : IR_Expression) = IR_IV_WaLBerlaGetFieldData(field, slotIt, onGPU, fragmentIdx)
+    def getFieldDataPtr(slotIt : IR_Expression) = {
+      val dataPtr = IR_IV_WaLBerlaGetFieldData(field, slotIt, onGPU, fragmentIdx)
+
+      if (fragmentIdxName != IR_WaLBerlaLoopOverLocalBlocks.defIt.name)
+        IR_TernaryCondition(fragmentIdx >= 0 AndAnd fragmentIdx < IR_Cast(IR_IntegerDatatype, IR_WaLBerlaLocalBlocks().size()),
+          dataPtr, IR_VariableAccess("nullptr", IR_UnknownDatatype))
+      else
+        dataPtr
+    }
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
 

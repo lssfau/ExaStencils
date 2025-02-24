@@ -4,22 +4,44 @@ import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
-import exastencils.datastructures.Transformation.OutputType
 import exastencils.waLBerla.ir.blockforest._
 
 object IR_WaLBerlaAABB {
   def datatype : IR_Datatype = IR_SpecialDatatype("math::AABB")
 }
 
-trait IR_WaLBerlaAABB extends IR_WaLBerlaBlockLoopVariable {
+trait IR_WaLBerlaAABB extends IR_WaLBerlaBlockLoopVariable
 
-  def center(dim : IR_Expression) : IR_Expression = IR_ArrayAccess(IR_MemberFunctionCallWithDt(this, "center", IR_ArrayDatatype(IR_RealDatatype, 3)), dim)
+case class IR_WaLBerlaAABBCenter(var aabb : IR_WaLBerlaAABB, dim : Int) extends IR_WaLBerlaBlockLoopVariable {
+  override def resolveName() : String = "aabbCenter_" + ('x' + dim).toChar.toString
+  override def resolveDatatype() : IR_Datatype = IR_RealDatatype
 
-  def min(dim : IR_Expression) : IR_Expression = IR_MemberFunctionCallWithDt(this, "min", IR_RealDatatype, dim)
+  override def getDeclaration() = IR_VariableDeclaration(resolveDatatype(), resolveName(),
+    IR_ArrayAccess(IR_MemberFunctionCallWithDt(aabb, "center", IR_ArrayDatatype(IR_RealDatatype, 3)), dim))
+}
 
-  def max(dim : IR_Expression) : IR_Expression = IR_MemberFunctionCallWithDt(this, "max", IR_RealDatatype, dim)
+case class IR_WaLBerlaAABBMin(var aabb : IR_WaLBerlaAABB, dim : Int) extends IR_WaLBerlaBlockLoopVariable {
+  override def resolveName() : String = "aabbMin_" + ('x' + dim).toChar.toString
+  override def resolveDatatype() : IR_Datatype = IR_RealDatatype
 
-  def size(dim : IR_Expression) : IR_Expression = IR_MemberFunctionCallWithDt(this, "size", IR_RealDatatype, dim)
+  override def getDeclaration() = IR_VariableDeclaration(resolveDatatype(), resolveName(),
+    IR_MemberFunctionCallWithDt(aabb, "min", IR_RealDatatype, dim))
+}
+
+case class IR_WaLBerlaAABBMax(var aabb : IR_WaLBerlaAABB, dim : Int) extends IR_WaLBerlaBlockLoopVariable {
+  override def resolveName() : String = "aabbMax_" + ('x' + dim).toChar.toString
+  override def resolveDatatype() : IR_Datatype = IR_RealDatatype
+
+  override def getDeclaration() = IR_VariableDeclaration(resolveDatatype(), resolveName(),
+    IR_MemberFunctionCallWithDt(aabb, "max", IR_RealDatatype, dim))
+}
+
+case class IR_WaLBerlaAABBSize(var aabb : IR_WaLBerlaAABB, dim : Int) extends IR_WaLBerlaBlockLoopVariable {
+  override def resolveName() : String = "aabbSize_" + ('x' + dim).toChar.toString
+  override def resolveDatatype() : IR_Datatype = IR_RealDatatype
+
+  override def getDeclaration() = IR_VariableDeclaration(resolveDatatype(), resolveName(),
+    IR_MemberFunctionCallWithDt(aabb, "size", IR_RealDatatype, dim))
 }
 
 case class IR_WaLBerlaBlockAABB(block : IR_WaLBerlaBlock) extends IR_WaLBerlaAABB {
@@ -37,6 +59,6 @@ case class IR_WaLBerlaCellAABB(blockforest : IR_WaLBerlaBlockForest, idx : IR_In
   override def getDeclaration() = {
     IR_VariableDeclaration(resolveDatatype(), resolveName(),
       IR_MemberFunctionCallArrowWithDt(blockforest, "getBlockLocalCellAABB", datatype,
-        IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.block), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.toExpressionIndex.indices.padTo(3, 0 : IR_Expression) : _*)))
+        IR_DerefAccess(IR_WaLBerlaLoopOverLocalBlocks.block), IR_FunctionCall(IR_ExternalFunctionReference("Cell"), idx.toExpressionIndex.indices.padTo(3, 0 : IR_Expression) : _*)))
   }
 }

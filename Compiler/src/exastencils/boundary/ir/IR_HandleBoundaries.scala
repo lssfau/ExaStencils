@@ -97,6 +97,7 @@ case class IR_HandleBoundaries(
 
   def constructLoops = {
     val layout = field.layout
+    val indexOfRefinedNeighbor : Option[IR_Expression] = None
 
     IR_LoopOverFragments(
       ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index),
@@ -112,7 +113,7 @@ case class IR_HandleBoundaries(
           loopOverDims.parallelization.gpuParallelizable = field.gpuCompatible
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.polyOptLevel = 1
-          IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh._1.index)), loopOverDims) : IR_Statement
+          IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh._1.index, indexOfRefinedNeighbor)), loopOverDims) : IR_Statement
         }))), IR_ParallelizationInfo(potentiallyParallel = true))
   }
 }

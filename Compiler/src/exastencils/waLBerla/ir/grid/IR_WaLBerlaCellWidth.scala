@@ -6,8 +6,7 @@ import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_Domain
 import exastencils.grid.ir.IR_VF_CellWidthAsVec
 import exastencils.grid.ir.IR_VF_CellWidthPerDim
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockLoopVariable
+import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_RealType
 
@@ -28,7 +27,8 @@ case class IR_WaLBerlaCellWidthAsVec(
 
 case class IR_WaLBerlaCellWidthBlockPerDim(dim : Int, refinementLevel : Option[IR_Expression] = None) extends IR_WaLBerlaBlockLoopVariable {
   override def resolveName() : String = s"d${ ('x' + dim).toChar.toString }_"
-  override def resolveDatatype() : IR_Datatype = WB_RealType
+
+  override def resolveDatatype() : IR_Datatype = if (Knowledge.cuda_enabled) IR_RealDatatype else WB_RealType
 
   override def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(resolveDatatype(), resolveName(), IR_WaLBerlaBlockForest().getStepSize(dim, refinementLevel))
 }
@@ -47,7 +47,7 @@ case class IR_WaLBerlaCellWidthPerDim(
 
   override def resolve(index : IR_ExpressionIndex) = {
     val refinementLvl = if (Knowledge.waLBerla_useRefinement)
-      Some(IR_WaLBerlaRefinementLevel())
+      Some(IR_WaLBerlaRefinementLevel(IR_WaLBerlaBlock()))
     else
       None
 

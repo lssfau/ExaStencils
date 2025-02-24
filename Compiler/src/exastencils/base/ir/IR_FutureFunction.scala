@@ -19,6 +19,8 @@
 package exastencils.base.ir
 
 import exastencils.datastructures.Transformation.Output
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.timing.ir._
 
 /// IR_FutureFunction
 
@@ -38,9 +40,35 @@ trait IR_FutureFunction extends IR_FunctionLike with IR_Expandable {
   def generateFct() : IR_Function
 }
 
+/// IR_FutureFunctionWithTiming
+
+trait IR_FutureFunctionWithTiming extends IR_FutureFunction {
+
+  def automaticTimingCategory : IR_AutomaticTimingCategory.Access
+
+  override def expand() : Output[IR_Function] = {
+    var genFct = generateFct()
+
+    if (IR_AutomaticTimingCategory.categoryEnabled(automaticTimingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ automaticTimingCategory.toString }_$name", automaticTimingCategory)
+
+      genFct.body.prepend(IR_FunctionCall(IR_TimerFunctionReference(IR_StartTimer().name, IR_UnitDatatype, None), timer))
+      genFct.body.append(IR_FunctionCall(IR_TimerFunctionReference(IR_StopTimer().name, IR_UnitDatatype, None), timer))
+    }
+
+    genFct
+  }
+}
+
 /// IR_FuturePlainFunction
 
 trait IR_FuturePlainFunction extends IR_FutureFunction {
+  override def generateFct() : IR_PlainFunction
+}
+
+/// IR_FuturePlainFunctionWithTiming
+
+trait IR_FuturePlainFunctionWithTiming extends IR_FutureFunctionWithTiming {
   override def generateFct() : IR_PlainFunction
 }
 
@@ -49,4 +77,24 @@ trait IR_FuturePlainFunction extends IR_FutureFunction {
 trait IR_FutureLeveledFunction extends IR_FutureFunction {
   def level : Int
   override def generateFct() : IR_LeveledFunction
+}
+
+/// IR_FutureLeveledFunctionWithTiming
+
+trait IR_FutureLeveledFunctionWithTiming extends IR_FutureFunctionWithTiming {
+  def level : Int
+  override def generateFct() : IR_LeveledFunction
+
+  override def expand() : Output[IR_Function] = {
+    var genFct = generateFct()
+
+    if (IR_AutomaticTimingCategory.categoryEnabled(automaticTimingCategory)) {
+      val timer = IR_IV_AutomaticLeveledTimer(s"autoTime_${ automaticTimingCategory.toString }_$name", automaticTimingCategory, level)
+
+      genFct.body.prepend(IR_FunctionCall(IR_TimerFunctionReference(IR_StartTimer().name, IR_UnitDatatype, Some(level)), timer))
+      genFct.body.append(IR_FunctionCall(IR_TimerFunctionReference(IR_StopTimer().name, IR_UnitDatatype, Some(level)), timer))
+    }
+
+    genFct
+  }
 }

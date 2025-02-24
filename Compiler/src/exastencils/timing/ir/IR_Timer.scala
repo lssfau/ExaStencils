@@ -19,8 +19,12 @@
 package exastencils.timing.ir
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.logger.Logger
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_LoopOverLevels
+import exastencils.prettyprinting.PpStream
 
 /// IR_IV_Timer
 
@@ -34,15 +38,58 @@ object IR_IV_Timer {
   })
 }
 
-case class IR_IV_Timer(var name : String) extends IR_UnduplicatedVariable with IR_Access {
-  override def resolveName() = s"timer_" + stripName
-  override def resolveDatatype() = IR_SpecialDatatype("StopWatch")
+object IR_IV_LeveledTimer {
+  def apply(name : IR_Expression, level : Int) = new IR_IV_LeveledTimer(name match {
+    case IR_StringConstant(value) => value
+    case IR_StringLiteral(value)  => value
+    case otherExpression          =>
+      Logger.warn("Timer name is not constant: " + otherExpression)
+      otherExpression.prettyprint()
+  }, level)
+}
 
-  def stripName = name.replaceAll("[^a-zA-Z0-9]", "_")
+trait IR_TimingIV extends IR_InternalVariable with IR_Access {
+  def name : String
+  def stripName : String = name.replaceAll("[^a-zA-Z0-9]", "_")
 
+  override def resolveName() = s"timer_${stripName}"
+  override def resolveDatatype() : IR_SpecialDatatype = IR_SpecialDatatype("StopWatch")
+}
+
+trait IR_PlainTimingIV extends IR_UnduplicatedVariable with IR_TimingIV {
   override def getCtor() : Option[IR_Statement] = {
     Some(IR_Assignment(
       IR_MemberAccess(IR_VariableAccess(resolveName(), resolveDatatype()), "timerName"),
       IR_StringConstant(stripName)))
   }
 }
+
+trait IR_LeveledTimingIV extends IR_TimingIV {
+  def level : Int
+
+  def accessTimerAtLevel() : IR_Access = checked_cast(resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, level, IR_NullExpression))
+
+  protected def checked_cast(leveledTimerAccess : IR_Expression) : IR_Access = {
+    leveledTimerAccess match {
+      case access : IR_Access =>
+        access
+      case _                  => {
+        Logger.error("Unexpected error in IR_IV_LeveledTimer")
+        throw new Exception("Failed access of leveled timer")
+      } // should never occur
+    }
+  }
+
+  override def getCtor() : Option[IR_Statement] = {
+    val accessViaIndex = resolveAccess(IR_VariableAccess(resolveName(), resolveDatatype()), IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_LoopOverLevels.defIt, IR_NullExpression)
+    Some(wrapInLoops(IR_Assignment(
+      IR_MemberAccess(checked_cast(accessViaIndex), "timerName"),  IR_StringConstant(stripName)
+    )))
+  }
+
+  override def prettyprint(out : PpStream) : Unit = out << accessTimerAtLevel()
+}
+
+case class IR_IV_Timer(var name : String) extends IR_PlainTimingIV
+
+case class IR_IV_LeveledTimer(var name : String, var level : Int) extends IR_InternalVariable(false, false, false, true, false) with IR_LeveledTimingIV

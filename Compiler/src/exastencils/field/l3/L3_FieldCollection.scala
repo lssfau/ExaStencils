@@ -29,6 +29,7 @@ import exastencils.fieldlike.l3.L3_FieldLikeCollections
 import exastencils.fieldlike.l4.L4_FieldLikeLayout
 import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3._
+import exastencils.scheduling.NoStrategyWrapper
 
 /// L3_FieldCollection
 
@@ -69,4 +70,10 @@ object L3_FieldCollection extends L3_FieldLikeCollection[L3_Field, L4_Field] {
       L4_FieldLayoutCollection.add(genLayout)
     }
   }
+}
+
+/// L3_AddInitFieldsFunctionWrapper
+
+object L3_AddInitFieldsFunctionWrapper extends NoStrategyWrapper {
+  override def callback : () => Unit = () => L3_FieldCollection.addInitFieldsFunction()
 }

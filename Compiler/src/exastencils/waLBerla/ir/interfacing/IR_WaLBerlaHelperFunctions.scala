@@ -98,7 +98,10 @@ case class IR_WaLBerlaAddFieldToStorageWrapper() extends IR_WaLBerlaWrapperFunct
     }
     val returnType = WB_BlockDataID
 
-    IR_WaLBerlaPlainFunction(name, returnType, params, ListBuffer(IR_Switch(level.access, cases)))
+    IR_WaLBerlaPlainFunction(name, returnType, params,
+      ListBuffer[IR_Statement](
+        IR_Switch(level.access, cases),
+        IR_Return(IR_InitializerList())))
   }
 
   override def name : String = s"addToStorageWrapper"

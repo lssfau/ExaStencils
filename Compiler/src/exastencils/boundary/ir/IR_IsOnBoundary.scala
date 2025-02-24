@@ -57,7 +57,7 @@ case class IR_IsOnSpecBoundary(var field : IR_FieldLike, var neigh : NeighborInf
   override def expand() : Output[IR_Expression] = {
     // should work for node, cell and face localizations
 
-    var conditions = ListBuffer[IR_Expression](IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh.index)))
+    var conditions = ListBuffer[IR_Expression](IR_Negation(IR_IV_NeighborIsValid(field.domain.index, neigh.index, indexOfRefinedNeighbor = None)))
     for (dim <- 0 until field.layout.numDimsGrid) {
       neigh.dir(dim) match {
         case -1 => conditions += IR_Lower(Duplicate(index(dim)), field.layout.idxById("DLE", dim) - field.referenceOffset(dim))
@@ -139,19 +139,19 @@ object IR_ResolveBoundaryFunctions extends DefaultStrategy("ResolveBoundaryFunct
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("getNeighFragEdge", _), args) =>
       // usage: getNeighFragEdge ( fragmentIdx, neighIdx )
-      IR_IV_CommNeighNeighIdx(0, args(1), args(0))
+      IR_IV_CommNeighNeighIdx(0, args(1), indexOfRefinedNeighbor = None, args(0)) // TODO: refined neighbor idx
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("getNeighFragId", _), args) =>
       // usage: getNeighFragId ( fragmentIdx, neighIdx )
-      IR_IV_NeighFragId(0, args(1), args(0))
+      IR_IV_NeighFragId(0, args(1), indexOfRefinedNeighbor = None, args(0)) // TODO: refined neighbor idx
 
     case IR_FunctionCall(IR_UnresolvedFunctionReference("getBoundaryConditionId", _), args) =>
       // usage: getBoundaryConditionId ( fragmentIdx, neighIdx )
-      IR_IV_BoundaryConditionId(0, args(1), args(0))
+      IR_IV_BoundaryConditionId(0, args(1), indexOfRefinedNeighbor = None, args(0)) // TODO: refined neighbor idx
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UnresolvedFunctionReference("setBoundaryConditionId", _), args)) =>
       // usage: setBoundaryConditionId ( fragmentIdx, neighIdx, newId )
-      IR_Assignment(IR_IV_BoundaryConditionId(0, args(1), args(0)), args(2))
+      IR_Assignment(IR_IV_BoundaryConditionId(0, args(1), indexOfRefinedNeighbor = None, args(0)), args(2)) // TODO: refined neighbor idx
 
   })
 }

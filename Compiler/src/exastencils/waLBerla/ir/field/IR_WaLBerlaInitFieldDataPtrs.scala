@@ -7,14 +7,15 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.logger.Logger
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlockArray
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil
 
 object IR_WaLBerlaInitFieldDataPtrs {
-  def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_ForLoop = {
+  def initRoutine(onGPU : Boolean, wbf : IR_WaLBerlaField) : IR_Statement = {
     val slotIt = IR_VariableAccess("slotIt", IR_IntegerDatatype)
-    var defIt = IR_WaLBerlaLoopOverBlocks.defIt
+    var defIt = IR_WaLBerlaLoopOverLocalBlocks.defIt
 
     def getFieldData = IR_IV_WaLBerlaGetFieldData(wbf, slotIt, onGPU, defIt)
 
@@ -22,7 +23,14 @@ object IR_WaLBerlaInitFieldDataPtrs {
 
     val initVal = if (wbf.layout.useFixedLayoutSizes) {
       // get ptr without offset -> referenceOffset handled by ExaStencils
-      val ptr = new IR_MemberFunctionCallArrowWithDt(getField, "data", ListBuffer())
+      val ptr = if (Knowledge.dimensionality == 3) {
+        new IR_MemberFunctionCallArrowWithDt(getField, "data", ListBuffer())
+      } else {
+        // wb always allocates memory in a 3d fashion -> 2D fields can have 3 (1 inner + 2 gl) slices
+        // -> offset to innermost slice
+        new IR_MemberFunctionCallArrowWithDt(getField, "dataAt",
+          Knowledge.dimensions.map(d => -wbf.layout.layoutsPerDim(d).numGhostLayersLeft : IR_Expression).padTo(4, 0 : IR_Expression).to[ListBuffer])
+      }
       if (onGPU) // TODO: offset for pitched pointers?
         IR_Cast(IR_PointerDatatype(getFieldData.baseDatatype()), ptr) // "data" function of GPU fields returns void*
       else
@@ -46,8 +54,12 @@ object IR_WaLBerlaInitFieldDataPtrs {
       new IR_MemberFunctionCallArrowWithDt(getField, "dataAt", newIndex.toExpressionIndex.indices.to[ListBuffer])
     }
 
-    IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-      IR_Assignment(getFieldData, initVal))
+    val assign = IR_Assignment(getFieldData, initVal)
+
+    def wrapAroundSlotLoop(stmts : IR_Statement*) =
+      IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt), stmts.to[ListBuffer])
+
+    if (wbf.numSlots > 1) wrapAroundSlotLoop(assign) else assign
   }
 }
 
@@ -67,7 +79,7 @@ case class IR_WaLBerlaInitFieldDataPtrs(onGPU : Boolean, wbFields : IR_WaLBerlaF
       for (wbf <- wbFields)
         body += IR_WaLBerlaInitFieldDataPtrs.initRoutine(onGPU, wbf)
 
-      body = ListBuffer(IR_WaLBerlaLoopOverBlocks(body, setupWaLBerlaFieldPointers = false))
+      body = ListBuffer(IR_WaLBerlaLoopOverLocalBlockArray(body))
     }
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)

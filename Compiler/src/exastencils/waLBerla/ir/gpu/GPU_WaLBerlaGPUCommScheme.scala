@@ -1,4 +1,4 @@
-package exastencils.waLBerla.ir.cuda
+package exastencils.waLBerla.ir.gpu
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -13,13 +13,13 @@ import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_FieldDatatype
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil.make_shared
 
 @deprecated
-case class CUDA_WaLBerlaGPUCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_WaLBerlaCommScheme {
+case class GPU_WaLBerlaGPUCommScheme(var wbField : IR_WaLBerlaField, var slot : IR_Expression) extends IR_WaLBerlaCommScheme {
 
   def basetype = IR_UniquePointerDatatype(WB_CommScheme(onGPU = true))
 
   def createUniformPackInfo() = {
     Logger.warn("The 'MemcpyPackInfo' classes for waLBerla's GPU communication schemes may not yield correct results.")
-    make_shared(s"cuda::communication::MemcpyPackInfo< ${ WB_FieldDatatype(wbField, onGPU = true).prettyprint() } >", blockDataID)
+    make_shared(s"gpu::communication::MemcpyPackInfo< ${ WB_FieldDatatype(wbField, onGPU = true).prettyprint() } >", blockDataID)
   }
 
   def name = s"gpuCommScheme_${ wbField.name }"

@@ -8,7 +8,7 @@ import exastencils.config.Knowledge
 import exastencils.config.Platform
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaUtil._
@@ -35,7 +35,7 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
 
     // comm scheme wrapper
     def getCommScheme(wbf : IR_WaLBerlaField, slotIt : IR_Expression) : IR_WaLBerlaCommScheme = if (onGPU)
-      CUDA_WaLBerlaGPUCommScheme(wbf, slotIt)
+      GPU_WaLBerlaGPUCommScheme(wbf, slotIt)
     else
       IR_WaLBerlaCPUCommScheme(wbf, slotIt)
 
@@ -54,7 +54,16 @@ case class IR_WaLBerlaInitCommSchemes(onGPU :  Boolean, wbFields : IR_WaLBerlaFi
           List(blockForest, tag) // CPU params
 
         val initCommScheme = IR_ForLoop(IR_VariableDeclaration(slotIt, 0), slotIt < wbf.numSlots, IR_PreIncrement(slotIt),
-          IR_Assignment(commScheme, make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, args : _*)))
+          ListBuffer[IR_Statement](
+            IR_Assignment(commScheme, make_unique(commScheme.basetype.resolveBaseDatatype.prettyprint, args : _*)),
+            // TODO: temporary solution. remove after local communication is implemented
+            // use buffer mode for local communication
+            if (Knowledge.waLBerla_useRefinement && !Knowledge.waLBerla_useConservingRefinementPackInfo)
+              IR_MemberFunctionCallArrow(commScheme, "setLocalMode", IR_Native("blockforest::BUFFER"))
+            else
+              IR_NullStatement
+          )
+        )
 
         body += setupCommScheme(commScheme, ListBuffer(initCommScheme))
       }

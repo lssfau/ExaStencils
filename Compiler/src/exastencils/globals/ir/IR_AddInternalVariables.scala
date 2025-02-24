@@ -23,7 +23,7 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -33,6 +33,7 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaBufferDeviceData
 
 /// IR_AddInternalVariables
 
@@ -65,17 +66,50 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   }
 
   this += new Transformation("Collecting buffer sizes", {
-    case buf : IR_IV_CommBuffer =>
+    case buf : CUDA_BufferDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      if (Knowledge.data_genVariableFieldSizes) {
-        if (bufferSizes.contains(id))
-          bufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
-        else
-          bufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
+      val size = IR_SimplifyExpression.evalIntegral(buf.size)
+
+      deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
+
+      buf
+
+    case buf : IR_IV_CommBufferLike =>
+      val defaultId = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint()
+      val ids : ListBuffer[String] = ListBuffer()
+      if (buf.indexOfRefinedNeighbor.isDefined) {
+        IR_SimplifyExpression.simplifyIntegralExpr(buf.indexOfRefinedNeighbor.get) match {
+          case _ : IR_IntegerConstant =>
+            ids += defaultId
+          case _                      =>
+            def modifyAndPrettyprintAccess(i : Int) : String = {
+              val tmp = Duplicate(buf)
+              tmp.indexOfRefinedNeighbor = Some(i)
+
+              tmp.resolveAccess(tmp.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, tmp.field.index, tmp.field.level, tmp.neighIdx).prettyprint()
+            }
+
+            for (d <- 0 until Knowledge.refinement_maxFineNeighborsForCommAxis)
+              ids += modifyAndPrettyprintAccess(d)
+        }
       } else {
-        val size = IR_SimplifyExpression.evalIntegral(buf.size)
-        bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
+        ids += defaultId
       }
+
+      def adaptBufferSizesForId(id : String) : Unit = {
+        if (!buf.field.layout.useFixedLayoutSizes) {
+          if (bufferSizes.contains(id))
+            bufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
+          else
+            bufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
+        } else {
+          val size = IR_SimplifyExpression.evalIntegral(buf.size)
+          bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
+        }
+      }
+
+      ids.foreach(adaptBufferSizesForId)
+
       buf
 
     case field : IR_IV_FieldData =>
@@ -118,14 +152,6 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       field
 
-    case buf : CUDA_BufferDeviceData =>
-      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      val size = IR_SimplifyExpression.evalIntegral(buf.size)
-
-      deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
-
-      buf
-
     case field : CUDA_FieldDeviceData =>
       val cleanedField = Duplicate(field)
       cleanedField.slot = "slot"
@@ -155,7 +181,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       field
 
-    case buf : CUDA_ReductionDeviceData =>
+    case buf : CUDA_ReductionDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val totalSize : IR_Expression = buf.numPoints * buf.targetDt.getSizeArray.product
       if (Knowledge.data_genVariableFieldSizes) {
@@ -185,33 +211,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   })
 
   this += new Transformation("Updating temporary buffer allocations", {
-    case buf : IR_IV_CommBuffer =>
-      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      val size = bufferSizes(id)
-
-      if (Knowledge.data_alignTmpBufferPointers) {
-        counter += 1
-        bufferAllocs += (id -> IR_LoopOverFragments(ListBuffer[IR_Statement](
-          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-            Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
-          IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
-          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-            Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
-          IR_Assignment(buf, buf.basePtr + s"offset_$counter")),
-          IR_ParallelizationInfo(potentiallyParallel = true)))
-      } else {
-        bufferAllocs += (id -> IR_LoopOverFragments(
-          IR_ArrayAllocation(
-            buf,
-            if (buf.field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) buf.field.layout.datatype
-            else IR_RealDatatype,
-            size
-          ), IR_ParallelizationInfo(potentiallyParallel = true)))
-      }
-
-      buf
-
-    case buf : CUDA_BufferDeviceData =>
+    case buf : CUDA_BufferDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = deviceBufferSizes(id)
 
@@ -219,7 +219,55 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       buf
 
-    case buf : CUDA_ReductionDeviceData =>
+    case buf : IR_IV_CommBufferLike =>
+      val defaultId = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val ids : ListBuffer[String] = ListBuffer()
+      if (buf.indexOfRefinedNeighbor.isDefined) {
+        IR_SimplifyExpression.simplifyIntegralExpr(buf.indexOfRefinedNeighbor.get) match {
+          case _ : IR_IntegerConstant =>
+            ids += defaultId
+          case _                      =>
+            def modifyAndPrettyprintAccess(i : Int) : String = {
+              val tmp = Duplicate(buf)
+              tmp.indexOfRefinedNeighbor = Some(i)
+
+              tmp.resolveAccess(tmp.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, tmp.field.index, tmp.field.level, tmp.neighIdx).prettyprint()
+            }
+
+            for (d <- 0 until Knowledge.refinement_maxFineNeighborsForCommAxis)
+              ids += modifyAndPrettyprintAccess(d)
+        }
+      } else {
+        ids += defaultId
+      }
+
+      for (id <- ids) {
+        val size = bufferSizes(id)
+
+        if (Knowledge.data_alignTmpBufferPointers) {
+          counter += 1
+          bufferAllocs += (id -> IR_LoopOverFragments(ListBuffer[IR_Statement](
+            IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+              Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
+            IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
+            IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+              Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
+            IR_Assignment(buf, buf.basePtr + s"offset_$counter")),
+            IR_ParallelizationInfo(potentiallyParallel = true)))
+        } else {
+          bufferAllocs += (id -> IR_LoopOverFragments(
+            IR_ArrayAllocation(
+              buf,
+              if (buf.field.layout.datatype.isInstanceOf[IR_ComplexDatatype]) buf.field.layout.datatype
+              else IR_RealDatatype,
+              size
+            ), IR_ParallelizationInfo(potentiallyParallel = true)))
+        }
+      }
+
+      buf
+
+    case buf : CUDA_ReductionDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 

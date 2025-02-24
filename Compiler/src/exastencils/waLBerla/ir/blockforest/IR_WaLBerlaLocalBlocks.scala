@@ -18,6 +18,8 @@ case class IR_WaLBerlaLocalBlocks() extends IR_WaLBerlaInterfaceMember(false, fa
 
   override def isPrivate : Boolean = true
 
+  def size() = IR_MemberFunctionCall(this, "size")
+
   override def getCtor() : Option[IR_Statement] = {
     val block = IR_VariableAccess("block", IR_SpecialDatatype("auto"))
     val blockforest = IR_WaLBerlaBlockForest()

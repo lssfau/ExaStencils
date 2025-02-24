@@ -50,13 +50,13 @@ case class IR_IV_IndexFromField(var layoutIdentifier : String, var level : IR_Ex
         coll.getByLayoutIdentifier(layoutIdentifier, l, true)).collectFirst { case fl : Option[IR_FieldLike] if fl.isDefined => fl.get }
       if (field.isDefined) {
         statements += IR_Assignment(resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
-          field.get.layout.defIdxById(indexId, dim))
+          field.get.layout.defIdxByIdFixed(indexId, dim))
       } else {
         // no field found -> try external fields
         val extField = IR_ExternalFieldCollection.getByLayoutIdentifier(layoutIdentifier, l, true)
         if (extField.isDefined) {
           statements += IR_Assignment(resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
-            extField.get.fieldLayout.defIdxById(indexId, dim))
+            extField.get.fieldLayout.defIdxByIdFixed(indexId, dim))
         } else {
           // doesn't exist on this level
         }

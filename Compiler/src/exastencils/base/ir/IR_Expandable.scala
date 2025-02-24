@@ -20,8 +20,10 @@ package exastencils.base.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.prettyprinting.PpStream
+import exastencils.scheduling.SingleSchedulable
 import exastencils.util.ir.IR_LevelCollector
 
 /// IR_Expandable
@@ -99,4 +101,15 @@ object IR_ExpandInOnePass extends DefaultStrategy("Expand all applicable nodes")
       else
         nodes
   })
+}
+
+/// IR_ExpandWrapper
+
+object IR_ExpandWrapper extends SingleSchedulable {
+  override def apply(applyAtNode : Option[Node] = None) : Unit = {
+    if (Knowledge.useFasterExpand)
+      IR_ExpandInOnePass.apply(applyAtNode)
+    else
+      IR_Expand.doUntilDone(applyAtNode)
+  }
 }

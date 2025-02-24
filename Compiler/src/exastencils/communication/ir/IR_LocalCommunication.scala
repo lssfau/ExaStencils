@@ -21,31 +21,45 @@ package exastencils.communication.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.communication.NeighborInfo
 import exastencils.config.Knowledge
+import exastencils.domain.ir.IR_IV_NeighborIsRemote
+import exastencils.domain.ir.IR_IV_NeighborIsValid
+import exastencils.domain.ir.IR_IV_NeighborRefinementCase
+import exastencils.domain.ir.RefinementCase
+
+/// IR_ApplyLocalCommunication
+
+trait IR_ApplyLocalCommunication {
+  def isLocalNeighbor(refinementCase : RefinementCase.Access, domainIdx : IR_Expression, neighborIdx : IR_Expression, indexOfRefinedNeighbor : Option[IR_Expression]) = {
+    val base = IR_IV_NeighborIsValid(domainIdx, neighborIdx, indexOfRefinedNeighbor) AndAnd IR_Negation(IR_IV_NeighborIsRemote(domainIdx, neighborIdx, indexOfRefinedNeighbor))
+    if (Knowledge.refinement_enabled)
+      IR_IV_NeighborRefinementCase(IR_LoopOverFragments.defIt, domainIdx, neighborIdx) EqEq refinementCase.id AndAnd base
+    else
+      base
+  }
+}
 
 /// IR_LocalCommunication
 
-abstract class IR_LocalCommunication extends IR_Statement with IR_Expandable {
-  def insideFragLoop : Boolean
+abstract class IR_LocalCommunication extends IR_Communication with IR_ApplyLocalCommunication {
+  def sendPackInfos : ListBuffer[IR_LocalPackInfo]
 
-  def wrapFragLoop(toWrap : IR_Statement) : IR_Statement = {
-    if (insideFragLoop) {
-      toWrap
-    } else {
-      val loop = IR_LoopOverFragments(toWrap)
-      loop.parallelization.potentiallyParallel = Knowledge.comm_parallelizeFragmentLoops
-      loop
-    }
-  }
+  def recvPackInfos : ListBuffer[IR_LocalPackInfo]
 
-  def wrapFragLoop(toWrap : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
-    if (insideFragLoop) {
-      toWrap
-    } else {
-      val loop = new IR_LoopOverFragments(toWrap)
-      loop.parallelization.potentiallyParallel = Knowledge.comm_parallelizeFragmentLoops
-      ListBuffer[IR_Statement](loop)
-    }
-  }
+  def wrapCond(refinementCase : RefinementCase.Access, neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], stmt : IR_Statement) : IR_Statement =
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isLocalNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor)),
+      stmt)
+
+  def wrapCond(refinementCase : RefinementCase.Access, neighbor : NeighborInfo, indexOfRefinedNeighbor : Option[IR_Expression], body : ListBuffer[IR_Statement]) : IR_Statement =
+    IR_IfCondition(
+      IR_AndAnd(
+        isCurrentFineNeighbor(refinementCase, field.domain.index, neighbor, indexOfRefinedNeighbor),
+        isLocalNeighbor(refinementCase, field.domain.index, neighbor.index, indexOfRefinedNeighbor)),
+      body)
 }

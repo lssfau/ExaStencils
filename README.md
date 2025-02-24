@@ -88,7 +88,7 @@ Artifacts can be added for the other sub-projects in a similar fashion.
 For users that don't want to use an IDE or want to compile on the command line, sbt is required.
 *If you are using Windows we recommend using Ubuntu Shell which is part of the [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/install-win10).*
 
-The first step is installing sbt -- a guide can be found [here](https://www.scala-sbt.org/1.0/docs/Installing-sbt-on-Linux.html)
+The first step is installing sbt -- a guide can be found [here](https://www.scala-sbt.org/1.x/docs/Installing-sbt-on-Linux.html)
 
 Next, open a shell and locate the folder the git repository has been checked out to.
 Compilation is done via typing
@@ -351,6 +351,6 @@ The ExaStencils code generation framework is licensed under [GPLv3](https://gith
 
 This project depends on the [cloning](https://github.com/kostaskougios/cloning) and [objenesis](http://objenesis.org/) libraries which are both licensed under the Apache license version 2.0. When the CImg visualization module is used, it depends on the [CImg](https://framagit.org/dtschump/CImg) header licensed under the CeCILL-C licence.
 
-This project depends on and deploys the [isl](https://repo.or.cz/w/isl.git) library with added [scala bindings](https://xxx.de) as well as the [Chernikova](https://xxx.de) library. All of them are licensed under the MIT license.
+This project depends on and deploys the [isl](https://repo.or.cz/w/isl.git) library with added scala bindings as well as the Chernikova library. All of them are licensed under the MIT license.
 
 All dependencies are managed automatically via sbt, with the exception of CImg which has to be taken care of [manually](#CImg-support).

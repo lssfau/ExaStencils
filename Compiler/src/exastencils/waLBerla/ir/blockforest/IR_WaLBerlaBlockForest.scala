@@ -5,7 +5,6 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
-import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellAABB
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaInterfaceParameter
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaInitNonuniformBlockForest
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_StructuredBlockForest
@@ -42,7 +41,9 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   }
 
   // refinement level
-  def getRefinementLvlForIterator() = IR_MemberFunctionCallArrow(resolveAccess(), "getLevel", IR_DerefAccess(iterator))
+  def getRefinementLvl(iterator : IR_WaLBerlaBlock) = IR_MemberFunctionCallArrow(resolveAccess(), "getLevel", IR_DerefAccess(iterator.access))
+
+  def getLevelFromBlockId(id : IR_Expression) = IR_MemberFunctionCallArrow(resolveAccess(), "getLevelFromBlockId", id)
 
   // stepsize (potentially for a refinement level)
   def getStepSize(dim : Int, refinementLevel : Option[IR_Expression] = None) = IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"d${ ('x' + dim).toChar.toString }", IR_RealDatatype, refinementLevel.toList : _*)
@@ -51,7 +52,6 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
   def dz(refinementLevel : Option[IR_Expression] = None) = getStepSize(2, refinementLevel)
 
   // iterators
-  def iterator = new IR_WaLBerlaBlock("block", IR_SpecialDatatype("auto"))
   def begin() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "begin", datatype)
   def end() = IR_MemberFunctionCallArrowWithDt(resolveAccess(), "end", datatype)
 
@@ -59,21 +59,20 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
 
   def getNumberOfAllRootBlocks() : IR_Expression = (0 until 3).map(d => getNumberOfRootBlocksPerDim(d) : IR_Expression).reduce(_ * _)
 
-  def getNumberOfAllBlocks() : IR_Expression = IR_MemberFunctionCallArrow(resolveAccess(), "getNumberOfBlocks")
+  def getNumberOfAllLocalBlocks() : IR_Expression = IR_MemberFunctionCallArrow(resolveAccess(), "getNumberOfBlocks")
 
   // cells
-  def getNumberOfCells(dim : Int) : IR_Expression =
-    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType)
+  def getNumberOfCellsPerBlock(dim : Int) : IR_Expression =
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }CellsPerBlock", WB_UintType)
 
-  def getNumberOfCells(dim : Int, block : IR_WaLBerlaBlock) : IR_Expression =
-    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType, IR_DerefAccess(block))
+  def getNumberOfCellsForBlock(dim : Int, block : IR_WaLBerlaBlockLike) : IR_Expression =
+    IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"getNumberOf${ ('X' + dim).toChar }Cells", WB_UintType, IR_DerefAccess(block.access))
 
-  // aabb
-  def getCellAABB(idx : IR_ExpressionIndex) = IR_WaLBerlaCellAABB(this, idx)
+  def getAABBFromBlockId(inAABB : IR_Expression, id : IR_Expression) = IR_MemberFunctionCallArrow(resolveAccess(), "getAABBFromBlockId", inAABB, id)
 
   // domain border
   def isAtDomainBorder(dirArr : Array[Int]) = {
-    val dir = IR_WaLBerlaDirection.getDirnameFromArray(dirArr)
+    val dir = IR_WaLBerlaDirection.getDirIndexFromArray(dirArr)
     if (IR_WaLBerlaDirection.isAxisDirection(dir)) {
       val borderName = IR_WaLBerlaDirection.stringFromDirection(dir) match {
         case "N" => "YMax"
@@ -83,7 +82,7 @@ case class IR_WaLBerlaBlockForest() extends IR_WaLBerlaInterfaceParameter(false,
         case "T" => "ZMax"
         case "B" => "ZMin"
       }
-      IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"atDomain${ borderName }Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverBlocks.block))
+      IR_MemberFunctionCallArrowWithDt(resolveAccess(), s"atDomain${ borderName }Border", IR_BooleanDatatype, IR_DerefAccess(IR_WaLBerlaLoopOverLocalBlocks.block))
     } else {
       Logger.error("Unsupported direction for \"isAtDomainBorder\"")
     }

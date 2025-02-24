@@ -32,7 +32,7 @@ import exastencils.field.ir.IR_SlotAccess
 import exastencils.logger._
 import exastencils.parallelization.api.mpi.MPI_WaitForRequest
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
-import exastencils.timing.ir._
+import exastencils.scheduling.SingleSchedulable
 import exastencils.util.ir.IR_StackCollector
 
 /// IR_SetupCommunication
@@ -66,19 +66,6 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
     super.apply(node)
 
     firstCall = false
-  }
-
-  def getTimer(functionName : String, isBoundaryHandling : Boolean) = {
-    // add timing to comm statement
-    var timer : Option[IR_IV_Timer] = None
-    if (Knowledge.timer_measureCommunicationTime) {
-      val t = IR_IV_Timer(functionName)
-      t.annotate(CommTimerAnnot.ANNOT, if (isBoundaryHandling) CommTimerAnnot.APPLYBC else CommTimerAnnot.COMM)
-
-      timer = Some(t)
-    }
-
-    timer
   }
 
   this += new Transformation("Adding and linking communication functions", {
@@ -164,8 +151,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
           commDup, dupBegin, dupEnd,
           commGhost, ghostBegin, ghostEnd,
           insideFragLoop,
-          cond, direction,
-          getTimer(functionName, isBoundaryHandling = false))
+          cond, direction)
       }
 
       communicateStatement.slot match {
@@ -195,7 +181,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       if (!addedFunctions.contains(NameAndLevel(functionName, level))) {
         addedFunctions += NameAndLevel(functionName, level)
         commFunctions += IR_ApplyBCFunction(functionName, applyBCsStatement.field, "slot", IR_LoopOverFragments.defIt,
-          DefaultNeighbors.neighbors, insideFragLoop, getTimer(functionName, isBoundaryHandling = true))
+          DefaultNeighbors.neighbors, insideFragLoop)
       }
 
       applyBCsStatement.slot match {
@@ -210,4 +196,14 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
       IR_FunctionCall(IR_LeveledInternalFunctionReference(functionName, level, IR_UnitDatatype), fctArgs) : IR_Statement
   }, false)
+}
+
+/// IR_SetupCommunicationWrapper
+
+case class IR_SetupCommunicationWrapper(firstCall : Boolean) extends SingleSchedulable {
+  override def apply(applyAtNode : Option[Node]) : Unit = {
+    if (firstCall)
+      IR_SetupCommunication.firstCall = true
+    IR_SetupCommunication.apply(applyAtNode)
+  }
 }

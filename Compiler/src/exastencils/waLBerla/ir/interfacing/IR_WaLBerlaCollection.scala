@@ -54,9 +54,13 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   addExternalDependency("set")
 
   // core
+  if (Knowledge.cuda_enabled)
+    addExternalDependency("gpu/DeviceWrapper.h")
 
-  if (Knowledge.mpi_enabled)
+  if (Knowledge.mpi_enabled) {
+    addExternalDependency("core/mpi/BufferSystem.h")
     addExternalDependency("core/mpi/MPIManager.h")
+  }
 
   addExternalDependency("core/DataTypes.h")
   addExternalDependency("core/cell/Cell.h")
@@ -73,9 +77,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   // fields
 
   if (Knowledge.cuda_enabled) {
-    addExternalDependency("cuda/GPUField.h")
-    addExternalDependency("cuda/AddGPUFieldToStorage.h")
-    addExternalDependency("cuda/FieldCopy.h")
+    addExternalDependency("gpu/GPUField.h")
+    addExternalDependency("gpu/AddGPUFieldToStorage.h")
+    addExternalDependency("gpu/FieldCopy.h")
   }
   addExternalDependency("field/GhostLayerField.h")
   addExternalDependency("field/SwapableCompare.h")
@@ -93,9 +97,9 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
     addExternalDependency("field/communication/PackInfo.h")
 
     if (Knowledge.cuda_enabled) {
-      addExternalDependency("cuda/communication/GPUPackInfo.h")
-      addExternalDependency("cuda/communication/MemcpyPackInfo.h")
-      addExternalDependency("cuda/communication/UniformGPUScheme.h")
+      addExternalDependency("gpu/communication/GPUPackInfo.h")
+      addExternalDependency("gpu/communication/MemcpyPackInfo.h")
+      addExternalDependency("gpu/communication/UniformGPUScheme.h")
     }
   }
 
@@ -109,7 +113,11 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
 
     if (Knowledge.waLBerla_generateCommSchemes) {
       addExternalDependency("blockforest/communication/NonUniformBufferedScheme.h")
-      addExternalDependency("field/refinement/PackInfo.h")
+
+      if (Knowledge.waLBerla_useConservingRefinementPackInfo)
+        addExternalDependency("field/refinement/PackInfo.h")
+      else
+        addExternalDependency("field/refinement/PackInfoQuadratic.h")
     }
   }
 
@@ -117,16 +125,18 @@ case class IR_WaLBerlaCollection(var variables : ListBuffer[IR_VariableDeclarati
   var interfaceInstance : Option[IR_WaLBerlaInterface] = None
 
   // add future functions
-  functions ++= IR_WaLBerlaInitWrapperFunctions.functions
-  functions ++= IR_WaLBerlaInitExaWrapperFunctions.functions
-  functions ++= IR_WaLBerlaDeInitWrapperFunctions.functions
-  functions ++= IR_WaLBerlaDeInitExaWrapperFunctions.functions
-  functions ++= IR_WaLBerlaInitCouplingWrapperFunctions.functions
-  functions ++= IR_WaLBerlaHelperFunctionCollection.functions
-  functions ++= IR_WaLBerlaGetterFunctionCollection.functions
+  if (Knowledge.waLBerla_generateInterface) {
+    functions ++= IR_WaLBerlaInitWrapperFunctions.functions
+    functions ++= IR_WaLBerlaInitExaWrapperFunctions.functions
+    functions ++= IR_WaLBerlaDeInitExaWrapperFunctions.functions
+    functions ++= IR_WaLBerlaInitCouplingWrapperFunctions.functions
+    functions ++= IR_WaLBerlaHelperFunctionCollection.functions
+    functions ++= IR_WaLBerlaGetterFunctionCollection.functions
+    functions ++= IR_WaLBerlaSetterFunctionCollection.functions
 
-  if (Knowledge.waLBerla_useRefinement)
-    functions ++= IR_WaLBerlaRefinementHelperFunctions.functions
+    if (Knowledge.waLBerla_useRefinement)
+      functions ++= IR_WaLBerlaRefinementHelperFunctions.functions
+  }
 
   // collect future function names
   val futureFunctionIds : ListBuffer[String] = Duplicate(functions).collect { case f : IR_WaLBerlaFutureFunction => f }.map(_.name)

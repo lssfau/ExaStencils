@@ -6,7 +6,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaInitUniformBlockForest
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaInitCommSchemes
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAddGPUFieldToStorage
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaAddGPUFieldToStorage
 import exastencils.waLBerla.ir.field._
 
 object IR_WaLBerlaInitWrapperFunctions {
@@ -15,11 +15,6 @@ object IR_WaLBerlaInitWrapperFunctions {
   functions += IR_WaLBerlaInitUniformBlockForest()
   for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name)) {
     val leveledFields = field._2.groupBy(_.level).map(_._2.head).to[ListBuffer]
-
-    // add fields to block storage
-    functions += IR_WaLBerlaAddFieldToStorage(leveledFields : _*)
-    if (Knowledge.cuda_enabled)
-      functions += CUDA_WaLBerlaAddGPUFieldToStorage(leveledFields : _*)
 
     if (Knowledge.waLBerla_cacheFieldPointers) {
       // init field instance pointers

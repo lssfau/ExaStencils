@@ -15,7 +15,7 @@ from argparse_helpers import *
 
 
 # --- generate target code from ExaSlang specification --- #
-@check_err
+@check_err(True)
 @timer
 def generate_code(ctx: RunContext):
     return subprocess.run(
@@ -25,7 +25,7 @@ def generate_code(ctx: RunContext):
 
 
 # --- compile target code --- #
-@check_err
+@check_err(False)
 @timer
 def compile_code(ctx: RunContext):
     return subprocess.run(['make', '-j', '-s', '-C', ctx.target_code_path],
@@ -33,7 +33,7 @@ def compile_code(ctx: RunContext):
 
 
 # --- run target code --- #
-@check_err
+@check_err(False)
 @timer
 def run_code(ctx: RunContext):
     cwd = os.getcwd()
@@ -50,15 +50,16 @@ def run_code(ctx: RunContext):
         if ctx.use_likwid_perfctr:
             bin = ['likwid-perfctr', '-m', '-g', 'ExaStencils'] + bin
         exec_as_root = ['--allow-run-as-root'] if ctx.mpi_run_as_root else []
-        mpi_run = [f'mpirun'] + exec_as_root + ['--oversubscribe', '--mca', 'btl_base_warn_component_unused', '0',
-                    f'-np', f'{ctx.config.mpi_num_processes}'] + bin
+        mpi_run = [f'mpirun'] + exec_as_root + ['--oversubscribe','--mca', 'btl_base_warn_component_unused', '0',
+                    f'-np', f'{ctx.config.mpi_num_processes}']
+        if ctx.use_talp:
+            mpi_run += [ctx.path_to_talp]
+        mpi_run += bin
         if ctx.config.mpi_enabled:
             bin = mpi_run
-        print(bin)
+        print(f"Executing binary with {bin}")
         result = subprocess.run(bin, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    # print stderr
-    print(result.stderr.decode('utf-8'))
     os.chdir(cwd)
 
     return result
@@ -94,6 +95,10 @@ def main():
                         help='Activate performance counters of likwid')
     parser.add_argument('--use_likwid_pin', default=False, action='store_true',
                         help='Use "likwid-pin" for code execution')
+    parser.add_argument('--use_talp', default=False, action='store_true',
+                        help='Enable usage of talp for measuring POP-metrics')
+    parser.add_argument('--path_to_talp', type=str, default="/usr/local/share/doc/dlb/scripts/talp.sh",
+                        help='Path to necessary talp-script talp.sh')
     parser.add_argument('--mpi_run_as_root', default=False, action='store_true',
                         help='Use "--mpi_run_as_root" option for mpirun')
     parser.add_argument('--generate', action='store_true', help='Generate target code from ExaSlang')

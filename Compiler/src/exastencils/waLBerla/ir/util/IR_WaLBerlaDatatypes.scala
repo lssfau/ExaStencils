@@ -17,6 +17,7 @@ object IR_WaLBerlaDatatypes {
   def WB_IBlock = IR_SpecialDatatype("IBlock")
   def WB_Block = IR_SpecialDatatype("Block")
   def WB_SetupBlock = IR_SpecialDatatype("SetupBlock")
+  def WB_BlockID = IR_SpecialDatatype("BlockID")
   def WB_BlockDataID = IR_SpecialDatatype("BlockDataID")
   def WB_StructuredBlockStorage = IR_SpecialDatatype("StructuredBlockStorage")
   def WB_StructuredBlockForest = IR_SpecialDatatype("StructuredBlockForest")
@@ -26,7 +27,7 @@ object IR_WaLBerlaDatatypes {
     if (!Knowledge.waLBerla_useRefinement) {
       // uniform comm scheme
       if (onGPU)
-        IR_SpecialDatatype(s"cuda::communication::UniformGPUScheme< $WB_StencilTemplate >")
+        IR_SpecialDatatype(s"gpu::communication::UniformGPUScheme< $WB_StencilTemplate >")
       else
         IR_SpecialDatatype(s"blockforest::communication::UniformBufferedScheme<$WB_StencilTemplate>")
     } else {
@@ -42,7 +43,7 @@ object IR_WaLBerlaDatatypes {
 
   def WB_FieldDatatype(field : IR_WaLBerlaField, onGPU : Boolean) =
     if (onGPU)
-      IR_SpecialDatatype(s"cuda::GPUField< ${WB_RealType.typeName} >")
+      IR_SpecialDatatype(s"gpu::GPUField< ${WB_RealType.typeName} >")
     else
       IR_SpecialDatatype(s"${ "GhostLayerField" } < ${ field.resolveBaseDatatype.prettyprint }, ${ field.gridDatatype.resolveFlattendSize } >")
 }

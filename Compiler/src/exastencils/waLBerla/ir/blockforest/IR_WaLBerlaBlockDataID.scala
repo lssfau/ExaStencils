@@ -6,7 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_StdArrayDatatype
 import exastencils.prettyprinting.PpStream
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaAddGPUFieldToStorage
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaAddGPUFieldToStorage
 import exastencils.waLBerla.ir.field.IR_WaLBerlaAddFieldToStorage
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
@@ -30,14 +30,18 @@ case class IR_WaLBerlaBlockDataID(
     dt
   }
 
-  // IR_WaLBerlaAdd(GPU)FieldToStorage initializes all slots and levels -> use base access
-  override def getCtor() : Option[IR_Statement] = {
-    Some(IR_Assignment(resolveMemberBaseAccess(), resolveDefValue().get))
-  }
+  // IR_WaLBerlaAdd(GPU)FieldToStorage initializes all slots and levels
+  override def getCtor() : Option[IR_Statement] = Some(
+    if (onGPU)
+      GPU_WaLBerlaAddGPUFieldToStorage(leveledFields : _*).expandSpecial()
+    else
+      IR_WaLBerlaAddFieldToStorage(leveledFields : _*).expandSpecial()
+  )
 
+  private val leveledFields = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true)
   var level : IR_Expression = wbField.level
   val numSlots : Int = wbField.numSlots
-  val levels : ListBuffer[Int] = IR_WaLBerlaFieldCollection.getAllByIdentifier(wbField.name, suppressError = true).map(_.level)
+  val levels : ListBuffer[Int] = leveledFields.map(_.level)
 
   override def minLevel : Int = levels.min
   override def maxLevel : Int = levels.max
@@ -59,11 +63,5 @@ case class IR_WaLBerlaBlockDataID(
 
   override def isPrivate : Boolean = true
 
-  override def resolveDefValue() = Some(
-    if (onGPU) {
-      val cpuID = IR_WaLBerlaBlockDataID(wbField, slot, onGPU = false)
-      IR_FunctionCall(CUDA_WaLBerlaAddGPUFieldToStorage(wbField).name, blockforest, cpuID.resolveMemberBaseAccess())
-    } else {
-      IR_FunctionCall(IR_WaLBerlaAddFieldToStorage(wbField).name, blockforest, 0.0)
-    })
+  override def resolveDefValue() = None
 }

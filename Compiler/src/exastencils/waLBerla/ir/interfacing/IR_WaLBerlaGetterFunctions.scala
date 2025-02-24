@@ -74,6 +74,7 @@ case class IR_WaLBerlaGetBlockDataID(field : IR_WaLBerlaField) extends IR_WaLBer
     val blockDataId = IR_WaLBerlaBlockDataID(field, Duplicate(slot.access), onGPU = false)
     val blockDataIdGPU = IR_WaLBerlaBlockDataID(field, Duplicate(slot.access), onGPU = true)
     blockDataId.level = Duplicate(lvl.access)
+    blockDataIdGPU.level = Duplicate(lvl.access)
 
     val body : ListBuffer[IR_Statement] = if (Knowledge.cuda_enabled) {
       ListBuffer(

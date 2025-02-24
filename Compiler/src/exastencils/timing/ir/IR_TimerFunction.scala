@@ -33,7 +33,6 @@ object IR_TimerFunction {
   def accessMember(member : String) = IR_MemberAccess(IR_VariableAccess("stopWatch", IR_SpecialDatatype("StopWatch&")), member)
 }
 
-// TODO: leveled timer functions?
 trait IR_TimerFunction extends IR_FutureFunction
 
 /// IR_TimerFunctions
@@ -58,7 +57,7 @@ object IR_TimerFunctions extends ObjectWithState {
 }
 
 case class IR_TimerFunctions() extends IR_FunctionCollection(IR_TimerFunctions.defBaseName,
-  ListBuffer("fstream", "iostream"),
+  ListBuffer("fstream", "iostream", "vector", "limits", "cmath", "iomanip"),
   ListBuffer(IR_GlobalCollection.defHeader, IR_Stopwatch.defHeader)) {
 
   functions += IR_StartTimer()
@@ -66,9 +65,14 @@ case class IR_TimerFunctions() extends IR_FunctionCollection(IR_TimerFunctions.d
   functions += IR_GetTotalTime()
   functions += IR_GetMeanTime()
   functions += IR_GetLastTime()
-  functions += IR_PrintAllTimers()
+  if (Knowledge.timer_automaticTiming) {
+    functions += IR_PrintAllTimersIncludingAutomatic()
+  } else {
+    functions += IR_PrintAllTimers()
+  }
   functions += IR_PrintAllTimersToFile()
   functions += IR_ReduceTimers()
-  if (Knowledge.timer_measureCommunicationTime)
-    functions += IR_PrintAllCommunicationTimers()
+  if (Knowledge.mpi_enabled) {
+    functions += IR_PrintTimerStatistics()
+  }
 }

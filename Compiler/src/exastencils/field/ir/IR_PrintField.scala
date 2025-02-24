@@ -58,9 +58,6 @@ case class IR_PrintField(
   def printCSV() : ListBuffer[IR_Statement] = {
     // get pos in grid depending on localization
     def getPos(dim : Int) : IR_Expression = {
-      if (dim > field.layout.numDimsGrid - 1)
-        return IR_RealConstant(0.0)
-
       field.localization match {
         case IR_AtNode              => IR_VF_NodePositionPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
         case IR_AtCellCenter        => IR_VF_CellCenterPerDim.access(field.level, dim, IR_LoopOverDimensions.defIt(field.layout.numDimsGrid))
@@ -73,12 +70,12 @@ case class IR_PrintField(
     val csvFormat = !useBinary && Knowledge.experimental_generateParaviewFiles
     val altSep = if (csvFormat) IR_StringConstant(",") else separator // use alternative sep if paraview file
     val printPos = ListBuffer(IR_VariableAccess("std::defaultfloat", IR_UnknownDatatype)) ++
-      (0 until 3).view.flatMap { dim => List(getPos(dim), altSep) : List[IR_Expression] }
+      (0 until field.layout.numDimsGrid).view.flatMap { dim => List(getPos(dim), altSep) : List[IR_Expression] }
 
     // begin file access
     val fileAccess = generateFileAccess(Some(altSep), Some(printPos))
     var statements : ListBuffer[IR_Statement] = ListBuffer()
-    statements ++= fileAccess.createOrOpenFile()
+    statements ++= fileAccess.createOrOpenFileWithTimer()
     val fileHeader : ListBuffer[IR_Statement] = {
       var ret : ListBuffer[IR_Statement] = ListBuffer()
       var tmp : ListBuffer[IR_Statement] = ListBuffer()
@@ -108,7 +105,7 @@ case class IR_PrintField(
     fileAccess.handleDependencies()
     statements ++= fileHeader
     statements ++= fileAccess.fileAccess(0)
-    statements ++= fileAccess.closeFile()
+    statements ++= fileAccess.closeFileWithTimer()
 
     statements
   }

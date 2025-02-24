@@ -10,10 +10,9 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.timing.ir.IR_StartTimer
-import exastencils.timing.ir.IR_StopTimer
+import exastencils.timing.ir._
 import exastencils.waLBerla.ir.communication.IR_WaLBerlaCPUCommScheme
-import exastencils.waLBerla.ir.cuda.CUDA_WaLBerlaGPUCommScheme
+import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaGPUCommScheme
 import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaCollection
 import exastencils.waLBerla.ir.interfacing.IR_WaLBerlaLeveledFunction
@@ -47,7 +46,7 @@ object IR_WaLBerlaReplaceCommunication extends DefaultStrategy("Communication ha
       // replace body of exa's communicate function with 'communicate()' member fct of waLBerla's comm scheme and inline
       val genFct = comm.generateFct()
       val field = comm.field
-      val commSchemeGPU = CUDA_WaLBerlaGPUCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot)
+      val commSchemeGPU = GPU_WaLBerlaGPUCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot)
       val commSchemeCPU = IR_WaLBerlaCPUCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot)
 
       val cond : IR_Expression = Knowledge.cuda_preferredExecution match {
@@ -66,9 +65,13 @@ object IR_WaLBerlaReplaceCommunication extends DefaultStrategy("Communication ha
         body += commSchemeCPU.communicate()
       }
 
-      if (comm.timer.isDefined) {
-        body.prepend(IR_FunctionCall(IR_StartTimer().name, comm.timer.get))
-        body.append(IR_FunctionCall(IR_StopTimer().name, comm.timer.get))
+      // add automatic timers for waLBerla comm
+      val timingCategory = IR_AutomaticTimingCategory.COMM
+      if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+        val timer = IR_IV_AutomaticLeveledTimer(s"autoTime_${ timingCategory.toString }_${comm.name}", timingCategory, comm.level)
+
+        body.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
+        body.append(IR_FunctionCall(IR_StopTimer().name, timer))
       }
 
       IR_WaLBerlaCollection.get.functions += IR_WaLBerlaLeveledFunction(comm.name, comm.level, genFct.datatype, genFct.parameters, body)

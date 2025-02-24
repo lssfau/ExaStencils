@@ -6,7 +6,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.datastructures._
 
-object IR_WaLBerlaCollectAccessedFields extends DefaultStrategy("Collect waLBerla field accesses") {
+object IR_WaLBerlaCollectAccessedFields extends QuietDefaultStrategy("Collect waLBerla field accesses") {
   var wbFieldAccesses : ListBuffer[IR_MultiDimWaLBerlaFieldAccess] = ListBuffer()
 
   override def apply(node : Option[Node] = None) = {

@@ -10,24 +10,19 @@ import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaBlockForest
 import exastencils.waLBerla.ir.interfacing._
 import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes
 
-case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_WaLBerlaFuturePlainFunction {
-
-  def blockForest = IR_WaLBerlaBlockForest()
-  def blocks = blockForest.ctorParameter
-  def initValue = IR_FunctionArgument("initVal", IR_RealDatatype)
-
+case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR_Statement with IR_SpecialExpandable {
   if (!wbFields.forall(_.name == wbFields.head.name))
     Logger.error("\"IR_WaLBerlaAddFieldToStorage\" used incorrectly. Assumes fields with identical name but potentially different slots and levels.")
 
-  override def isInterfaceFunction : Boolean = false
-  override def inlineIncludeImplementation : Boolean = false
+  def blockForest = IR_WaLBerlaBlockForest()
+  def initValue = IR_RealConstant(0)
 
-  override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
-    var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
-    params += blocks
-    params += initValue
+  def expandSpecial() = {
+    var body : ListBuffer[IR_Statement] = ListBuffer()
 
-    val init = wbFields.sortBy(_.level).flatMap(leveledField => {
+    wbFields.sortBy(_.level).flatMap(leveledField => {
+      def refArrayToInit(slot : IR_Expression) = IR_WaLBerlaBlockDataID(leveledField, slot, onGPU = false)
+
       def layout = leveledField.layout
 
       val numGhosts = layout.layoutsPerDim(0).numGhostLayersLeft
@@ -37,27 +32,19 @@ case class IR_WaLBerlaAddFieldToStorage(wbFields : IR_WaLBerlaField*) extends IR
       val wbFieldTemplate = IR_WaLBerlaDatatypes.WB_FieldDatatype(leveledField, onGPU = false).prettyprint()
 
       (0 until leveledField.numSlots).map(slot =>
-        IR_FunctionCall(s"${IR_WaLBerlaAddFieldToStorageWrapper().name} < $wbFieldTemplate >",
-          blocks.access,
-          IR_StringConstant(leveledField.stringIdentifier(slot)),
-          leveledField.level,
-          initValue.access,
-          IR_VariableAccess(s"field::${ layout.layoutName }", IR_IntegerDatatype),
-          numGhosts,
-          leveledField.layout.useFixedLayoutSizes // TODO: StdFieldAlloc does not use padding, but we cannot use fixed layout sizes otherwise
-        ))
+        body += IR_Assignment(
+          refArrayToInit(slot),
+          IR_FunctionCall(s"${ IR_WaLBerlaAddFieldToStorageWrapper().name } < $wbFieldTemplate >",
+            blockForest,
+            IR_StringConstant(leveledField.stringIdentifier(slot, onGPU = false)),
+            leveledField.level,
+            initValue,
+            IR_VariableAccess(s"field::${ layout.layoutName }", IR_IntegerDatatype),
+            numGhosts,
+            leveledField.layout.useFixedLayoutSizes // TODO: StdFieldAlloc does not use padding, but we cannot use fixed layout sizes otherwise
+          )))
     })
 
-    var body : ListBuffer[IR_Statement] = ListBuffer()
-
-    body += IR_Return(IR_InitializerList(init : _*))
-
-    val returnType = IR_WaLBerlaBlockDataID(wbFields.head, slot = 0, onGPU = false).getWrappedDatatype()
-
-    IR_WaLBerlaPlainFunction(name, returnType, params, body)
+    IR_Scope(body)
   }
-
-  override def prettyprint_decl() : String = prettyprint()
-  override def name : String = s"addToStorage_${ wbFields.head.name }"
-  override def name_=(newName : String) : Unit = name = newName
 }

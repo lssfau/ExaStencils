@@ -8,7 +8,7 @@ import exastencils.grid.ir.IR_VF_NodePositionAsVec
 import exastencils.grid.ir.IR_VF_NodePositionPerDim
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge.ir.IR_KnowledgeObject
-import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverBlocks
+import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 
 case class IR_WaLBerlaNodePositionAsVec(
     var level : Int,
@@ -30,6 +30,9 @@ case class IR_WaLBerlaNodePositionPerDim(
 
   override def createDuplicate() : IR_KnowledgeObject = IR_WaLBerlaNodePositionPerDim(level, domain, dim)
 
-  override def resolve(index : IR_ExpressionIndex) =
-    IR_WaLBerlaBlockAABB(IR_WaLBerlaLoopOverBlocks.block).min(dim) + index(dim) * IR_VirtualFieldAccess(IR_WaLBerlaCellWidthPerDim(level, domain, dim), Duplicate(index))
+  override def resolve(index : IR_ExpressionIndex) = {
+    val blockAABB = IR_WaLBerlaBlockAABB(IR_WaLBerlaLoopOverLocalBlocks.block)
+
+    IR_WaLBerlaAABBMin(blockAABB, dim) + index(dim) * IR_VirtualFieldAccess(IR_WaLBerlaCellWidthPerDim(level, domain, dim), Duplicate(index))
+  }
 }

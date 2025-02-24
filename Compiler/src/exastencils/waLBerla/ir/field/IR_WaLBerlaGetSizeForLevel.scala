@@ -20,7 +20,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
 
   override def generateWaLBerlaFct() : IR_WaLBerlaLeveledFunction = {
 
-    val block = new IR_WaLBerlaBlock("block", IR_ConstPointerDatatype(WB_IBlock))
+    val block = IR_WaLBerlaIBlock()
     val blockForest = IR_WaLBerlaBlockForest()
     val cells = IR_VariableAccess("cells", returnType)
 
@@ -32,11 +32,11 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
 
     var params : ListBuffer[IR_FunctionArgument] = ListBuffer()
     params += IR_FunctionArgument("blocks", IR_ConstReferenceDatatype(IR_SharedPointerDatatype(WB_StructuredBlockStorage)))
-    params += IR_FunctionArgument(block)
+    params += IR_FunctionArgument(block.access)
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
 
-    body += IR_ObjectInstantiation(cells, (0 until 3).map(d => blockForest.getNumberOfCells(d, block)) : _*)
+    body += IR_ObjectInstantiation(cells, (0 until 3).map(d => blockForest.getNumberOfCellsForBlock(d, block)) : _*)
 
     if (level != maxLevel) {
       val lvlDiff = maxLevel - level
@@ -51,6 +51,20 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
           if (lvlDiff > 0) IR_RightShift(IR_ArrayAccess(cells, d), lvlDiff)
           else IR_LeftShift(IR_ArrayAccess(cells, d), lvlDiff))
       }
+    } else if (Knowledge.waLBerla_useFixedLayoutsFromExa) {
+      // check if (passed) number of cells coincides with expected value
+      val someWbField = IR_WaLBerlaBlockForest().maxLevelWaLBerlaField
+
+      val expectedCellsPerBlock = if (someWbField.isDefined)
+        Knowledge.dimensions.map(d => someWbField.get.layout.layoutsPerDim(d).numInnerLayers).padTo(3, 1)
+      else
+        Knowledge.dimensions.map(d => Knowledge.domain_fragmentLengthAsVec(d) * (1 << level)).padTo(3, 1)
+
+      val check = (0 until 3).map(d => IR_ArrayAccess(cells, d) EqEq expectedCellsPerBlock(d) : IR_Expression).reduce(_ AndAnd _)
+      body += IR_Assert(check,
+        ListBuffer(IR_StringConstant("Number of cells per block do not coincide with expected numbers for " +
+          "fixed-size layouts with sizes on the finest level: [" + expectedCellsPerBlock.mkString(",") + "]")),
+        IR_FunctionCall("exit", 1))
     }
 
     body += IR_Return(cells)

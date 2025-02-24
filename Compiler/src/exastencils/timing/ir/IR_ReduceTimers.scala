@@ -25,6 +25,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.parallelization.api.mpi.MPI_AllReduce
+import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 
 /// IR_ReduceTimers
 
@@ -32,15 +33,25 @@ case class IR_ReduceTimers() extends IR_TimerFunction {
   override var name = "reduceTimers"
   override def prettyprint_decl() : String = prettyprint
 
-  def genReduceTimerCode(timer : IR_IV_Timer) : IR_Statement = {
+  def genReduceTimerCode(timer : IR_TimingIV) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-    statements += IR_Assignment(IR_MemberAccess(timer, "totalTimeAveraged"), IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype), timer))
+    timer match {
+      case _ : IR_PlainTimingIV =>
+        statements += IR_Assignment(IR_MemberAccess(timer, "totalTimeAveraged"),
+          IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, None), timer))
+      case leveledTimer : IR_LeveledTimingIV =>
+        val level = leveledTimer.level
+        val timerAccess = leveledTimer.accessTimerAtLevel()
+        val reduceAssignment = IR_Assignment(IR_MemberAccess(timerAccess, "totalTimeAveraged"),
+          IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, Some(level)), timerAccess))
+        statements += reduceAssignment
+    }
 
     if (Knowledge.mpi_enabled) {
       val timerValue = IR_MemberAccess(timer, "totalTimeAveraged")
       statements += MPI_AllReduce(IR_AddressOf(timerValue), IR_DoubleDatatype, 1, "+")
-      statements += IR_Assignment(timerValue, timerValue / Knowledge.mpi_numThreads)
+      statements += IR_Assignment(timerValue, timerValue / MPI_IV_MpiSize)
     }
 
     IR_Scope(statements)

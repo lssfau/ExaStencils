@@ -19,6 +19,7 @@
 package exastencils.config
 
 import scala.collection.mutable.ListBuffer
+import scala.math.pow
 
 import exastencils.constraints._
 
@@ -79,10 +80,12 @@ object Knowledge {
 
   /// utility functions
 
+  // evaluates if domain partitioning is known to generator
+  def domain_isPartitioningKnown : Boolean = waLBerla_useGridPartFromExa
   // evaluates if fragments can have local (i.e. same block) neighbors, i.e. if local comm is required
-  def domain_canHaveLocalNeighs : Boolean = domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity
+  def domain_canHaveLocalNeighs : Boolean = !domain_isPartitioningKnown || refinement_enabled || domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity
   // evaluates if fragments can have remote (i.e. different block) neighbors, i.e. if mpi comm is required
-  def domain_canHaveRemoteNeighs : Boolean = domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
+  def domain_canHaveRemoteNeighs : Boolean = (mpi_enabled && (refinement_enabled || !domain_isPartitioningKnown)) || domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
 
   /// specific flags for setting rectangular domains
 
@@ -127,6 +130,22 @@ object Knowledge {
   def domain_rect_numFragsTotal : Int = domain_rect_numFragsTotal_x * domain_rect_numFragsTotal_y * domain_rect_numFragsTotal_z
   // shortcut to an array containing the values of domain_rect_numFragsTotal_*
   def domain_rect_numFragsTotalAsVec : Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
+
+  /// --- Mesh refinement ---
+
+  var refinement_enabled : Boolean = false
+
+  var refinement_interpOrderC2F : Int = 2
+
+  var refinement_interpOrderF2C : Int = 2
+
+  def refinement_availableC2FInterpOrders : List[Int] = List(1, 2)
+
+  // determines fine:coarse ratio (e.g., 2:1)
+  def refinement_maxFineNeighborsPerDim : Int = 2
+
+  // 1D: 1 neighbor, 2D: 2 neighbors, 3D: 4 neighbors
+  def refinement_maxFineNeighborsForCommAxis : Int = refinement_maxFineNeighborsPerDim << (-2 + Knowledge.dimensionality)
 
   //// specifications for field
 
@@ -291,11 +310,11 @@ object Knowledge {
   // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
   var timer_type : String = "Chrono"
 
+  // synchronizes device before starting/stopping a timer for more accurate measurements
+  var timer_syncDevice : Boolean = true
+
   // synchronizes all mpi ranks when a (potentially nested) timer is started for the first time or stopped for the last time
   var timer_syncMpi : Boolean = false
-
-  // [true|false]: measure time spent in all communication function and print summary in main application
-  var timer_measureCommunicationTime : Boolean = false
 
   var timer_printTimersToFileForEachRank : Boolean = false
   // prints separate timer values for each rank -> requires some additional memory for the gather op
@@ -303,8 +322,17 @@ object Knowledge {
   // add benchmarking markers for each timer
   var timer_addBenchmarkMarkers : Boolean = false
 
+  // [true|false]: enables automated timing of specific function categories
+  var timer_automaticTiming : Boolean = false
+  var timer_automaticBCsTiming : Boolean = false
+  var timer_automaticCommTiming : Boolean = false
+  var timer_automaticPackingTiming : Boolean = false
+  var timer_automaticUnpackingTiming : Boolean = false
+  var timer_automaticWaitTiming : Boolean = false
+  var timer_automaticIOTiming : Boolean = false
+
   // library/tool to use for benchmarking
-  // may be one of the following: 'None', 'likwid'
+  // may be one of the following: 'None', 'likwid', 'talp'
   var benchmark_backend = "None"
 
   /// --- interfacing ---
@@ -468,6 +496,9 @@ object Knowledge {
   // the number of mpi threads to be used
   var mpi_numThreads : Int = 1
 
+  // [true|false] // employ compact MPI tag generation for MPI implementations with small upper bound for MPI tagd
+  var mpi_generateCompactTags : Boolean = false
+
   // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
   var mpi_useCustomDatatypes : Boolean = false
   // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
@@ -493,13 +524,18 @@ object Knowledge {
   // needs to be enabled if waLBerla data structures are used
   var waLBerla_generateInterface : Boolean = false
 
+  // [true|false]: conserving pack info provided by waLBerla (at the cost of accuracy)
+  // true -> constant C2F, linear F2C
+  // false -> quadratic C2F, linear/quadratic F2C
+  var waLBerla_useConservingRefinementPackInfo : Boolean = false
+
   // [true|false]: optimization.
   // generate comm schemes for waLBerla or use our internal communication
   var waLBerla_generateCommSchemes : Boolean = false
 
   // [true|false]: optimization.
-  // use grid from exastencils directly, including virtual fields
-  var waLBerla_useGridFromExa : Boolean = false
+  // partition grid with info provided in knowledge file
+  var waLBerla_useGridPartFromExa : Boolean = true
 
   // [true|false]: optimization.
   // cache field pointers as members in interface
@@ -608,15 +644,27 @@ object Knowledge {
   var cuda_preferredExecution : String = "Performance"
   // specifies a condition to be used to branch for CPU (true) or GPU (false) execution; only used if cuda_preferredExecution == Condition
   var cuda_executionCondition : String = "true"
+  // specifies if CUDA streams are used
+  var experimental_cuda_useStreams : Boolean = false
   // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
-  var cuda_syncDeviceAfterKernelCalls : Boolean = true
+  var cuda_omitSyncDeviceAfterKernelCalls : Boolean = false
+  // specifies if CUDA streams are to be synchronized before each compute kernel call
+  var experimental_cuda_syncStreamsBeforeComputeKernelCalls : String = "none"
+  // specifies if CUDA streams are to be synchronized after each compute kernel call
+  var experimental_cuda_syncStreamsAfterComputeKernelCalls : String = "comp"
+  // specifies if CUDA streams are to be synchronized before each communication kernel call
+  var experimental_cuda_syncStreamsBeforeCommunicateKernelCalls : String = "none"
+  // specifies if CUDA streams are to be synchronized after each communication kernel call
+  var experimental_cuda_syncStreamsAfterCommunicateKernelCalls : String = "comm"
+  // stream synchronization options
+  val cuda_syncStreamsOptions : List[String] = List("comm", "comp", "none", "all")
   // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
   var cuda_syncHostForWrites : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
   var cuda_syncDeviceForWrites : Boolean = true
   // ["none"|"both"|"device_to_host"|"host_to_device"] eliminates host <-> device transfers.
   var cuda_eliminate_memory_transfers = "none"
-  val cuda_memory_transfer_elimination_options = List("none", "both", "device_to_host", "host_to_device")
+  val cuda_memory_transfer_elimination_options : List[String] = List("none", "both", "device_to_host", "host_to_device")
 
   // default block size in x dimension
   var cuda_blockSize_x : Long = if (dimensionality == 3) 32 else 128
@@ -657,6 +705,9 @@ object Knowledge {
 
   // if true, the first dimension of the block size is enlarged if the kernel dimensionality is lower than the global dimensionality
   var cuda_foldBlockSizeForRedDimensionality : Boolean = true
+
+  // if true, error checks for cuda API calls are omitted
+  var cuda_omitErrorChecks : Boolean = false
 
   /// --- general parallelization ---
 
@@ -904,6 +955,16 @@ object Knowledge {
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
     Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
 
+    Constraints.condEnsureValue(experimental_cuda_syncStreamsBeforeComputeKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(experimental_cuda_syncStreamsAfterComputeKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(experimental_cuda_syncStreamsBeforeCommunicateKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(experimental_cuda_syncStreamsAfterCommunicateKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condError(cuda_enabled && !experimental_cuda_useStreams && (experimental_cuda_syncStreamsBeforeCommunicateKernelCalls != "none" || experimental_cuda_syncStreamsAfterCommunicateKernelCalls != "none"
+      || experimental_cuda_syncStreamsBeforeComputeKernelCalls != "none" || experimental_cuda_syncStreamsAfterComputeKernelCalls != "none"), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"experimental_cuda_useStreams = true\"")
+    Constraints.condError(cuda_enabled && experimental_cuda_useStreams && (!cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsBeforeCommunicateKernelCalls) || !cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsAfterCommunicateKernelCalls)
+      || !cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsBeforeComputeKernelCalls) || !cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsAfterComputeKernelCalls)), "Invalid stream sync option. Should be one of: " + cuda_syncStreamsOptions.mkString(","))
+    Constraints.condWarn(cuda_enabled && experimental_cuda_useStreams && cuda_omitSyncDeviceAfterKernelCalls, "Ignoring \"cuda_omitSyncDeviceAfterKernelCalls\" to omit cuda device sync when \"experimental_cuda_useStreams\" is enabled. For stream sync, please refer to the flags: \"cuda_syncStreamsBeforeCommunicationKernelCalls\", \"cuda_syncStreamsAfterCommunicationKernelCalls\", \"cuda_syncStreamsBeforeComputeKernelCalls\", \"cuda_syncStreamsAfterComputeKernelCalls\"")
+
     Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
     Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
     Constraints.condEnsureValue(cuda_spatialBlockingWithSmem, false, !cuda_useSharedMemory)
@@ -954,8 +1015,17 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == Platform.targetCompiler, "UNIX_TIME is not supported for windows systems")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
+    Constraints.condEnsureValue(timer_syncDevice, false, !cuda_enabled, "Disabling flag \"timer_syncDevice\". Requires \"cuda_enabled\" to be enabled.")
 
-    Constraints.condError(timer_syncMpi && timer_measureCommunicationTime, "Flags timer_syncMpi and timer_measureCommunicationTime are mutually exclusive")
+    Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticPackingTiming, "timer_automaticCommTiming must be enabled for timer_automaticPackingTiming.")
+    Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticUnpackingTiming, "timer_automaticCommTiming must be enabled for timer_automaticUnpackingTiming.")
+    Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticWaitTiming, "timer_automaticCommTiming must be enabled for timer_automaticWaitTiming.")
+
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticBCsTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticBCsTiming = true'")
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticCommTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticCommTiming = true'")
+    Constraints.condEnsureValue(timer_automaticTiming, true, timer_automaticIOTiming, "Timer flag 'timer_automaticTiming' required for 'timer_automaticIOTiming = true'")
+
+    Constraints.condError(timer_syncMpi && (timer_automaticPackingTiming || timer_automaticUnpackingTiming || timer_automaticWaitTiming), "Flags timer_syncMpi and timer_automaticPackingTiming, timer_automaticUnpackingTiming or timer_automaticWaitTiming are mutually exclusive")
 
     // benchmarking and performance estimation
 
@@ -989,18 +1059,26 @@ object Knowledge {
 
     // waLBerla
     Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
-    Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, !waLBerla_generateCommSchemes, "When waLBerla communication schemes are not generated, fixed field layouts (waLBerla_useFixedLayoutsFromExa = true) are required.")
     Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
-    Constraints.condEnsureValue(waLBerla_generateCommSchemes, true, data_genVariableFieldSizes && waLBerla_generateInterface, "waLBerla Fields with variable field sizes currently require the usage of waLBerla comm schemes.")
+    Constraints.condEnsureValue(data_genVariableFieldSizes, true, !waLBerla_useFixedLayoutsFromExa && waLBerla_generateInterface, "Enable 'data_genVariableFieldSizes' when waLberla fields without fixed layouts are used.")
+    Constraints.condError(!domain_isPartitioningKnown && waLBerla_createCartComm, "Knowledge flag 'waLBerla_createCartComm' is only available with Exa grid partitioning (waLBerla_useGridPartFromExa = true).")
 
+    Constraints.condEnsureValue(refinement_enabled, true, waLBerla_useRefinement, "Flag 'refinement_enabled' must be enabled when 'waLBerla_useRefinement' is true")
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
-    Constraints.condError(waLBerla_useRefinement && waLBerla_useGridFromExa, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
-    Constraints.condError(waLBerla_useRefinement && !waLBerla_generateCommSchemes, "waLBerla refinement works only with generated CPU comm schemes at the moment -> 'waLBerla_generateCommSchemes' must be true.")
-    Constraints.condError(waLBerla_useRefinement && cuda_enabled, "waLBerla refinement works only for CPU codes at the moment.")
-    Constraints.condEnsureValue(waLBerla_cacheFieldPointers, false, waLBerla_useRefinement, "Cannot cache waLBerla field pointers with 'waLBerla_useRefinement' enabled yet.")
+    Constraints.condError(waLBerla_useRefinement && domain_isPartitioningKnown, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
 
-    Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L4 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
-    Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L3 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
-    Constraints.condEnsureValue(experimental_l2_resolveVirtualFields, false, !waLBerla_useGridFromExa && waLBerla_generateInterface, "Resolving virtual fields on L2 must be disabled, when the ExaStencils grid is not used for the waLBerla coupling.")
+    Constraints.condError(!waLBerla_cacheFieldPointers && experimental_cuda_useStreams, "CUDA streams can only be combined with waLBerla when 'waLBerla_cacheFieldPointers = true'.")
+
+    // refinement
+    Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")
+    Constraints.condError(refinement_enabled && !refinement_availableC2FInterpOrders.contains(refinement_interpOrderC2F), s"C2F interpolation order $refinement_interpOrderC2F not supported yet.")
+    Constraints.condError(refinement_enabled && !grid_isAxisAligned, "Mesh refinement currently only supports aligned blocks.")
+    Constraints.condError(refinement_enabled && comm_enableCommTransformations, "Communication transformations are currently not supported with mesh refinement.")
+    Constraints.condWarn(refinement_enabled && comm_syncGhostData, "Flag 'comm_syncGhostData' is currently ignored for F2C and C2F communication.")
+    Constraints.condWarn(refinement_enabled && !comm_pushLocalData, "Pull scheme is not available for communication with mesh refinement (c.f. 'comm_pushLocalData').")
+
+    Constraints.condEnsureValue(experimental_l4_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L4 must be disabled, when the Compiler does not know about the grid partitioning.")
+    Constraints.condEnsureValue(experimental_l3_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L3 must be disabled, when the Compiler does not know about the grid partitioning.")
+    Constraints.condEnsureValue(experimental_l2_resolveVirtualFields, false, !domain_isPartitioningKnown, "Resolving virtual fields on L2 must be disabled, when the Compiler does not know about the grid partitioning.")
   }
 }

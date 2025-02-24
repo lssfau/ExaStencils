@@ -24,6 +24,7 @@ import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.logger._
+import exastencils.scheduling.SingleSchedulable
 
 object StrategyTimer {
 
@@ -81,7 +82,7 @@ object StrategyTimer {
   *
   * @param name Name of the Strategy. Used for traceability and debugging purposes.
   */
-abstract class Strategy(val name : String) {
+abstract class Strategy(val name : String) extends SingleSchedulable {
   protected var token : Option[StateManager.TokenType] = None
   private var collectors = ListBuffer[Collector]()
 

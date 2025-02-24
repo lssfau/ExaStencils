@@ -43,7 +43,7 @@ case class IR_WaLBerlaField(
     IR_WaLBerlaField(name, level, index, codeName, Duplicate(layout), numSlots, Duplicate(boundary), Duplicate(matShape))
   }
 
-  def stringIdentifier(slot : Int) = codeName + s"_s$slot"
+  def stringIdentifier(slot : Int, onGPU : Boolean) = codeName + s"_s$slot" + (if (onGPU) "_GPU" else "")
 
   // functions to add fields to block storage.
   // cpu fields are allocated per level and slot using waLBerla's allocation
@@ -60,7 +60,7 @@ case class IR_WaLBerlaField(
 
     val args = ListBuffer[IR_Expression]()
     args += blockForestAcc                                                           // blockstorage
-    args += IR_StringConstant(stringIdentifier(slot))                                // identifier
+    args += IR_StringConstant(stringIdentifier(slot, onGPU = false))                 // identifier
     args += calculateSize                                                            // calculateSize
     args += IR_Cast(WB_RealType, initVal.access)                                     // initValue
     args += IR_VariableAccess(s"field::${layout.layoutName}", IR_IntegerDatatype)    // layout
@@ -81,7 +81,7 @@ case class IR_WaLBerlaField(
   }
 
   def addToStorageGPU(blockForestAcc : IR_VariableAccess, slot : Int, cpuFieldID : IR_WaLBerlaBlockDataID) = {
-    val funcRefName = s"cuda::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
+    val funcRefName = s"gpu::addGPUFieldToStorage<${ IR_WaLBerlaDatatypes.WB_FieldDatatype(this, onGPU = false).prettyprint() }>"
 
     // TODO: mapping pitched <-> non-pitched fields? maybe possible with help of IVs
     val usePitchedMemory = false // exa fields do not employ pitched memory -> can lead to inconsistent indexing
@@ -89,7 +89,7 @@ case class IR_WaLBerlaField(
     val args = ListBuffer[IR_Expression](
       blockForestAcc,
       cpuFieldID,
-      IR_StringConstant(stringIdentifier(slot)),
+      IR_StringConstant(stringIdentifier(slot, onGPU = true)),
       IR_BooleanConstant(usePitchedMemory)
     )
 
