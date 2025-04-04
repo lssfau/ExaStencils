@@ -157,7 +157,7 @@ object PrettyprintingManager {
         case "mpi.h"         =>
           s"""#ifdef _MSC_VER
           |    #pragma warning(disable : 4800)
-          |#endif""".stripMargin
+          |#endif\n""".stripMargin
         case "windows.h"     => "#define NOMINMAX\n"
         case "vecmathlib.h"  => "#define VML_NODEBUG\n"
         case "vectorclass.h" => "#define VCL_NAMESPACE vectorclass\n"
