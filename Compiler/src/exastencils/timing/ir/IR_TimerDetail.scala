@@ -72,7 +72,11 @@ case class IR_ZeroTimerValue() extends IR_Expression {
 case class IR_ReturnConvertToMS(var time : IR_Expression) extends IR_Statement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
-      case "Chrono"       => IR_Return(Some(IR_MemberFunctionCall(IR_FunctionCall("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
+      case "Chrono"       => IR_Return(Some(
+        IR_DoubleConstant(1e-6) *
+        IR_Cast(
+          IR_DoubleDatatype,
+          IR_MemberFunctionCall(IR_FunctionCall("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count"))))
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         IR_VariableDeclaration(IR_SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
         IR_VariableDeclaration(IR_SpecialDatatype("static BOOL"), "s_use_qpc", IR_FunctionCall("QueryPerformanceFrequency", IR_AddressOf("s_frequency"))),
