@@ -154,7 +154,10 @@ object PrettyprintingManager {
   object Prettyprinter {
     def generateInclude(toInclude : String) : String = {
       val prepend = toInclude match {
-        case "mpi.h"         => "#pragma warning(disable : 4800)\n"
+        case "mpi.h"         =>
+          s"""#ifdef _MSC_VER
+          |    #pragma warning(disable : 4800)
+          |#endif""".stripMargin
         case "windows.h"     => "#define NOMINMAX\n"
         case "vecmathlib.h"  => "#define VML_NODEBUG\n"
         case "vectorclass.h" => "#define VCL_NAMESPACE vectorclass\n"
