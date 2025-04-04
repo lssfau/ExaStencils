@@ -35,7 +35,7 @@ case class IR_GetTotalTime() extends IR_TimerFunction {
 
   override def generateFct() = {
     val body =
-      IR_IfCondition(0 Neq accessMember("totalTimeAveraged"),
+      IR_IfCondition(accessMember("totalTimeAveraged") >= IR_DoubleConstant(1E-12),
         IR_Return(Some(accessMember("totalTimeAveraged"))),
         IR_ReturnConvertToMS(accessMember("totalTimeMeasured")))
 
