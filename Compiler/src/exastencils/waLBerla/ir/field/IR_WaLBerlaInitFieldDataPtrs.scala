@@ -74,13 +74,11 @@ case class IR_WaLBerlaInitFieldDataPtrs(onGPU : Boolean, wbFields : IR_WaLBerlaF
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
     var body = ListBuffer[IR_Statement]()
 
-    if (Knowledge.waLBerla_useInternalMemoryPointers) {
-      // save pointers to internal memory pointers of waLBerla fields
-      for (wbf <- wbFields)
-        body += IR_WaLBerlaInitFieldDataPtrs.initRoutine(onGPU, wbf)
+    // save pointers to internal memory pointers of waLBerla fields
+    for (wbf <- wbFields)
+      body += IR_WaLBerlaInitFieldDataPtrs.initRoutine(onGPU, wbf)
 
-      body = ListBuffer(IR_WaLBerlaLoopOverLocalBlockArray(body))
-    }
+    body = ListBuffer(IR_WaLBerlaLoopOverLocalBlockArray(body))
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(), body)
   }

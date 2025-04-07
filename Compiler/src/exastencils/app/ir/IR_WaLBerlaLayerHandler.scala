@@ -84,9 +84,10 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
 
     // also add walberla IVs ...
     scheduler.prependToFirstFound(IR_AddInternalVariables,
-      IR_WaLBerlaAddInterfaceMembers,
+      IR_WaLBerlaReplaceCommIVs,
       IR_WaLBerlaReplaceFragmentLoops,
-      ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs))
+      ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs),
+      IR_WaLBerlaAddInterfaceMembers)
 
     // ... and adapt memory allocations
     scheduler.appendToFirstFound(IR_AddInternalVariables,
@@ -101,7 +102,6 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_ExpandWrapper,
       IR_WaLBerlaReplaceFragmentLoops,
       ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaReplaceCommIVs,
       IR_WaLBerlaResolveLoopOverBlocks,
       ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
