@@ -55,17 +55,8 @@ case class IR_WaLBerlaFieldAccess(
   def expandSpecial() = {
     applyUnresolvedOffset()
 
-    if (Knowledge.waLBerla_useInternalMemoryPointers) {
-      // access via raw memory pointer
-      IR_DirectWaLBerlaFieldAccess(field, slot, fragIdx, index + field.referenceOffset)
-    } else {
-      if (Knowledge.cuda_enabled)
-        Logger.error("Single element accesses field->get(x,y,z,f) not combinable with CUDA. Enable \"waLBerla_useInternalMemoryPointers\" instead.")
-
-      // single-element access via get(x, y, z, f) access
-      val newIdx = IR_WaLBerlaUtil.adaptIndexForAccessors(index, field.gridDatatype, field.numDimsGrid, field.layout.numDimsData)
-      IR_MemberFunctionCallArrow(IR_IV_WaLBerlaGetField(field, slot, onGPU = false, fragIdx), "get", newIdx.indices : _*)
-    }
+    // access via raw memory pointer
+    IR_DirectWaLBerlaFieldAccess(field, slot, fragIdx, index + field.referenceOffset)
   }
 }
 
