@@ -14,6 +14,10 @@ class RunContext:
         self.problem_name = args.problem_name
         self.output_path = args.output_path
 
+        self.build_file_generator = getattr(args, "build_file_generator", default_args["build_file_generator"])
+        self.build_target_name = getattr(args, "build_target_name", default_args["build_target_name"])
+        self.build_standalone = getattr(args, "build_standalone", default_args["build_standalone"])
+
         self.settings_file = getattr(args, "settings_file", default_args['settings_file'])
         self.generator_path = getattr(args, "generator_path", default_args['generator_path'])
         self.generator_lib_path = getattr(args, "generator_lib_path", default_args['generator_lib_path'])
@@ -59,7 +63,9 @@ class RunContext:
         if not self.settings_file:
             # settings file automatically generated
             self.settings_path = generate_settings_file(self.exa_files, self.exa_problem_path, self.problem_name,
-                                                        self.output_path, self.target_code_path, self.overwrite_settings,
+                                                        self.output_path, self.target_code_path,
+                                                        self.build_file_generator, self.build_target_name,
+                                                        self.build_standalone, self.overwrite_settings,
                                                         self.config.use_cuda, self.use_likwid, self.use_likwid_perfctr)
         else:
             # settings file specified by user

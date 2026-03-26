@@ -30,6 +30,7 @@ object CMakeGenerator extends BuildfileGenerator {
     val printer = PrettyprintingManager.getPrinter("CMakeLists.txt")
 
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
+    val headers = filesToConsider.filter(_.endsWith(".h")).toList.sorted
     val cppFiles = filesToConsider.filter(_.endsWith(".cpp")).toList.sorted
     val cuFiles  = filesToConsider.filter(_.endsWith(".cu")).toList.sorted
 
@@ -40,7 +41,8 @@ object CMakeGenerator extends BuildfileGenerator {
     /* project (and languages) */
 
     printer <<< "cmake_minimum_required(VERSION 3.26)"
-    printer <<< s"project($target LANGUAGES ${Settings.cmake_languages.mkString(" ")})"
+    if (Settings.cmake_buildStandalone)
+      printer <<< s"project($target LANGUAGES ${Settings.cmake_languages.mkString(" ")})"
     printer <<< ""
 
     val cudaFlags = if (Knowledge.cuda_enabled) Platform.resolveCudaFlags else ""
@@ -61,22 +63,33 @@ object CMakeGenerator extends BuildfileGenerator {
     printer <<< ")"
     printer <<< ""
 
+    /* headers */
+
+    printer <<< "set(HEADERS"
+    headers.foreach(f => printer <<< s"  $f")
+    printer <<< ")"
+    printer <<< ""
 
     /* target */
 
-    printer <<< s"add_executable($target)"
+    if (Settings.cmake_buildStandalone) {
+      // build executable from sources
+      printer <<< s"add_executable($target)"
+    } else {
+      // build library that can be used by other projects
+      printer <<< s"add_library($target)"
+    }
     printer <<< s"target_sources($target PRIVATE $${SOURCES})"
+    printer <<< s"target_sources($target PUBLIC $${HEADERS})"
     printer <<< ""
 
 
     /* includes */
 
-    if (Settings.pathsInc.nonEmpty) {
-      printer <<< s"target_include_directories($target PRIVATE"
-      Settings.pathsInc.foreach(d => printer <<< s"  $d")
-      printer <<< ")"
-      printer <<< ""
-    }
+    printer <<< s"target_include_directories($target PRIVATE"
+    (Settings.pathsInc :: List(".")).foreach(d => printer <<< s"  $d")
+    printer <<< ")"
+    printer <<< ""
 
     /* defines */
 
@@ -134,17 +147,20 @@ object CMakeGenerator extends BuildfileGenerator {
       Settings.additionalLibs.map(lib => s"-l$lib")
     ).split(" ").to[ListBuffer]
 
-    // replace with modern CMake targets
-    libs = libs.map {
-      case "-lcuda" | "-lcudart" => "CUDA::cudart"
-      case "-lmpi" => "MPI::MPI_CXX"
-    }
+    // replace parallelization libs with modern CMake targets
+    libs -= "-lcuda"
+    libs -= "-lcudart"
+    libs -= "-lmpi"
+    if (Knowledge.cuda_enabled)
+      libs += "CUDA::cudart"
+    if (Knowledge.mpi_enabled)
+      libs += "MPI::MPI_CXX"
     if (Knowledge.omp_enabled)
       libs += "OpenMP::OpenMP_CXX"
 
     if (libs.nonEmpty) {
       printer <<< s"target_link_libraries($target PRIVATE"
-      libs.foreach(l => printer <<< s"  $l")
+      libs.distinct.foreach(l => printer <<< s"  $l")
       printer <<< ")"
       printer <<< ""
     }

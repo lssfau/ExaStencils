@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 default_args = {
+    'build_file_generator': 'MakefileGenerator',
+    'build_target_name': 'exastencils',
+    'build_standalone': True,
     'settings_file': '',
     'generator_path': '../Compiler/Compiler.jar',
     'generator_lib_path': '../Compiler/lib',

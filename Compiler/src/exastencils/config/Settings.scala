@@ -152,6 +152,7 @@ object Settings {
   var makefile_additionalCudaFlags : ListBuffer[String] = ListBuffer()
   var makefile_additionalObjFiles : ListBuffer[String] = ListBuffer()
 
+  var cmake_buildStandalone : Boolean = true
   var cmake_languages : ListBuffer[String] = ListBuffer("CXX")
   var cmake_additionalPackages : ListBuffer[String] = ListBuffer()
 
@@ -227,6 +228,14 @@ object Settings {
 
     // parse here to fail early
     BuildfileGenerator.parseGenerators(buildfileGenerators)
+
+    // handle OpenMP
+    if (Knowledge.omp_enabled)
+      if (!cmake_additionalPackages.contains("OpenMP")) cmake_additionalPackages += "OpenMP"
+
+    // handle MPI
+    if (Knowledge.mpi_enabled)
+      if (!cmake_additionalPackages.contains("MPI")) cmake_additionalPackages += "MPI"
 
     // handle CUDA
     if (Knowledge.cuda_enabled) {
