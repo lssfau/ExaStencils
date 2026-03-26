@@ -143,6 +143,8 @@ object Settings {
 
   var binary : String = "exastencils"
 
+  var cxx_standard : Int = 11
+
   var makefile_makeLibs : Boolean = false
   var makefile_additionalCFlags : ListBuffer[String] = ListBuffer()
   var makefile_additionalLDFlags : ListBuffer[String] = ListBuffer()
