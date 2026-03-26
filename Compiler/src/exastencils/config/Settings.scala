@@ -152,6 +152,9 @@ object Settings {
   var makefile_additionalCudaFlags : ListBuffer[String] = ListBuffer()
   var makefile_additionalObjFiles : ListBuffer[String] = ListBuffer()
 
+  var cmake_languages : ListBuffer[String] = ListBuffer("CXX")
+  var cmake_additionalPackages : ListBuffer[String] = ListBuffer()
+
   /// performance estimates (experimental)
 
   var performanceEstimateOutputFile : String = "Compiler/performanceEstimate.csv"
@@ -237,7 +240,11 @@ object Settings {
           if (!additionalLibs.contains("cuda")) additionalLibs += "cuda"
           if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
       }
+      if (!cmake_additionalPackages.contains("CUDAToolkit")) cmake_additionalPackages += "CUDAToolkit"
+      if (!cmake_languages.contains("CUDA")) cmake_languages += "CUDA"
     }
+
+    // handle benchmark tools
     Knowledge.benchmark_backend match {
       case "likwid" =>
         if (!additionalIncludes.contains("likwid.h")) additionalIncludes += "likwid.h"
@@ -249,6 +256,8 @@ object Settings {
         if (!additionalIncludes.contains("dlb_talp.h")) additionalIncludes += "dlb_talp.h"
       case _ =>
     }
+
+    // handle SIMD math libs
     if (Platform.simd_mathLibrary == "mass_simd")
       additionalLibs += "mass_simd"
   }
