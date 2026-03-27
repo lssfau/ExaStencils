@@ -104,10 +104,6 @@ def print_settings_file(exa_files: List[str], exa_problem_path: str, exa_problem
                         build_standalone: bool, use_cuda: bool, use_likwid: bool, use_likwid_perfctr: bool):
     tmp = f'user\t= "Guest"\n\n'
 
-    tmp = f'binary\t= "{build_target_name}"\n\n'
-
-    tmp = f'cmake_buildStandalone\t= "{"true" if build_target_name else "false"}"\n\n'
-
     output_path_relative = os.path.relpath(output_path, exa_problem_path)
     target_code_path_relative = os.path.relpath(target_code_path, exa_problem_path)
 
@@ -131,7 +127,13 @@ def print_settings_file(exa_files: List[str], exa_problem_path: str, exa_problem
     tmp += f'outputPath\t= "{target_code_path_relative}"\n\n'
     tmp += f'produceHtmlLog\t= true\n'
     tmp += f'timeStrategies\t= true\n\n'
+
     tmp += f'buildfileGenerators\t= {{"{build_file_generator}"}}\n\n'
+    tmp = f'binary\t= "{build_target_name}"\n\n'
+    if build_standalone:
+        tmp = f'cmake_buildStandalone\t= true"\n\n'
+    else:
+        tmp = f'cmake_buildStandalone\t= false"\n\n'
 
     if use_cuda:
         tmp += f'pathsInc += "/usr/local/cuda/include"\n'
