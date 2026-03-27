@@ -131,9 +131,9 @@ def print_settings_file(exa_files: List[str], exa_problem_path: str, exa_problem
     tmp += f'buildfileGenerators\t= {{"{build_file_generator}"}}\n\n'
     tmp = f'binary\t= "{build_target_name}"\n\n'
     if build_standalone:
-        tmp = f'cmake_buildStandalone\t= true"\n\n'
+        tmp = f'cmake_buildStandalone\t= true\n\n'
     else:
-        tmp = f'cmake_buildStandalone\t= false"\n\n'
+        tmp = f'cmake_buildStandalone\t= false\n\n'
 
     if use_cuda:
         tmp += f'pathsInc += "/usr/local/cuda/include"\n'
