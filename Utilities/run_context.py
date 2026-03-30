@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
 import os
+from warnings import deprecated
+
 from generation_helpers import *
 from argparse_helpers import *
 from config_from_knowledge import *
 
+@deprecated("""
+Python utilities for running ExaStencils CodeGen have been moved to
+exastencils_runner module https://i10git.cs.fau.de/exastencils/exastencils_runner
+""")
 class RunContext:
     def __init__(self, args):
         # copy over
