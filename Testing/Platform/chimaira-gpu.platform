@@ -17,6 +17,6 @@ hw_gpu_numDevices          = 1
 hw_gpu_bandwidth           = 336000000000.0 // = 312.9 GB/s = 384 / 8 * 1750 * 1000^2 * 4 B/s
 hw_gpu_frequency           = 889000000000.0 // = 889 MHz
 hw_gpu_numCores            = 2880
-hw_cuda_capability         = 6
-hw_cuda_capabilityMinor    = 1
-hw_gpu_gpuDirectAvailable  = true
+hw_cuda_capability         = 3
+hw_cuda_capabilityMinor    = 5
+hw_gpu_gpuDirectAvailable  = false

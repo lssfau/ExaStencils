@@ -3,8 +3,6 @@
 import os
 import subprocess
 import argparse
-from typing_extensions import deprecated
-
 from run_context import *
 from decorators import *
 from likwid_pinning import *
@@ -72,10 +70,6 @@ def run_code(ctx: RunContext):
 ############
 
 
-@deprecated("""
-Python utilities for running ExaStencils CodeGen have been moved to
-exastencils_runner module https://i10git.cs.fau.de/exastencils/exastencils_runner
-""")
 def main():
     # parse args
     parser = argparse.ArgumentParser(description='Generate Code from ExaSlang and run')
