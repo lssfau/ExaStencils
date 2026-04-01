@@ -10,6 +10,12 @@ RUN \
   apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant mlocate time wget gfortran libjpeg-dev libpng-dev && \
   python3 -m pip install sympy numpy influxdb GitPython
 
+# exastencils_runner module
+
+RUN \
+   git clone https://i10git.cs.fau.de/exastencils/exastencils_runner.git exastencils_runner \
+   python3 -m pip install -e exastencils_runner
+
 # sbt
 RUN \
   (echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list) && \
