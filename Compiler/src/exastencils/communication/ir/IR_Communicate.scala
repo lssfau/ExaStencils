@@ -24,13 +24,13 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FieldIteratorAccess
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 
 /// IR_Communicate
 
 case class IR_Communicate(
     // FIXME: incorporate component accesses
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var op : String,
     var targets : ListBuffer[IR_CommunicateTarget],

@@ -37,7 +37,7 @@ class CUDA_GatherBufferAccess extends Collector {
     exastencils.core.Duplicate.registerConstant(this)
   }
 
-  val bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+  val bufferAccesses = HashMap[String, IR_IV_CommBufferLike]()
   private var isRead : Boolean = true
   private var isWrite : Boolean = false
 
@@ -71,7 +71,7 @@ class CUDA_GatherBufferAccess extends Collector {
         }
         assign.src.annotate(Access.ANNOT, Access.READ)
 
-      case buffer : IR_IV_CommBuffer =>
+      case buffer : IR_IV_CommBufferLike =>
         val identifier = buffer.resolveName()
         val neighIdx = buffer.neighIdx
 

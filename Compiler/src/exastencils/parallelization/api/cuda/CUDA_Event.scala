@@ -5,7 +5,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.OutputType
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -39,7 +39,7 @@ abstract class CUDA_Event(
 }
 
 case class CUDA_PendingStreamTransfers(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt)
   extends CUDA_Event(true, false, true, true, false) {
 

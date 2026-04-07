@@ -26,7 +26,7 @@ import exastencils.baseExt.ir.IR_FieldIteratorAccess
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -70,10 +70,10 @@ case class IR_EvaluateOnGrid(
   def stagDim = IR_GridUtil.faceToDims(name.replace("evalAt", ""))._1
   def faceDim = IR_GridUtil.faceToDims(name.replace("evalAt", ""))._2
 
-  def fieldAccess() : IR_FieldAccess = {
+  def fieldAccess() : IR_FieldLikeAccess = {
     expression match {
-      case fieldAccess : IR_FieldAccess => fieldAccess
-      case other                        => Logger.error(s"$other in evaluate is not of type IR_FieldAccess")
+      case fieldAccess : IR_FieldLikeAccess => fieldAccess
+      case other                            => Logger.error(s"$other in evaluate is not of type IR_FieldLikeAccess")
     }
   }
 
@@ -95,14 +95,14 @@ case class IR_EvaluateOnGrid(
 
   def resolve() = {
     expression match {
-      case fieldAccess : IR_FieldAccess  => resolveForFieldAccess(fieldAccess, interpolation)
-      case const : IR_ConstantExpression => const // no interpolation needed
-      case variable : IR_VariableAccess  => variable // no interpolation needed
-      case other                         => Logger.error(s"Evaluation is not supported yet for $other")
+      case fieldAccess : IR_FieldLikeAccess => resolveForFieldAccess(fieldAccess, interpolation)
+      case const : IR_ConstantExpression    => const // no interpolation needed
+      case variable : IR_VariableAccess     => variable // no interpolation needed
+      case other                            => Logger.error(s"Evaluation is not supported yet for $other")
     }
   }
 
-  def resolveForFieldAccess(fieldAccess : IR_FieldAccess, interpolation : String) : IR_Expression = {
+  def resolveForFieldAccess(fieldAccess : IR_FieldLikeAccess, interpolation : String) : IR_Expression = {
     val field = fieldAccess.field
     val (stagDim, faceDim) = IR_GridUtil.faceToDims(name.replace("evalAt", ""))
 
@@ -120,6 +120,7 @@ case class IR_EvaluateOnGrid(
 
     // placeholder for interpolation values
     def x0() = { val access = Duplicate(fieldAccess); access.offsetWith(getEffectiveOffset); access }
+
     def x1() = { val access = IR_GridUtil.offsetAccess(fieldAccess, -1, faceDim); access.offsetWith(getEffectiveOffset); access }
 
     // special handling for different localizations

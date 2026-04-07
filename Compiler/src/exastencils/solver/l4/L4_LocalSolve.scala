@@ -25,7 +25,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.prettyprinting._
 import exastencils.solver.ir._
 
@@ -58,7 +58,7 @@ case class L4_LocalSolve(
 
   override def progress = ProgressLocation {
     IR_LocalSolve(
-      unknowns.map(_.progress.asInstanceOf[IR_FieldAccess]),
+      unknowns.map(_.progress.asInstanceOf[IR_FieldLikeAccess]),
       equations.map(_.progress),
       jacobiType,
       L4_ProgressOption(relax)(_.progress))

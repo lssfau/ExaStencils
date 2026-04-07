@@ -24,21 +24,20 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
+import exastencils.domain.ir.RefinementCase
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
-import exastencils.timing.ir.IR_AutomaticTimingCategory
+import exastencils.timing.ir._
 
 /// IR_CommunicateFunction
-
-// FIXME: refactor - seriously
 
 case class IR_CommunicateFunction(
     var name : String,
     var level : Int,
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var slot : IR_Expression,
     var neighbors : ListBuffer[NeighborInfo],
     var begin : Boolean, var finish : Boolean,
@@ -57,332 +56,357 @@ case class IR_CommunicateFunction(
 
   def resolveIndex(indexId : String, dim : Int) = field.layout.idxById(indexId, dim)
 
-  def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
-    // TODO: this only works for comm_onlyAxisNeighbors == false if coarse grid topology is regular, otherwise iteration spaces must be adapted
-    val indices = curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
-      IR_ExpressionIndex(
-        (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 =>
-            if (Knowledge.comm_onlyAxisNeighbors)
-              resolveIndex("DLB", i)
-            else
-              resolveIndex("IB", i)
-          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
-          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
-        }),
-      IR_ExpressionIndex(
-        (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 =>
-            if (Knowledge.comm_onlyAxisNeighbors)
-              resolveIndex("DRE", i)
-            else
-              resolveIndex("DRE", i)
-          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
-          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
-        }))))
+  /* generate pack infos with iteration spaces */
 
-    // TODO: honor fieldSelection.arrayIndex
-    for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+  def genRefinedPackInfosWrapper[T <: IR_PackInfo](
+      send : Boolean,
+      duplicate : Boolean,
+      refinementCase : RefinementCase.Access,
+      curNeighbors : ListBuffer[NeighborInfo],
+      genPackInfo : (NeighborInfo, IR_Expression, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
 
-    indices
+    // create pack infos for different cases
+    def getIndexOfRefinedNeighbor(neighInfo : NeighborInfo) : List[IR_Expression] = {
+      val allRefinementIndexCandidates = (0 until Knowledge.refinement_maxFineNeighborsForCommAxis).map(IR_IntegerConstant(_)).toList
+
+      refinementCase match {
+        case c : RefinementCase.Access if c == RefinementCase.EQUAL =>
+          // no refined neighbor index required -> default to 0
+          List(0)
+        case c : RefinementCase.Access if c == RefinementCase.F2C   =>
+          // F2C: the current fragment is finer than the neighbor
+          // actually only needs one pack info but for improved readability we:
+          // -> generate multiple pack infos for the corresponding (spatial) sections in coarse block
+          // -> check with IV variable to select the section belonging to the current fragment
+          if (send) {
+            // send: pack info per receiving neighbor (i.e. coarse neighbor receives one buffer from this fragment)
+            allRefinementIndexCandidates
+          } else {
+            // recv: pack info per sending neighbor (i.e. this fragment receives one buffer from the coarse neighbor)
+            allRefinementIndexCandidates
+          }
+        case c : RefinementCase.Access if c == RefinementCase.C2F   =>
+          // C2F: the current fragment is coarser than the neighbor
+          if (send) {
+            // send: pack info per receiving neighbor (i.e. in 2D, 2 fine blocks receive one buffer each from this fragment)
+            allRefinementIndexCandidates
+          } else {
+            // recv: pack info per sending neighbor (i.e. in 2D, this fragment receives one buffer from two fine neighbor)
+            allRefinementIndexCandidates
+          }
+      }
+    }
+
+    val layerBegin = if (duplicate) dupLayerBegin else ghostLayerBegin
+    val layerEnd = if (duplicate) dupLayerEnd else ghostLayerEnd
+
+    curNeighbors.flatMap(neigh =>
+      getIndexOfRefinedNeighbor(neigh).map(refIdx =>
+        genPackInfo(Duplicate(neigh), refIdx, field, layerBegin, layerEnd)))
   }
 
-  def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)] = {
-    val indices = curNeighbors.map(neigh => (neigh,
-      IR_ExpressionIndexRange(
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 =>
-              if (Knowledge.comm_onlyAxisNeighbors)
-                resolveIndex("DLB", i)
-              else
-                resolveIndex("IB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }),
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 =>
-              if (Knowledge.comm_onlyAxisNeighbors)
-                resolveIndex("DRE", i)
-              else
-                resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
-          })),
-      IR_ExpressionIndexRange(
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 =>
-              if (Knowledge.comm_onlyAxisNeighbors)
-                resolveIndex("DLB", i)
-              else
-                resolveIndex("IB", i)
-            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }),
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 =>
-              if (Knowledge.comm_onlyAxisNeighbors)
-                resolveIndex("DRE", i)
-              else
-                resolveIndex("DRE", i)
-            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
-          }))))
+  // equal level
 
-    // TODO: honor fieldSelection.arrayIndex
-    for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+  def genPackInfosDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    curNeighbors.map(neigh => IR_PackInfoDuplicateRemoteSend(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
+  def genPackInfosDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    curNeighbors.map(neigh => IR_PackInfoDuplicateRemoteRecv(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
 
-    indices
+  def genPackInfosDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    curNeighbors.map(neigh => IR_PackInfoDuplicateLocalSend(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
+  def genPackInfosDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    curNeighbors.map(neigh => IR_PackInfoDuplicateLocalRecv(Duplicate(neigh), field, dupLayerBegin, dupLayerEnd))
+
+  def genPackInfosGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    curNeighbors.map(neigh => IR_PackInfoGhostRemoteSend(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
+  def genPackInfosGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    curNeighbors.map(neigh => IR_PackInfoGhostRemoteRecv(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
+
+  def genPackInfosGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    curNeighbors.map(neigh => IR_PackInfoGhostLocalSend(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
+  def genPackInfosGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    curNeighbors.map(neigh => IR_PackInfoGhostLocalRecv(Duplicate(neigh), field, ghostLayerBegin, ghostLayerEnd))
+
+  // fine-to-coarse
+
+  def genF2CPackInfosWrapper[T <: IR_PackInfo](
+      send : Boolean,
+      duplicate : Boolean,
+      curNeighbors : ListBuffer[NeighborInfo],
+      genPackInfo : (NeighborInfo, IR_Expression, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
+
+    genRefinedPackInfosWrapper(send, duplicate, RefinementCase.F2C, curNeighbors, genPackInfo)
   }
 
-  def genIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)] = {
-    val indices = curNeighbors.map(neigh => (neigh,
-      IR_ExpressionIndexRange(
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 =>
-              if (Knowledge.comm_onlyAxisNeighbors)
-                resolveIndex("DLB", i)
-              else
-                resolveIndex("IB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }),
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 =>
-              if (Knowledge.comm_onlyAxisNeighbors)
-                resolveIndex("DRE", i)
-              else
-                resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
-          })),
-      IR_ExpressionIndexRange(
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 =>
-              if (Knowledge.comm_onlyAxisNeighbors)
-                resolveIndex("DLB", i)
-              else resolveIndex("IB", i)
-            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }),
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 =>
-              if (Knowledge.comm_onlyAxisNeighbors)
-                resolveIndex("DRE", i)
-              else
-                resolveIndex("DRE", i)
-            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
-          }))))
+  def genF2CPackInfosDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genF2CPackInfosWrapper(send = true, duplicate = true, curNeighbors, IR_F2CPackInfoDuplicateRemoteSend)
+  def genF2CPackInfosDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genF2CPackInfosWrapper(send = false, duplicate = true, curNeighbors, IR_F2CPackInfoDuplicateRemoteRecv)
 
-    // TODO: honor fieldSelection.arrayIndex
-    for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+  def genF2CPackInfosDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genF2CPackInfosWrapper(send = true, duplicate = true, curNeighbors, IR_F2CPackInfoDuplicateLocalSend)
+  def genF2CPackInfosDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genF2CPackInfosWrapper(send = false, duplicate = true, curNeighbors, IR_F2CPackInfoDuplicateLocalRecv)
 
-    indices
+  def genF2CPackInfosGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genF2CPackInfosWrapper(send = true, duplicate = false, curNeighbors, IR_F2CPackInfoGhostRemoteSend)
+  def genF2CPackInfosGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genF2CPackInfosWrapper(send = false, duplicate = false, curNeighbors, IR_F2CPackInfoGhostRemoteRecv)
+
+  def genF2CPackInfosGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genF2CPackInfosWrapper(send = true, duplicate = false, curNeighbors, IR_F2CPackInfoGhostLocalSend)
+  def genF2CPackInfosGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genF2CPackInfosWrapper(send = false, duplicate = false, curNeighbors, IR_F2CPackInfoGhostLocalRecv)
+
+  // coarse-to-fine
+
+  def genC2FPackInfosWrapper[T <: IR_PackInfo](
+      send : Boolean,
+      duplicate : Boolean,
+      curNeighbors : ListBuffer[NeighborInfo],
+      genPackInfo : (NeighborInfo, IR_Expression, IR_FieldLike, IR_ExpressionIndex, IR_ExpressionIndex) => T) : ListBuffer[T] = {
+
+    genRefinedPackInfosWrapper(send, duplicate, RefinementCase.C2F, curNeighbors, genPackInfo)
   }
 
-  def genIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
-    val indices = curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
-      IR_ExpressionIndex(
-        (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 =>
-            if (Knowledge.comm_onlyAxisNeighbors)
-              resolveIndex("DLB", i)
-            else
-              resolveIndex("IB", i)
-          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
-          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
-        }),
-      IR_ExpressionIndex(
-        (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 =>
-            if (Knowledge.comm_onlyAxisNeighbors)
-              resolveIndex("DRE", i)
-            else
-              resolveIndex("DRE", i)
-          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
-          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
-        }))))
+  def genC2FPackInfosDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genC2FPackInfosWrapper(send = true, duplicate = true, curNeighbors, IR_C2FPackInfoDuplicateRemoteSend)
+  def genC2FPackInfosDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genC2FPackInfosWrapper(send = false, duplicate = true, curNeighbors, IR_C2FPackInfoDuplicateRemoteRecv)
 
-    // TODO: honor fieldSelection.arrayIndex
-    for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+  def genC2FPackInfosDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genC2FPackInfosWrapper(send = true, duplicate = true, curNeighbors, IR_C2FPackInfoDuplicateLocalSend)
+  def genC2FPackInfosDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genC2FPackInfosWrapper(send = false, duplicate = true, curNeighbors, IR_C2FPackInfoDuplicateLocalRecv)
 
-    indices
+  def genC2FPackInfosGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genC2FPackInfosWrapper(send = true, duplicate = false, curNeighbors, IR_C2FPackInfoGhostRemoteSend)
+  def genC2FPackInfosGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_RemotePackInfo] =
+    genC2FPackInfosWrapper(send = false, duplicate = false, curNeighbors, IR_C2FPackInfoGhostRemoteRecv)
+
+  def genC2FPackInfosGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genC2FPackInfosWrapper(send = true, duplicate = false, curNeighbors, IR_C2FPackInfoGhostLocalSend)
+  def genC2FPackInfosGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_LocalPackInfo] =
+    genC2FPackInfosWrapper(send = false, duplicate = false, curNeighbors, IR_C2FPackInfoGhostLocalRecv)
+
+  /* generate communication statements */
+
+  def genCommStatements(
+      concurrencyId : Int,
+      remoteSendPackInfos : ListBuffer[IR_RemotePackInfo], remoteRecvPackInfos : ListBuffer[IR_RemotePackInfo],
+      localSendPackInfos : ListBuffer[IR_LocalPackInfo], localRecvPackInfos : ListBuffer[IR_LocalPackInfo]) : ListBuffer[IR_Statement] = {
+
+    var body = ListBuffer[IR_Statement]()
+
+    if (begin) {
+      body += IR_RemoteCommunicationStart(field, Duplicate(slot), remoteSendPackInfos,
+        start = true, end = false, concurrencyId, insideFragLoop, condition)
+      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), remoteRecvPackInfos,
+        start = true, end = false, concurrencyId, insideFragLoop, condition)
+      body += IR_LocalCommunicationStart(field, Duplicate(slot), localSendPackInfos, localRecvPackInfos,
+        insideFragLoop, condition)
+    }
+    if (finish) {
+      body += IR_RemoteCommunicationFinish(field, Duplicate(slot), remoteRecvPackInfos,
+        start = false, end = true, concurrencyId, insideFragLoop, condition)
+      body += IR_RemoteCommunicationStart(field, Duplicate(slot), remoteSendPackInfos,
+        start = false, end = true, concurrencyId, insideFragLoop, condition)
+      body += IR_LocalCommunicationFinish(field, Duplicate(slot), localSendPackInfos, localRecvPackInfos,
+        insideFragLoop, condition)
+    }
+
+    body
   }
 
-  def genIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
-    val indices = curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
-      IR_ExpressionIndex(
-        (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 =>
-            if (Knowledge.comm_syncGhostData)
-              resolveIndex("GLB", i)
-            else
-              resolveIndex("DLB", i)
-          case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
-          case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
-        }),
-      IR_ExpressionIndex(
-        (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 =>
-            if (Knowledge.comm_syncGhostData)
-              resolveIndex("GRE", i)
-            else
-              resolveIndex("DRE", i)
-          case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
-          case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
-        }))))
+  // equal level
 
-    // TODO: honor fieldSelection.arrayIndex
-    for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+  def genDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    val ret = genCommStatements(concurrencyId,
+      genPackInfosDuplicateRemoteSend(sendNeighbors), genPackInfosDuplicateRemoteRecv(recvNeighbors),
+      genPackInfosDuplicateLocalSend(sendNeighbors), genPackInfosDuplicateLocalRecv(recvNeighbors))
 
-    indices
+    if (Knowledge.refinement_enabled) {
+      ret ++= genF2CDuplicateCommStatements(concurrencyId, sendNeighbors, recvNeighbors)
+      ret ++= genC2FDuplicateCommStatements(concurrencyId, sendNeighbors, recvNeighbors)
+    }
+
+    ret
   }
 
-  def genIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)] = {
-    val indices = curNeighbors.map(neigh => (neigh,
-      IR_ExpressionIndexRange(
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 =>
-              if (Knowledge.comm_syncGhostData)
-                resolveIndex("GLB", i)
-              else
-                resolveIndex("DLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
-          }),
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 =>
-              if (Knowledge.comm_syncGhostData)
-                resolveIndex("GRE", i)
-              else
-                resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
-          })),
-      IR_ExpressionIndexRange(
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 =>
-              if (Knowledge.comm_syncGhostData)
-                resolveIndex("GLB", i)
-              else
-                resolveIndex("DLB", i)
-            case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
-            case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
-          }),
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 =>
-              if (Knowledge.comm_syncGhostData)
-                resolveIndex("GRE", i)
-              else
-                resolveIndex("DRE", i)
-            case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
-            case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
-          }))))
+  def genGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    val ret = genCommStatements(concurrencyId,
+      genPackInfosGhostRemoteSend(curNeighbors), genPackInfosGhostRemoteRecv(curNeighbors),
+      genPackInfosGhostLocalSend(curNeighbors), genPackInfosGhostLocalRecv(curNeighbors))
 
-    // TODO: honor fieldSelection.arrayIndex
-    for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+    if (Knowledge.refinement_enabled) {
+      ret ++= genF2CGhostCommStatements(concurrencyId, curNeighbors)
+      ret ++= genC2FGhostCommStatements(concurrencyId, curNeighbors)
+    }
 
-    indices
+    ret
   }
 
-  def genIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)] = {
-    val indices = curNeighbors.map(neigh => (neigh,
-      IR_ExpressionIndexRange(
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 =>
-              if (Knowledge.comm_syncGhostData)
-                resolveIndex("GLB", i)
-              else
-                resolveIndex("DLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
-          }),
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if neigh.dir(i) == 0 =>
-              if (Knowledge.comm_syncGhostData)
-                resolveIndex("GRE", i)
-              else
-                resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
-          })),
-      IR_ExpressionIndexRange(
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 =>
-              if (Knowledge.comm_syncGhostData)
-                resolveIndex("GLB", i)
-              else
-                resolveIndex("DLB", i)
-            case i if -neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
-            case i if -neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
-          }),
-        IR_ExpressionIndex(
-          (0 until numDimsGrid).toArray.map {
-            case i if -neigh.dir(i) == 0 =>
-              if (Knowledge.comm_syncGhostData)
-                resolveIndex("GRE", i)
-              else
-                resolveIndex("DRE", i)
-            case i if -neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
-            case i if -neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
-          }))))
+  // fine-to-coarse
 
-    // TODO: honor fieldSelection.arrayIndex
-    for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
-
-    indices
+  def genF2CDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    genCommStatements(concurrencyId,
+      genF2CPackInfosDuplicateRemoteSend(sendNeighbors), genC2FPackInfosDuplicateRemoteRecv(recvNeighbors),
+      genF2CPackInfosDuplicateLocalSend(sendNeighbors), genC2FPackInfosDuplicateLocalRecv(recvNeighbors))
   }
 
-  def genIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)] = {
-    val indices = curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
-      IR_ExpressionIndex(
-        (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 =>
-            if (Knowledge.comm_syncGhostData)
-              resolveIndex("GLB", i)
-            else
-              resolveIndex("DLB", i)
-          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
-          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
-        }),
-      IR_ExpressionIndex(
-        (0 until numDimsGrid).toArray.map {
-          case i if neigh.dir(i) == 0 =>
-            if (Knowledge.comm_syncGhostData)
-              resolveIndex("GRE", i)
-            else
-              resolveIndex("DRE", i)
-          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
-          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
-        }))))
+  def genF2CGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    genCommStatements(concurrencyId,
+      genF2CPackInfosGhostRemoteSend(curNeighbors), genC2FPackInfosGhostRemoteRecv(curNeighbors),
+      genF2CPackInfosGhostLocalSend(curNeighbors), genC2FPackInfosGhostLocalRecv(curNeighbors))
+  }
 
-    // TODO: honor fieldSelection.arrayIndex
-    for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+  // coarse-to-fine
+  def genC2FDuplicateCommStatements(concurrencyId : Int, sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    genCommStatements(concurrencyId,
+      genC2FPackInfosDuplicateRemoteSend(sendNeighbors), genF2CPackInfosDuplicateRemoteRecv(recvNeighbors),
+      genC2FPackInfosDuplicateLocalSend(sendNeighbors), genF2CPackInfosDuplicateLocalRecv(recvNeighbors))
+  }
 
-    indices
+  def genC2FGhostCommStatements(concurrencyId : Int, curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+    genCommStatements(concurrencyId,
+      genC2FPackInfosGhostRemoteSend(curNeighbors), genF2CPackInfosGhostRemoteRecv(curNeighbors),
+      genC2FPackInfosGhostLocalSend(curNeighbors), genF2CPackInfosGhostLocalRecv(curNeighbors))
+  }
+
+  def compileTransformedDuplicateComm(sendNeighbors : ListBuffer[NeighborInfo], recvNeighbors : ListBuffer[NeighborInfo], concurrencyId : Int) : ListBuffer[IR_Statement] = {
+    var commStmts = ListBuffer[IR_Statement]()
+
+    val indexOfRefinedNeighbor : Option[IR_Expression] = None
+
+    val domains = IR_DomainCollection.objects
+
+    def fragId = IR_IV_FragmentId()
+
+    if (begin) {
+      for (d <- domains.indices) {
+        for (neigh <- neighbors) {
+          commStmts += IR_IfCondition(
+            if (sendNeighbors.contains(neigh))
+              IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
+            else
+              IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
+            IR_RemoteCommunicationStart(field, Duplicate(slot), genPackInfosDuplicateRemoteSend(ListBuffer(neigh)),
+              start = true, end = false, concurrencyId, insideFragLoop = true, condition)
+          )
+        }
+      }
+
+      for (d <- domains.indices) {
+        for (neigh <- neighbors) {
+          commStmts += IR_IfCondition(
+            if (sendNeighbors.contains(neigh))
+              IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
+            else
+              IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
+            IR_RemoteCommunicationFinish(field, Duplicate(slot), genPackInfosDuplicateRemoteRecv(ListBuffer(neigh)),
+              start = true, end = false, concurrencyId, insideFragLoop = true, condition)
+          )
+        }
+      }
+
+      // generate all possible combinations of neighbors
+      def recursiveLoop(start : Int, sendNeighs : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+        var localStmts = ListBuffer[IR_Statement]()
+        // case this one does not exist
+        val recvNeighs = neighbors filterNot (sendNeighs contains _)
+
+        var andStmts = ListBuffer[IR_Expression]()
+        for (n <- sendNeighs) {
+          if (sendNeighbors contains n)
+            andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
+          else
+            andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
+        }
+        for (n <- recvNeighs) {
+          if (recvNeighbors contains n)
+            andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
+          else
+            andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
+        }
+
+        localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
+          IR_LocalCommunicationStart(field, Duplicate(slot), genPackInfosDuplicateLocalSend(sendNeighs), genPackInfosDuplicateLocalRecv(recvNeighs),
+            insideFragLoop = true, condition)
+        )
+
+        for (idx <- start until neighbors.length) {
+          // case this exists and maybe also others
+          localStmts ++= recursiveLoop(idx + 1, sendNeighs :+ neighbors(idx))
+        }
+
+        localStmts
+      }
+
+      commStmts ++= recursiveLoop(0, ListBuffer())
+    }
+    if (finish) {
+      for (d <- domains.indices) {
+        for (neigh <- neighbors) {
+          commStmts += IR_IfCondition(
+            if (recvNeighbors.contains(neigh))
+              IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
+            else
+              IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
+            IR_RemoteCommunicationFinish(field, Duplicate(slot), genPackInfosDuplicateRemoteRecv(ListBuffer(neigh)),
+              start = false, end = true, concurrencyId, insideFragLoop = true, condition)
+          )
+        }
+      }
+
+      for (d <- domains.indices) {
+        for (neigh <- neighbors) {
+          commStmts += IR_IfCondition(
+            if (sendNeighbors.contains(neigh))
+              IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor))
+            else
+              IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index, indexOfRefinedNeighbor)),
+            IR_RemoteCommunicationStart(field, Duplicate(slot), genPackInfosDuplicateRemoteSend(ListBuffer(neigh)),
+              start = false, end = true, concurrencyId, insideFragLoop = true, condition)
+          )
+        }
+      }
+
+      // generate all possible combinations of neighbors
+      def recursiveLoop(start : Int, sendNeighs : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
+        var localStmts = ListBuffer[IR_Statement]()
+        // case this one does not exist
+        val recvNeighs = neighbors filterNot (sendNeighs contains _)
+
+        var andStmts = ListBuffer[IR_Expression]()
+        for (n <- sendNeighs) {
+          if (sendNeighbors contains n)
+            andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
+          else
+            andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
+        }
+        for (n <- recvNeighs) {
+          if (recvNeighbors contains n)
+            andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
+          else
+            andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index, indexOfRefinedNeighbor))
+        }
+
+        localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
+          IR_LocalCommunicationFinish(field, Duplicate(slot), genPackInfosDuplicateLocalSend(sendNeighs), genPackInfosDuplicateLocalRecv(recvNeighs),
+            insideFragLoop = true, condition)
+        )
+
+        for (idx <- start until neighbors.length) {
+          // case this exists and maybe also others
+          localStmts ++= recursiveLoop(idx + 1, sendNeighs :+ neighbors(idx))
+        }
+
+        localStmts
+      }
+
+      commStmts ++= recursiveLoop(0, ListBuffer())
+    }
+    commStmts
   }
 
   def compileBody() : ListBuffer[IR_Statement] = {
@@ -405,16 +429,7 @@ case class IR_CommunicateFunction(
               case _               => Logger.error(s"Unsupported communication direction $direction")
             }
 
-            if (begin) {
-              body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationStart(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
-            }
-            if (finish) {
-              body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
-            }
+            body ++= genDuplicateCommStatements(concurrencyId, sendNeighbors, recvNeighbors)
           }
         } else {
           val sendNeighbors = direction match {
@@ -429,146 +444,9 @@ case class IR_CommunicateFunction(
           }
 
           if (Knowledge.comm_enableCommTransformations) {
-
-            var commStmts = ListBuffer[IR_Statement]()
-
-            val domains = IR_DomainCollection.objects
-
-            def fragId = IR_IV_FragmentId()
-
-            if (begin) {
-              for (d <- domains.indices) {
-                for (neigh <- neighbors) {
-                  commStmts += IR_IfCondition(
-                    if (sendNeighbors.contains(neigh))
-                      IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
-                    else
-                      IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index)),
-                    IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(ListBuffer(neigh)), true, false, concurrencyId, true, condition)
-                  )
-                }
-              }
-
-              for (d <- domains.indices) {
-                for (neigh <- neighbors) {
-                  commStmts += IR_IfCondition(
-                    if (sendNeighbors.contains(neigh))
-                      IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
-                    else
-                      IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index)),
-                    IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(ListBuffer(neigh)), true, false, concurrencyId, true, condition)
-                  )
-                }
-              }
-
-              // generate all possible combinations of neighbors
-              def recursiveLoop(start : Int, sendNeighs : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-                var localStmts = ListBuffer[IR_Statement]()
-                // case this one does not exist
-                val recvNeighs = neighbors filterNot (sendNeighs contains _)
-
-                var andStmts = ListBuffer[IR_Expression]()
-                for (n <- sendNeighs) {
-                  if (sendNeighbors contains n)
-                    andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index))
-                  else
-                    andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index))
-                }
-                for (n <- recvNeighs) {
-                  if (recvNeighbors contains n)
-                    andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index))
-                  else
-                    andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index))
-                }
-
-                localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
-                  IR_LocalCommunicationStart(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighs), genIndicesDuplicateLocalRecv(recvNeighs), true, condition)
-                )
-
-                for (idx <- start until neighbors.length) {
-                  // case this exists and maybe also others
-                  localStmts ++= recursiveLoop(idx + 1, sendNeighs :+ neighbors(idx))
-                }
-
-                localStmts
-              }
-
-              commStmts ++= recursiveLoop(0, ListBuffer())
-            }
-            if (finish) {
-              for (d <- domains.indices) {
-                for (neigh <- neighbors) {
-                  commStmts += IR_IfCondition(
-                    if (recvNeighbors.contains(neigh))
-                      IR_LowerEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
-                    else
-                      IR_Lower(fragId, IR_IV_NeighFragId(d, neigh.index)),
-                    IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(ListBuffer(neigh)), false, true, concurrencyId, true, condition)
-                  )
-                }
-              }
-
-              for (d <- domains.indices) {
-                for (neigh <- neighbors) {
-                  commStmts += IR_IfCondition(
-                    if (sendNeighbors.contains(neigh))
-                      IR_GreaterEqual(fragId, IR_IV_NeighFragId(d, neigh.index))
-                    else
-                      IR_Greater(fragId, IR_IV_NeighFragId(d, neigh.index)),
-                    IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(ListBuffer(neigh)), false, true, concurrencyId, true, condition)
-                  )
-                }
-              }
-
-              // generate all possible combinations of neighbors
-              def recursiveLoop(start : Int, sendNeighs : ListBuffer[NeighborInfo]) : ListBuffer[IR_Statement] = {
-                var localStmts = ListBuffer[IR_Statement]()
-                // case this one does not exist
-                val recvNeighs = neighbors filterNot (sendNeighs contains _)
-
-                var andStmts = ListBuffer[IR_Expression]()
-                for (n <- sendNeighs) {
-                  if (sendNeighbors contains n)
-                    andStmts += IR_LowerEqual(fragId, IR_IV_NeighFragId(0, n.index))
-                  else
-                    andStmts += IR_Lower(fragId, IR_IV_NeighFragId(0, n.index))
-                }
-                for (n <- recvNeighs) {
-                  if (recvNeighbors contains n)
-                    andStmts += IR_GreaterEqual(fragId, IR_IV_NeighFragId(0, n.index))
-                  else
-                    andStmts += IR_Greater(fragId, IR_IV_NeighFragId(0, n.index))
-                }
-
-                localStmts += IR_IfCondition(andStmts.reduce(IR_OrOr),
-                  IR_LocalCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighs), genIndicesDuplicateLocalRecv(recvNeighs), true, condition)
-                )
-
-                for (idx <- start until neighbors.length) {
-                  // case this exists and maybe also others
-                  localStmts ++= recursiveLoop(idx + 1, sendNeighs :+ neighbors(idx))
-                }
-
-                localStmts
-              }
-
-              commStmts ++= recursiveLoop(0, ListBuffer())
-            }
-
-            body += IR_LoopOverFragments(commStmts)
-
-          }
-          else {
-            if (begin) {
-              body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationStart(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
-            }
-            if (finish) {
-              body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationFinish(field, Duplicate(slot), genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
-            }
+            body += IR_LoopOverFragments(compileTransformedDuplicateComm(sendNeighbors, recvNeighbors, concurrencyId))
+          } else {
+            body ++= genDuplicateCommStatements(concurrencyId, sendNeighbors, recvNeighbors)
           }
         }
       }
@@ -581,29 +459,10 @@ case class IR_CommunicateFunction(
         if (Knowledge.comm_batchCommunication) {
           for (dim <- 0 until field.layout.numDimsGrid) {
             val curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
-
-            if (begin) {
-              body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesGhostRemoteRecv(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationStart(field, Duplicate(slot), genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
-            }
-            if (finish) {
-              body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesGhostRemoteRecv(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationFinish(field, Duplicate(slot), genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
-            }
+            body ++= genGhostCommStatements(concurrencyId, curNeighbors)
           }
         } else {
-          if (begin) {
-            body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop, condition)
-            body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesGhostRemoteRecv(neighbors), true, false, concurrencyId, insideFragLoop, condition)
-            body += IR_LocalCommunicationStart(field, Duplicate(slot), genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
-          }
-          if (finish) {
-            body += IR_RemoteCommunicationFinish(field, Duplicate(slot), genIndicesGhostRemoteRecv(neighbors), false, true, concurrencyId, insideFragLoop, condition)
-            body += IR_RemoteCommunicationStart(field, Duplicate(slot), genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop, condition)
-            body += IR_LocalCommunicationFinish(field, Duplicate(slot), genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
-          }
+          body ++= genGhostCommStatements(concurrencyId, neighbors)
         }
       }
     }

@@ -21,6 +21,7 @@ package exastencils.timing.l4
 import scala.collection.immutable.HashMap
 
 import exastencils.base.ProgressLocation
+import exastencils.base.ir.IR_FunctionReference
 import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -41,7 +42,8 @@ object L4_TimerFunctions {
     "getLastTime" -> L4_DoubleDatatype,
     "printAllTimers" -> L4_UnitDatatype,
     "printAllTimersToFile" -> L4_UnitDatatype,
-    "printAllAutomaticTimers" -> L4_UnitDatatype,
+    /*"printAllAutomaticTimers" -> L4_UnitDatatype,*/
+    "printTimerStatistics" -> L4_UnitDatatype,
     "reduceTimers" -> L4_UnitDatatype
   )
 
@@ -51,18 +53,21 @@ object L4_TimerFunctions {
 
 /// L4_TimerFunctionReference
 
-case class L4_TimerFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
-  override def progress = ProgressLocation(IR_TimerFunctionReference(name, returnType.progress))
+case class L4_TimerFunctionReference(var name : String, var returnType : L4_Datatype, var level : Option[Int]) extends L4_PlainFunctionReference {
+  override def progress : IR_TimerFunctionReference = ProgressLocation(IR_TimerFunctionReference(name, returnType.progress, level))
 }
-
 /// L4_ResolveTimerFunctions
 
 object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function references") {
   this += new Transformation("Resolve", {
     case L4_UnresolvedFunctionReference(fctName, level, offset) if L4_TimerFunctions.exists(fctName) =>
-      if (level.isDefined) Logger.warn(s"Found leveled timing function ${ fctName } with level ${ level.get }; level is ignored")
+      //if (level.isDefined) Logger.warn(s"Found leveled timing function ${ fctName } with level ${ level.get }; level is ignored")
       if (offset.isDefined) Logger.warn(s"Found timing function ${ fctName } with offset; offset is ignored")
-      L4_TimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName))
+      if (level.isDefined) {
+        L4_TimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName), Some(level.get.resolveLevel))
+      } else {
+        L4_TimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName), None)
+      }
   })
 
   this += new Transformation("Convert string constants in function call arguments", {

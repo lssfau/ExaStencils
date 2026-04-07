@@ -388,11 +388,11 @@ abstract class IR_PrintExodus() extends IR_Statement with IR_Expandable with IR_
     }
 
     // re-use most of PnetCDF interface
-    statements ++= ioHanderNc.createOrOpenFile()
+    statements ++= ioHanderNc.createOrOpenFileWithTimer()
     statements ++= ioHanderNc.setupAccess()
     statements ++= writeExodusDatasets()
     statements ++= ioHanderNc.cleanupAccess()
-    statements ++= ioHanderNc.closeFile()
+    statements ++= ioHanderNc.closeFileWithTimer()
 
     statements
   }

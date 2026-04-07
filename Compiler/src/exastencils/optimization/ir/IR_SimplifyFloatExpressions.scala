@@ -22,7 +22,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir._
 
 object IR_SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expressions") {
 
@@ -53,12 +53,12 @@ object IR_SimplifyFloatExpressions extends DefaultStrategy("Simplify floating ex
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(fd : IR_IV_FieldData, _, _), src, op) //
+    case a @ IR_Assignment(IR_ArrayAccess(fd : IR_IV_AbstractFieldLikeData, _, _), src, op) //
       if fd.field.resolveBaseDatatype == IR_RealDatatype =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(fa : IR_MultiDimFieldAccess, src, op) =>
+    case a @ IR_Assignment(fa : IR_MultiDimFieldLikeAccess, src, op) =>
       a.src = simplify(src)
       a
   }, isParallel = true)

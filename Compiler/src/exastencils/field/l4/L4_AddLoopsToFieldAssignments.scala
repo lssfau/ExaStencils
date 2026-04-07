@@ -22,10 +22,11 @@ import exastencils.base.l4.L4_Assignment
 import exastencils.baseExt.l4._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 
 object L4_AddLoopsToFieldAssignments extends DefaultStrategy("Add loop statements around field assignments") {
   this += new Transformation("Add loops", {
-    case assignment @ L4_Assignment(lhs : L4_FieldAccess, rhs, op, cond) =>
+    case assignment @ L4_Assignment(lhs : L4_FieldLikeAccess, rhs, op, cond) =>
       val loop = L4_LoopOverField(Duplicate(lhs), assignment)
       loop.condition = cond
 

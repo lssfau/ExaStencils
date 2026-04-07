@@ -24,15 +24,19 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_SlotAccess
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.timing.ir.IR_TimerFunctions
+import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir._
 
 /// CUDA_PrepareMPICode
@@ -48,8 +52,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
-  var fieldAccesses = HashMap[String, IR_IV_FieldData]()
-  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+  var fieldAccesses = HashMap[String, IR_IV_AbstractFieldLikeData]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBufferLike]()
 
   var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
 
@@ -83,11 +87,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
           processRead(reduce.recvbuf)
         else
           processRead(reduce.sendbuf)
-      case _ =>
+      case _                   =>
     }
   }
 
-  def mapFieldAccess(access : IR_MultiDimFieldAccess, inWriteOp : Boolean) = {
+  def mapFieldAccess(access : IR_MultiDimFieldLikeAccess, inWriteOp : Boolean) = {
     val field = access.field
     var identifier = field.codeName
 
@@ -102,11 +106,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       }
     }
 
-    val fieldData = IR_IV_FieldData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx))
+    val fieldData = IR_IV_AbstractFieldLikeData(access.field, Duplicate(access.slot), Duplicate(access.fragIdx))
     fieldAccesses.put(identifier, fieldData)
   }
 
-  def mapFieldPtrAccess(fieldData : IR_IV_FieldData, inWriteOp : Boolean) {
+  def mapFieldPtrAccess(fieldData : IR_IV_AbstractFieldLikeData, inWriteOp : Boolean) {
     val field = fieldData.field
     var identifier = field.codeName
 
@@ -124,7 +128,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     fieldAccesses.put(identifier, fieldData)
   }
 
-  def mapBuffer(buffer : IR_IV_CommBuffer, inWriteOp : Boolean) = {
+  def mapBuffer(buffer : IR_IV_CommBufferLike, inWriteOp : Boolean) = {
     var identifier = buffer.resolveName()
     val neighIdx = buffer.neighIdx
 
@@ -135,10 +139,10 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   def processRead(expr : IR_Expression) {
     expr match {
-      case access : IR_MultiDimFieldAccess => mapFieldAccess(access, false)
-      case field : IR_IV_FieldData         => mapFieldPtrAccess(field, false)
-      case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, false)
-      case IR_PointerOffset(base, _)       => processRead(base)
+      case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, false)
+      case field : IR_IV_AbstractFieldLikeData => mapFieldPtrAccess(field, false)
+      case buffer : IR_IV_CommBufferLike       => mapBuffer(buffer, false)
+      case IR_PointerOffset(base, _)           => processRead(base)
 
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
       case IR_VariableAccess("timesToPrint", _)                             => // ignore
@@ -149,10 +153,10 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   def processWrite(expr : IR_Expression) {
     expr match {
-      case access : IR_MultiDimFieldAccess => mapFieldAccess(access, true)
-      case field : IR_IV_FieldData         => mapFieldPtrAccess(field, true)
-      case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, true)
-      case IR_PointerOffset(base, _)       => processWrite(base)
+      case access : IR_MultiDimFieldLikeAccess => mapFieldAccess(access, true)
+      case field : IR_IV_AbstractFieldLikeData => mapFieldPtrAccess(field, true)
+      case buffer : IR_IV_CommBufferLike       => mapBuffer(buffer, true)
+      case IR_PointerOffset(base, _)           => processWrite(base)
 
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
       case IR_VariableAccess("timesToPrint", _)                             => // ignore
@@ -175,19 +179,23 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     beforeHost ++= syncEventsBeforeHost(executionStream)
 
+    afterHost ++= syncFlagsAfterHost()
+
     // device sync stmts
 
-    if (!Knowledge.experimental_cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
-      afterDevice += CUDA_DeviceSynchronize()
+    if (!Knowledge.experimental_cuda_useStreams)
+      beforeDevice += CUDA_DeviceSynchronize()
 
     beforeDevice ++= syncEventsBeforeDevice(executionStream)
+
+    afterDevice ++= syncFlagsAfterDevice()
 
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
   // collect accessed elements for fragment loops with ContractingLoop and LoopOverDimensions nodes
   this += new Transformation("Collect accessed elements for fragment loop handling", {
-    case mpiStmt : MPI_Statement      =>
+    case mpiStmt : MPI_Statement =>
       collectAccessedElementsFragmentLoop(ListBuffer(mpiStmt), fragLoopCollector, commKernelCollector,
         isParallel = true, fromMPIStatement = true, estimatedHostTime = 0.0, estimatedDeviceTime = 0.0)
       mpiStmt
@@ -196,6 +204,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   // replace orig enclosing fragment loop with handled fragment loop structure
   this += new Transformation("Create overlapping fragment loop structure", {
     case loop : IR_LoopOverFragments                                                                                     =>
+      createFragLoopHandler(loop)
+    case loop : IR_LoopOverProcessLocalBlocks                                                                            =>
       createFragLoopHandler(loop)
     case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
       createFragLoopHandler(loop)
@@ -225,16 +235,17 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
         object CUDA_ReplaceAccessesInDeviceSpecMPI extends QuietDefaultStrategy("Replace accesses to fields and buffers to prepare device variants of MPI calls") {
           this += new Transformation("Search", {
-            case access : IR_DirectFieldAccess =>
+            case access : IR_DirectFieldLikeAccess =>
               val linearized = access.linearize
               val devField = CUDA_FieldDeviceData(linearized.field, Duplicate(linearized.slot), Duplicate(linearized.fragIdx))
               IR_ArrayAccess(devField, linearized.index)
 
-            case fieldData : IR_IV_FieldData =>
+            case fieldData : IR_IV_AbstractFieldLikeData =>
               CUDA_FieldDeviceData(fieldData.field, fieldData.slot, fieldData.fragmentIdx)
 
-            case buffer : IR_IV_CommBuffer =>
-              CUDA_BufferDeviceData(buffer.field, buffer.direction, buffer.size, buffer.neighIdx, buffer.fragmentIdx)
+            case buffer : IR_IV_CommBufferLike =>
+              CUDA_BufferDeviceData(buffer.field, buffer.send, buffer.size, buffer.neighIdx,
+                buffer.concurrencyId, buffer.indexOfRefinedNeighbor, buffer.fragmentIdx)
           })
         }
 
@@ -247,7 +258,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
         deviceStmts ++= afterDevice
 
         /// compile final switch
-        getHostDeviceBranchingMPI(hostStmts, deviceStmts)
+        val condWrapper = NoDuplicateWrapper[IR_Expression](null)
+        getHostDeviceBranchingMPICondWrapper(condWrapper, hostStmts, deviceStmts)
       }
   }, false)
 }

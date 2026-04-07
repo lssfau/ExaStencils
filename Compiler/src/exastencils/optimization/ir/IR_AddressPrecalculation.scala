@@ -22,7 +22,7 @@ import scala.collection.immutable.StringLike
 import scala.collection.mutable._
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_InternalVariable
+import exastencils.baseExt.ir.IR_InternalVariableLike
 import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.Collector
@@ -97,17 +97,17 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       var res : Boolean = false
       var allowed : String = null
       this += new Transformation("contains loop var", {
-        case strC : IR_StringLiteral  =>
+        case strC : IR_StringLiteral     =>
           val name = strC.value
           res |= chVars.contains(name) && (allowed != name)
           res |= inVars.contains(name)
           strC
-        case varA : IR_VariableAccess =>
+        case varA : IR_VariableAccess    =>
           val name = varA.name
           res |= chVars.contains(name) && (allowed != name)
           res |= inVars.contains(name)
           varA
-        case i : IR_InternalVariable  =>
+        case i : IR_InternalVariableLike =>
           val name = i.resolveName()
           res |= chVars.contains(name) && (allowed != name)
           res |= inVars.contains(name)
@@ -223,13 +223,13 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case _ : IR_StringLiteral
                | _ : IR_VariableAccess
                | _ : IR_ArrayAccess
-               | _ : IR_InternalVariable =>
+               | _ : IR_InternalVariableLike =>
             val (name, isArrayAcc) = resolveName(dst)
             if (isArrayAcc)
               chVars += name
             else
               inVars += name
-          case _                         => // nothing; expand match here, if more vars should stay inside the loop
+          case _                             => // nothing; expand match here, if more vars should stay inside the loop
         }
 
       case IR_VariableDeclaration(_, nName, _, _) if isInInner() && isValid() =>
@@ -277,10 +277,10 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   // returns identifier and a flag, which indicates if it is an array access
   private def resolveName(expr : IR_Expression) : (String, Boolean) = {
     expr match {
-      case IR_ArrayAccess(base, _, _) => (resolveName(base)._1, true)
-      case IR_VariableAccess(nam, _)  => (nam, false)
-      case IR_StringLiteral(str)      => (str, false)
-      case i : IR_InternalVariable    => (i.resolveName(), i.resolveAccess(null, null, null, null, IR_IntegerConstant(0), null).isInstanceOf[IR_ArrayAccess])
+      case IR_ArrayAccess(base, _, _)  => (resolveName(base)._1, true)
+      case IR_VariableAccess(nam, _)   => (nam, false)
+      case IR_StringLiteral(str)       => (str, false)
+      case i : IR_InternalVariableLike => (i.resolveName(), i.resolveAccess(null, null, null, null, IR_IntegerConstant(0), null).isInstanceOf[IR_ArrayAccess])
     }
   }
 }

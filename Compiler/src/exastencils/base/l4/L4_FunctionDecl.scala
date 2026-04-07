@@ -35,13 +35,37 @@ object L4_FunctionDecl {
       parameters.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], body.to[ListBuffer], allowInlining)
 }
 
+
+trait L4_FunctionDeclLike extends L4_Statement {
+  def name : String
+  def datatype : L4_Datatype
+  def parameters : ListBuffer[L4_Function.Argument]
+  def body : ListBuffer[L4_Statement]
+  def allowInlining : Boolean
+
+  var levels : Option[L4_DeclarationLevelSpecification]
+
+  def unfold : List[L4_FunctionDeclLike] = {
+    if (levels.isEmpty) Logger.warn(s"Unfolding un-leveled function declaration for $name")
+
+    val levelList = L4_LevelSpecification.extractLevelListDefAll(levels)
+    levelList.map(level => {
+      val newDecl = Duplicate(this)
+      newDecl.levels = Some(L4_SingleLevel(level))
+      newDecl
+    })
+  }
+
+  def toFunction : L4_Statement
+}
+
 case class L4_FunctionDecl(
     var name : String,
     var levels : Option[L4_DeclarationLevelSpecification],
     var datatype : L4_Datatype,
     var parameters : ListBuffer[L4_Function.Argument],
     var body : ListBuffer[L4_Statement],
-    var allowInlining : Boolean = true) extends L4_Statement {
+    var allowInlining : Boolean = true) extends L4_FunctionDeclLike {
 
   override def prettyprint(out : PpStream) = {
     out << (if (!allowInlining) "noinline " else "") << "Function " << name
@@ -56,17 +80,6 @@ case class L4_FunctionDecl(
 
   override def progress = Logger.error(s"Trying to progress L4 function declaration for $name; this is not supported")
 
-  def unfold = {
-    if (levels.isEmpty) Logger.warn(s"Unfolding un-leveled function declaration for $name")
-
-    val levelList = L4_LevelSpecification.extractLevelListDefAll(levels)
-    levelList.map(level => {
-      val newDecl = Duplicate(this)
-      newDecl.levels = Some(L4_SingleLevel(level))
-      newDecl
-    })
-  }
-
   def toFunction = {
     if (levels.isEmpty)
       L4_PlainFunction(name, datatype, parameters, body, allowInlining)
@@ -79,7 +92,7 @@ case class L4_FunctionDecl(
 
 object L4_UnfoldFunctionDeclarations extends DefaultStrategy("Unfold leveled L4 function declarations") {
   this += Transformation("Process new declarations", {
-    case decl : L4_FunctionDecl if decl.levels.isDefined => decl.unfold
+    case decl : L4_FunctionDeclLike if decl.levels.isDefined => decl.unfold
   })
 }
 
@@ -87,7 +100,7 @@ object L4_UnfoldFunctionDeclarations extends DefaultStrategy("Unfold leveled L4 
 
 object L4_ProcessFunctionDeclarations extends DefaultStrategy("Process L4 function declarations") {
   this += Transformation("Process function declarations", {
-    case decl : L4_FunctionDecl => decl.toFunction
+    case decl : L4_FunctionDeclLike => decl.toFunction
   })
 }
 
@@ -95,9 +108,9 @@ object L4_ProcessFunctionDeclarations extends DefaultStrategy("Process L4 functi
 
 object L4_ReplaceLevelsInFunctionDecls extends DefaultStrategy("Replace explicit levels with current, coarser and finer in functions") {
   this += new Transformation("Replace levels", {
-    case fct @ L4_FunctionDecl(_, Some(L4_SingleLevel(level)), _, _, body, _) =>
-      L4_ReplaceExplicitLevelsWithCurrent.curLevel = level
-      L4_ReplaceExplicitLevelsWithCurrent.applyStandalone(L4_Scope(body))
+    case fct : L4_FunctionDeclLike if fct.levels.isDefined && fct.levels.get.isInstanceOf[L4_SingleLevel] =>
+      L4_ReplaceExplicitLevelsWithCurrent.curLevel = fct.levels.get.asInstanceOf[L4_SingleLevel].level
+      L4_ReplaceExplicitLevelsWithCurrent.applyStandalone(L4_Scope(fct.body))
       fct
   })
 }
@@ -105,7 +118,7 @@ object L4_ReplaceLevelsInFunctionDecls extends DefaultStrategy("Replace explicit
 /// L4_CombineLeveledFunctions
 
 object L4_CombineLeveledFunctionDecls extends DefaultStrategy("Combine single functions into leveled functions") {
-  var functions = ListBuffer[(L4_FunctionDecl, Int)]()
+  var functions = ListBuffer[(L4_FunctionDeclLike, Int)]()
 
   override def apply(applyAtNode : Option[Node]) = {
     functions.clear
@@ -114,7 +127,7 @@ object L4_CombineLeveledFunctionDecls extends DefaultStrategy("Combine single fu
     super.apply(applyAtNode)
 
     // re-add combined functions
-    val combinedFcts = ListBuffer[L4_FunctionDecl]()
+    val combinedFcts = ListBuffer[L4_FunctionDeclLike]()
     while (functions.nonEmpty) {
       val (curFct, curLevel) = functions.remove(0)
 
@@ -137,8 +150,8 @@ object L4_CombineLeveledFunctionDecls extends DefaultStrategy("Combine single fu
   }
 
   this += new Transformation("Gather functions", {
-    case fct @ L4_FunctionDecl(_, Some(L4_SingleLevel(level)), _, _, _, _) =>
-      functions += ((fct, level))
+    case fct : L4_FunctionDeclLike if fct.levels.isDefined && fct.levels.get.isInstanceOf[L4_SingleLevel] =>
+      functions += ((fct, fct.levels.get.asInstanceOf[L4_SingleLevel].level))
       None // remove fct
   })
 }

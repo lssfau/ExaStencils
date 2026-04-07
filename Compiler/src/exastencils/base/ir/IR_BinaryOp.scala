@@ -60,6 +60,7 @@ object IR_BinaryOperators extends Enumeration {
   val Minimum = Value("min")
   val BitwiseAnd = Value("&")
   val LeftShift = Value("<<")
+  val RightShift = Value(">>")
 
   //  Conversions for Enumeration:
   // BinaryOperators -> String:  op.toString()
@@ -94,6 +95,7 @@ object IR_BinaryOperators extends Enumeration {
     case Minimum                => IR_Minimum(left, right)
     case BitwiseAnd             => IR_BitwiseAnd(left, right)
     case LeftShift              => IR_LeftShift(left, right)
+    case RightShift             => IR_RightShift(left, right)
   }
 
   def opAsIdent(op : String) = {
@@ -311,4 +313,9 @@ case class IR_BitwiseAnd(var left : IR_Expression, var right : IR_Expression) ex
 case class IR_LeftShift(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
   override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<<" << right << ')'
+}
+
+case class IR_RightShift(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
+  override def datatype = left.datatype
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << ">>" << right << ')'
 }

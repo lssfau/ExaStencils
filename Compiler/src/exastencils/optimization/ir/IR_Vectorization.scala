@@ -31,21 +31,30 @@ import exastencils.domain.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.simd._
+import exastencils.util.ir.IR_StackCollector
 
 object IR_Vectorization extends DefaultStrategy("Vectorization") {
+  val collector = new IR_StackCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   final val VECT_ANNOT : String = "VECT"
   final val COND_VECTABLE : String = "VECT_C"
   final val COND_IGN_INCR : String = "VECT_ign++"
 
+  private def isLoopIncrement(assign : IR_Assignment) : Boolean = collector.stack.exists {
+    case e : IR_ForLoop if e.inc == assign => true
+    case _                                 => false
+  }
+
   this += new Transformation("resolve compound assignments first", {
-    case IR_Assignment(dest, src, "+=") =>
+    case assign @ IR_Assignment(dest, src, "+=") if !isLoopIncrement(assign) =>
       IR_Assignment(Duplicate(dest), IR_Addition(dest, src))
-    case IR_Assignment(dest, src, "*=") =>
+    case assign @ IR_Assignment(dest, src, "*=") if !isLoopIncrement(assign) =>
       IR_Assignment(Duplicate(dest), IR_Multiplication(ListBuffer[IR_Expression](dest, src)))
-    case IR_Assignment(dest, src, "-=") =>
+    case assign @ IR_Assignment(dest, src, "-=") if !isLoopIncrement(assign) =>
       IR_Assignment(Duplicate(dest), IR_Subtraction(dest, src))
-    case IR_Assignment(dest, src, "/=") =>
+    case assign @ IR_Assignment(dest, src, "/=") if !isLoopIncrement(assign) =>
       IR_Assignment(Duplicate(dest), IR_Division(dest, src))
   }, false)
 
@@ -839,7 +848,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_Power(base, exp) if SIMD_MathFunctions.isAllowed("pow") =>
         IR_FunctionCall(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
 
-      case _ : IR_MemberAccess |
+      case _ : IR_MemberAccessLike |
+           _ : IR_ProcessLocalBlockLoopVariable |
            _ : IR_IV_FragmentPositionBegin |
            _ : IR_IV_FragmentPositionEnd |
            _ : IR_IV_FragmentPosition =>

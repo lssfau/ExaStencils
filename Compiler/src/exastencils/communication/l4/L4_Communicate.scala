@@ -24,7 +24,7 @@ import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.communication.ir._
 import exastencils.core.Duplicate
-import exastencils.field.l4.L4_FieldAccess
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting._
 
@@ -53,8 +53,8 @@ case class L4_Communicate(
     // TODO: extract to strategy replacing stencil field accesses with corresponding field accesses
     // FIXME: honor component accesses
     val (progressedField, progressedSlot) = Duplicate(field match {
-      case f : L4_FieldAccess         => (f.progress.field, f.progress.slot)
-      case sf : L4_StencilFieldAccess => (sf.target.getProgressedObj().field, L4_FieldAccess.resolveSlot(sf.target.getProgressedObj().field, sf.slot))
+      case f : L4_FieldLikeAccess         => (f.progress.field, f.progress.slot)
+      case sf : L4_StencilFieldAccess => (sf.target.getProgressedObj().field, L4_FieldLikeAccess.resolveSlot(sf.target.getProgressedObj().field, sf.slot))
     })
     val progressedTargets : ListBuffer[IR_CommunicateTarget] = ListBuffer()
 

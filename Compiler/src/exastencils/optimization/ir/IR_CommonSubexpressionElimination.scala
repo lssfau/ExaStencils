@@ -18,6 +18,7 @@
 
 package exastencils.optimization.ir
 
+import scala.collection.mutable.AbstractMap
 import scala.collection.mutable.{ ArrayBuffer, BitSet, Buffer, HashMap, ListBuffer, Map }
 import scala.reflect.ClassTag
 import scala.util.Sorting
@@ -30,7 +31,7 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.IR_PolyArrayAccessLike
@@ -576,6 +577,9 @@ private class CollectBaseCSes(curFunc : String) extends IR_StackCollector {
       case c : IR_IfCondition =>
         c.annotate(SKIP_ANNOT)
         skip = true
+      case blv : IR_ProcessLocalBlockLoopVariable =>
+        blv.annotate(SKIP_ANNOT)
+        skip = true
 
       case IR_VariableDeclaration(dt, name, _, _)                              =>
         commonSubs(IR_VariableAccess(name, dt)) = null
@@ -585,7 +589,7 @@ private class CollectBaseCSes(curFunc : String) extends IR_StackCollector {
         commonSubs(vAcc) = null
       case IR_Assignment(IR_ArrayAccess(iv : IR_InternalVariable, _, _), _, _) =>
         commonSubs(iv) = null
-      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                     =>
+      case IR_Assignment(dfa : IR_DirectFieldLikeAccess, _, _)                 =>
         commonSubs(dfa) = null
       case IR_Assignment(tba : IR_TempBufferAccess, _, _)                      =>
         commonSubs(tba) = null
@@ -599,7 +603,7 @@ private class CollectBaseCSes(curFunc : String) extends IR_StackCollector {
            | _ : IR_IV_FragmentPositionEnd
            | _ : IR_StringLiteral
            | _ : IR_ArrayAccess
-           | _ : IR_DirectFieldAccess
+           | _ : IR_DirectFieldLikeAccess
            | _ : IR_TempBufferAccess
            | _ : IR_LoopCarriedCSBufferAccess
            | _ : IR_InternalVariable //
@@ -772,7 +776,7 @@ case class IR_IV_LoopCarriedCSBuffer(var identifier : Int, var baseDatatype : IR
 
   lazy val basePtr = IR_IV_LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
 
-  override def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
+  override def registerIV(declarations : AbstractMap[String, IR_VariableDeclaration], ctors : AbstractMap[String, IR_Statement], dtors : AbstractMap[String, IR_Statement]) = {
     super.registerIV(declarations, ctors, dtors)
     if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
     basePtr.registerIV(declarations, ctors, dtors)

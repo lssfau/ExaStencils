@@ -18,33 +18,33 @@
 
 package exastencils.field.l4
 
+import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_MatShape
 import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
 import exastencils.field.ir.IR_Field
-import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
+import exastencils.field.ir.IR_FieldLayout
+import exastencils.fieldlike.l4.L4_FieldLike
 import exastencils.prettyprinting._
 
 /// L4_Field
 
 case class L4_Field(
-    var name : String, // will be used to find the field
-    var level : Int, // the level the field lives on
+    var name : String,
+    var level : Int,
     var index : Int,
     var domain : L4_Domain,
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
     var boundary : L4_BoundaryCondition,
-    var matShape : Option[L4_MatShape] = None
-) extends L4_LeveledKnowledgeObject[IR_Field] {
+    var matShape : Option[L4_MatShape] = None,
+    var gpuCompatible : Boolean = true
+) extends L4_FieldLike[IR_Field, IR_FieldLayout] {
 
   override def createDuplicate() : L4_Field = {
     L4_Field.tupled(Duplicate(L4_Field.unapply(this).get))
   }
-
-  def datatype = fieldLayout.datatype
-  def localization = fieldLayout.localization
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name
@@ -54,9 +54,6 @@ case class L4_Field(
     if (numSlots > 1) out << "[" << numSlots << "]"
     out << "@" << level
   }
-
-  def codeName = name + "_" + level
-  def numDimsGrid = domain.numDims
 
   override def progressImpl() = {
     IR_Field(
@@ -68,7 +65,11 @@ case class L4_Field(
       fieldLayout.getProgressedObj(),
       numSlots,
       boundary.progress,
-      if(matShape.isDefined) Some(matShape.get.progress) else None
+      if(matShape.isDefined) Some(matShape.get.progress) else None,
+      gpuCompatible
     )
   }
+
+  override def getFieldAccess(slot : L4_SlotSpecification, offset : Option[L4_ConstIndex], frozen : Boolean, matIndex : Option[L4_MatIndex]) : L4_FieldAccess =
+    L4_FieldAccess(this, slot, offset,frozen, matIndex)
 }

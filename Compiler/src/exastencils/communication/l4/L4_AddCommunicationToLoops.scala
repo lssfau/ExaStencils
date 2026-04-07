@@ -28,6 +28,7 @@ import exastencils.communication.l4.L4_FieldAccessRangeCollector.L4_FieldWithSlo
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.prettyprinting.PpStream
 
 /// L4_AddCommunicationToLoops
@@ -75,7 +76,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
         var targets = ListBuffer[L4_CommunicateTarget]()
         targets += L4_CommunicateTarget("all", None, None) // FIXME: Some(L4_ConstIndex(collector.readExtentMax(field).map(math.max(_, 0)))))
         commStatements += L4_Communicate(
-          L4_FieldAccess(field.field, field.slot),
+          L4_FieldLikeAccess(field.field, field.slot),
           "both",
           targets.toList,
           None,
@@ -94,7 +95,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       // TODO: move to separate strategy
       for (field <- collector.writeExtentMax.keys.toList.sortBy(f => f.field.name + f.field.level + f.slot))
         if (L4_NoBC != field.boundary)
-          finalStmts += L4_ApplyBC(L4_FieldAccess(field.field, field.slot))
+          finalStmts += L4_ApplyBC(L4_FieldLikeAccess(field.field, field.slot))
 
       finalStmts
 

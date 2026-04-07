@@ -17,7 +17,6 @@
 //=============================================================================
 
 package exastencils.communication
-
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config.Knowledge
@@ -27,6 +26,7 @@ import exastencils.scheduling.NoStrategyWrapper
 /// DefaultNeighbors
 
 object DefaultNeighbors {
+
   var neighbors = ListBuffer[NeighborInfo]()
 
   // ignores array entries beyond Knowledge.dimensionality
@@ -50,12 +50,16 @@ object DefaultNeighbors {
     if (Knowledge.comm_onlyAxisNeighbors) {
       var neighIndex = 0
       for (dim <- 0 until Knowledge.dimensionality) {
-        neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+        val downwindDir = Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0)
+        val upwindDir   = Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0)
+
+        neighbors += NeighborInfo(downwindDir, neighIndex)
         neighIndex += 1
-        neighbors += NeighborInfo(Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+        neighbors += NeighborInfo(upwindDir, neighIndex)
         neighIndex += 1
       }
     } else {
+      // TODO: only equal-level communication supported
       val unitDirections = Array(-1, 0, 1)
       var directions = ListBuffer(ListBuffer(-1), ListBuffer(0), ListBuffer(1))
       for (dim <- 1 until Knowledge.dimensionality)

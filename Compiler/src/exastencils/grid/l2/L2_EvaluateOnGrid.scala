@@ -81,7 +81,7 @@ case class L2_EvaluateOnGrid(
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
-    if (offset.isDefined) out << offset
+    if (offset.isDefined) out << offset.get
     out << " ( " << expression
     if ("default" != interpolation) out << ", " << interpolation
     out << " ) "

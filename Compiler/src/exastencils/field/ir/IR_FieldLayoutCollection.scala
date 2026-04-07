@@ -18,10 +18,13 @@
 
 package exastencils.field.ir
 
-import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
+import exastencils.fieldlike.ir.IR_FieldLikeLayoutCollection
+import exastencils.fieldlike.ir.IR_FieldLikeLayoutCollections
 
 /// IR_FieldLayoutCollection
 
-object IR_FieldLayoutCollection extends IR_LeveledKnowledgeCollection[IR_FieldLayout] {
+object IR_FieldLayoutCollection extends IR_FieldLikeLayoutCollection {
+
+  IR_FieldLikeLayoutCollections.register(this)
   exastencils.core.Duplicate.registerConstant(this)
 }

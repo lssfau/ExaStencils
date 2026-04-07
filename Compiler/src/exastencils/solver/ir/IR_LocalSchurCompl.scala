@@ -26,7 +26,8 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.config.Knowledge
 import exastencils.core._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_SlotAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 
 /// IR_LocalSchurCompl
@@ -35,7 +36,7 @@ object IR_LocalSchurCompl {
   def vecComponentAccess(vec : IR_VariableAccess, i0 : Int) = IR_HighDimAccess(vec, IR_ConstIndex(i0))
   def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
 
-  def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) = {
 
     // TODO: currently assumes special case of 2D/3D velocity-pressure coupling
@@ -78,7 +79,7 @@ object IR_LocalSchurCompl {
     onlyZeros
   }
 
-  def invert2D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def invert2D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) : ListBuffer[IR_Statement] = {
 
     val stmts = ListBuffer[IR_Statement]()
@@ -221,7 +222,7 @@ object IR_LocalSchurCompl {
     stmts
   }
 
-  def invert3D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def invert3D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean) : ListBuffer[IR_Statement] = {
 
     val stmts = ListBuffer[IR_Statement]()

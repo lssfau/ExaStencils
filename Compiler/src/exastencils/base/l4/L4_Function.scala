@@ -106,9 +106,8 @@ object L4_FunctionCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case fct : L4_PlainFunction   => plainFunctions += (fct.name -> fct.datatype)
-      case fct : L4_LeveledFunction => leveledFunctions += ((fct.name, fct.level) -> fct.datatype)
-
+      case fct : L4_PlainFunction                          => plainFunctions += (fct.name -> fct.datatype)
+      case fct : L4_LeveledFunction                        => leveledFunctions += ((fct.name, fct.level) -> fct.datatype)
       case _ =>
     }
   }

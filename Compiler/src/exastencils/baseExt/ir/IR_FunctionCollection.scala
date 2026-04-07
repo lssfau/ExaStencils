@@ -37,6 +37,11 @@ abstract class IR_FunctionCollection(var baseName : String,
     this
   }
 
+  def -=(fct : IR_FunctionLike) = {
+    functions -= fct
+    this
+  }
+
   def printHeader() = {
     val writer = PrettyprintingManager.getPrinter(s"$baseName.h")
     for (inc <- internalDependencies)

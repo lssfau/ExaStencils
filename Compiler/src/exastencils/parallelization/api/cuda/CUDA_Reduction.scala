@@ -30,7 +30,7 @@ import exastencils.prettyprinting.PpStream
 
 /// CUDA_ReductionDeviceDataAccess
 
-case class CUDA_ReductionDeviceDataAccess(var data : CUDA_ReductionDeviceData, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression with IR_SpecialExpandable {
+case class CUDA_ReductionDeviceDataAccess(var data : CUDA_ReductionDeviceDataLike, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression with IR_SpecialExpandable {
   override def datatype = data.datatype
 
   def linearize = IR_ArrayAccess(data, IR_Linearization.linearizeIndex(index, strides), alignedAccessPossible = false)
@@ -44,10 +44,25 @@ object CUDA_LinearizeReductionDeviceDataAccess extends DefaultStrategy("Lineariz
   })
 }
 
+// CUDA_ReductionDeviceDataLike
+
+trait CUDA_ReductionDeviceDataLike extends IR_InternalVariableLike with IR_Expression {
+  def numPoints : IR_Expression
+  def baseDt : IR_Datatype
+  def targetDt : IR_Datatype
+  def fragmentIdx : IR_Expression
+}
+
 /// CUDA_ReductionDeviceData
 
-case class CUDA_ReductionDeviceData(var numPoints : IR_Expression, var targetDt : IR_Datatype, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
+case class CUDA_ReductionDeviceData(
+    var numPoints : IR_Expression,
+    var targetDt : IR_Datatype,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
+) extends IR_InternalVariable(true, false, false, false, false) with CUDA_ReductionDeviceDataLike {
+
   override def prettyprint(out : PpStream) = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
+
   def baseDt = targetDt.resolveBaseDatatype
 
   override def resolveDatatype() = IR_PointerDatatype(baseDt)

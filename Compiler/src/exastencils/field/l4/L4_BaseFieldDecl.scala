@@ -23,6 +23,8 @@ import exastencils.baseExt.l4.L4_MatShape
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.boundary.l4._
 import exastencils.domain.l4._
+import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.l4.L4_FieldLikeCollection
 import exastencils.prettyprinting._
 
 /// L4_BaseFieldDecl
@@ -63,4 +65,6 @@ case class L4_BaseFieldDecl(
         matShape
       ))
   }
+
+  override def associatedCollection : L4_FieldLikeCollection[L4_Field, IR_Field] = L4_FieldCollection
 }

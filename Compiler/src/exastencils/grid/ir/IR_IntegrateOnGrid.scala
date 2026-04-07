@@ -26,7 +26,7 @@ import exastencils.baseExt.ir.IR_FieldIteratorAccess
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_CollectFieldAccesses
@@ -120,7 +120,7 @@ case class IR_IntegrateOnGrid(
       def addPIntAnnot(dim : Int, exp : IR_Expression) = { exp.annotate(s"${ pIntAnnot }_$dim"); exp }
 
       this += new Transformation("Wrap", {
-        case fieldAccess : IR_FieldAccess =>
+        case fieldAccess : IR_FieldLikeAccess =>
           if (stagDim.isEmpty) { // non-staggered cells
             fieldAccess.field.localization match {
               case IR_AtCellCenter => // interpolation

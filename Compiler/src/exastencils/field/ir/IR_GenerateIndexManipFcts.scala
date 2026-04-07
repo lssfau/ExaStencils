@@ -98,6 +98,10 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
             Knowledge.dimensions.map(dim => newInnerSize(dim) : IR_Expression).to[ListBuffer])
         }
 
+        // for empty function bodies: mark function parameters as unused
+        if (body.isEmpty)
+          body ++= Knowledge.dimensions.map(dim => IR_ExpressionStatement(IR_Cast(IR_UnitDatatype, newInnerSize(dim))))
+
         // set up function
         functions += IR_LeveledFunction(
           "resizeAllInner", level, IR_UnitDatatype,

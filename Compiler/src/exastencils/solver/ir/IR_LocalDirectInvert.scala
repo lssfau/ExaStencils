@@ -25,7 +25,8 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.core.Duplicate
-import exastencils.field.ir._
+import exastencils.field.ir.IR_SlotAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_LocalDirectInvert
@@ -34,13 +35,13 @@ object IR_LocalDirectInvert {
   def vecComponentAccess(vec : IR_VariableAccess, i0 : Int) = IR_HighDimAccess(vec, IR_ConstIndex(i0))
   def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
 
-  def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatShape) = {
 
     invert(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
   }
 
-  def invert(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def invert(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi: IR_MatShape) : ListBuffer[IR_Statement] = {
 
     def isNonZeroEntry(ex : IR_Expression) = {

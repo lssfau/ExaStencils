@@ -32,6 +32,8 @@ import exastencils.operator.l2._
 import exastencils.parsers._
 import exastencils.solver.l2._
 import exastencils.util.l2.L2_OffsetAlias
+import exastencils.waLBerla.l2._
+import exastencils.waLBerla.l2.field._
 
 object L2_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L2_Lexer
@@ -75,6 +77,7 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| inlineKnowledge
       ||| domainDeclaration
       ||| fieldDeclaration
+      ||| waLBerlaFieldDeclaration
       ||| fieldCombinationDeclaration
       ||| stencilDeclaration
       ||| stencilTemplateDeclaration
@@ -364,6 +367,22 @@ object L2_Parser extends ExaParser with PackratParsers {
 
   lazy val fieldCombinationDeclaration = locationize(("FieldCombination".? ~> ident) ~ levelDecl.? ~ (":" ~> stringLit) ~ ("=" ~> repsep(genericAccess, ","))
     ^^ { case id ~ levels ~ combType ~ fields => L2_FieldCombinationDecl(id, levels, combType, fields) })
+
+
+  // ######################################
+  // ##### l2_WaLBerlaFieldDeclarations
+  // ######################################
+
+  lazy val waLBerlaFieldDeclaration = waLBerlaBaseFieldDeclaration ||| waLBerlaBoundaryFieldDeclaration ||| waLBerlaFieldFromOther
+
+  lazy val waLBerlaBaseFieldDeclaration = locationize(("waLBerla" ~ "Field" ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ (integerLit <~ "times").? ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ levels ~ datatype ~ numSlots ~ initial => L2_WaLBerlaBaseFieldDecl(id, levels, datatype, numSlots, initial) })
+
+  lazy val waLBerlaBoundaryFieldDeclaration = locationize("waLBerla" ~> boundaryFieldDeclaration
+    ^^ ( bcFieldDecl => L2_WaLBerlaBoundaryFieldDecl(bcFieldDecl.name, bcFieldDecl.levels, bcFieldDecl.boundary)))
+
+  lazy val waLBerlaFieldFromOther = locationize("waLBerla" ~> fieldFromOther
+    ^^ ( fieldFromOtherDecl => L2_WaLBerlaFieldFromOther(fieldFromOtherDecl.name, fieldFromOtherDecl.levels, fieldFromOtherDecl.src) ))
 
   // #############################################################################
   // ################################# KNOWLEDGE #################################

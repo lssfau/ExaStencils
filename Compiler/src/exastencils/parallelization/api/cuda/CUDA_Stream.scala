@@ -14,7 +14,7 @@ import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_CommunicationKernelCollector
@@ -188,7 +188,7 @@ case class CUDA_CommunicateStream(neighborIdx : IR_Expression, fragmentIdx : IR_
 
 /// CUDA_TransferStream
 
-case class CUDA_TransferStream(field: IR_Field, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, true, false) {
+case class CUDA_TransferStream(field: IR_FieldLike, fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends CUDA_Stream(true, true, false) {
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 

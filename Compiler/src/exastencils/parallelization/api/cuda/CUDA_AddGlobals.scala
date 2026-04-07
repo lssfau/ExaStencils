@@ -33,22 +33,12 @@ object CUDA_AddGlobals extends NoTraversalStrategy("Extend globals for CUDA") {
 
     val initFunc = globals.functions.find(_.name == "initGlobals").get.asInstanceOf[IR_Function]
 
-    initFunc.body ++= ListBuffer[IR_Statement](
-      IR_VariableDeclaration(IR_IntegerDatatype, "deviceCount", 0),
-      "cudaGetDeviceCount(&deviceCount)",
-      IR_Assert(IR_Lower(Knowledge.cuda_deviceId, "deviceCount"),
-        ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", "deviceCount", "\")\""),
-        IR_FunctionCall(IR_ExternalFunctionReference("exit"), 1)),
-      s"cudaSetDevice(${ Knowledge.cuda_deviceId })"
-    )
+    // get device count
+    initFunc.body ++= CUDA_DeviceCount.setup()
 
     // print device info (name)
-    if (!Knowledge.testing_enabled) {
-      initFunc.body ++= ListBuffer[IR_Statement](
-        "cudaDeviceProp devProp",
-        s"cudaGetDeviceProperties(&devProp, ${ Knowledge.cuda_deviceId })",
-        IR_RawPrint("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", "devProp.name", "std::endl"))
-    }
+    if (!Knowledge.testing_enabled)
+      initFunc.body ++= CUDA_DeviceProperties.setup()
 
     // set L1 cache and shared memory configuration for this device
     if (Knowledge.cuda_useSharedMemory)

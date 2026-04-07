@@ -27,6 +27,7 @@ import exastencils.datastructures._
 import exastencils.field.ir.IR_IV_IndexFromField
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir.IR_FctNameCollector
 
@@ -152,7 +153,7 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
         IR_Assert(IR_BooleanConstant(false),
           ListBuffer(IR_StringConstant("missing CUDA code: loop is sequential")),
           IR_ExpressionStatement(if (Knowledge.mpi_enabled)
-            IR_FunctionCall("MPI_Abort", IR_VariableAccess("MPI_COMM_WORLD", IR_IntegerDatatype), IR_IntegerConstant(1))
+            IR_FunctionCall("MPI_Abort", MPI_IV_MpiComm, IR_IntegerConstant(1))
           else
             IR_FunctionCall("exit", IR_IntegerConstant(1))))
       }
@@ -169,12 +170,6 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
         case _                                             =>
           scope
       }
-  }, false)
-
-  this += new Transformation("Set final condition for host/device selection", {
-    case c : IR_IfCondition if c.hasAnnotation(CUDA_Util.CUDA_BRANCH_CONDITION) =>
-      c.condition = c.removeAnnotation(CUDA_Util.CUDA_BRANCH_CONDITION).get.asInstanceOf[NoDuplicateWrapper[IR_Expression]].value
-      c
   }, false)
 
   /// CUDA_GatherLoopIteratorUsage

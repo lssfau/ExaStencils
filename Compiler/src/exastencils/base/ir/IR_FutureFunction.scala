@@ -50,10 +50,10 @@ trait IR_FutureFunctionWithTiming extends IR_FutureFunction {
     var genFct = generateFct()
 
     if (IR_AutomaticTimingCategory.categoryEnabled(automaticTimingCategory)) {
-      val timer = IR_IV_AutomaticTimer(s"autoTime_${automaticTimingCategory.toString}_$name", automaticTimingCategory)
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ automaticTimingCategory.toString }_$name", automaticTimingCategory)
 
-      genFct.body.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
-      genFct.body.append(IR_FunctionCall(IR_StopTimer().name, timer))
+      genFct.body.prepend(IR_FunctionCall(IR_TimerFunctionReference(IR_StartTimer().name, IR_UnitDatatype, None), timer))
+      genFct.body.append(IR_FunctionCall(IR_TimerFunctionReference(IR_StopTimer().name, IR_UnitDatatype, None), timer))
     }
 
     genFct
@@ -84,4 +84,17 @@ trait IR_FutureLeveledFunction extends IR_FutureFunction {
 trait IR_FutureLeveledFunctionWithTiming extends IR_FutureFunctionWithTiming {
   def level : Int
   override def generateFct() : IR_LeveledFunction
+
+  override def expand() : Output[IR_Function] = {
+    var genFct = generateFct()
+
+    if (IR_AutomaticTimingCategory.categoryEnabled(automaticTimingCategory)) {
+      val timer = IR_IV_AutomaticLeveledTimer(s"autoTime_${ automaticTimingCategory.toString }_$name", automaticTimingCategory, level)
+
+      genFct.body.prepend(IR_FunctionCall(IR_TimerFunctionReference(IR_StartTimer().name, IR_UnitDatatype, Some(level)), timer))
+      genFct.body.append(IR_FunctionCall(IR_TimerFunctionReference(IR_StopTimer().name, IR_UnitDatatype, Some(level)), timer))
+    }
+
+    genFct
+  }
 }

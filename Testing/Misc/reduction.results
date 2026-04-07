@@ -1,5 +1,5 @@
 Passed stage 0: redTarget equals expected result
 Passed stage 1: Reduced matrix entry equals the number of reductions times the original value of the entry
-Passed stage 2: redTarget2[0][0] equals maxVal
-Passed stage 3
-Passed stage 4
+Passed stage 2: Reduced matrix entry redTarget2[0][0] equals maxVal
+Passed stage 3: Reduced matrix matches expected target matrix
+Passed stage 4: Reduced matrix matches expected target matrix

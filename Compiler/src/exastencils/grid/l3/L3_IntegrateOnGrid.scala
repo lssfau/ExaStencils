@@ -61,7 +61,7 @@ case class L3_IntegrateOnGrid(
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
-    if (offset.isDefined) out << offset
+    if (offset.isDefined) out << offset.get
     out << " ( " << expression << " ) "
   }
 

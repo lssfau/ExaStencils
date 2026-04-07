@@ -25,9 +25,10 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_LinearizedFieldLikeAccess
 
 object CUDA_IdentifierFromFieldAccess {
-  def apply(access : IR_LinearizedFieldAccess) = {
+  def apply(access : IR_LinearizedFieldLikeAccess) = {
     val field = access.field
     var identifier = field.codeName
 
@@ -54,16 +55,16 @@ object CUDA_IdentifierFromFieldAccess {
 /// CUDA_GatherLinearizedFieldAccess
 
 object CUDA_GatherLinearizedFieldAccess extends QuietDefaultStrategy("Gather local LinearizedFieldAccess nodes") {
-  var fieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
+  var fieldAccesses = HashMap[String, IR_LinearizedFieldLikeAccess]()
 
   def clear() = fieldAccesses.clear()
 
-  def mapFieldAccess(access : IR_LinearizedFieldAccess) = {
+  def mapFieldAccess(access : IR_LinearizedFieldLikeAccess) = {
     fieldAccesses.put(CUDA_IdentifierFromFieldAccess(access), access)
   }
 
   this += new Transformation("Searching", {
-    case access : IR_LinearizedFieldAccess =>
+    case access : IR_LinearizedFieldLikeAccess =>
       mapFieldAccess(access)
       access
   }, false)
@@ -72,14 +73,14 @@ object CUDA_GatherLinearizedFieldAccess extends QuietDefaultStrategy("Gather loc
 /// CUDA_ReplaceLinearizedFieldAccess
 
 object CUDA_ReplaceLinearizedFieldAccess extends QuietDefaultStrategy("Replace local LinearizedFieldAccess nodes") {
-  var fieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
+  var fieldAccesses = HashMap[String, IR_LinearizedFieldLikeAccess]()
 
-  def extractIdentifier(access : IR_LinearizedFieldAccess) = {
+  def extractIdentifier(access : IR_LinearizedFieldLikeAccess) = {
     IR_VariableAccess(CUDA_IdentifierFromFieldAccess(access), IR_PointerDatatype(access.field.resolveDeclType))
   }
 
   this += new Transformation("Searching", {
-    case access : IR_LinearizedFieldAccess =>
+    case access : IR_LinearizedFieldLikeAccess =>
       val identifier = extractIdentifier(access)
       IR_ArrayAccess(identifier, access.index)
   })
@@ -88,14 +89,14 @@ object CUDA_ReplaceLinearizedFieldAccess extends QuietDefaultStrategy("Replace l
 /// CUDA_GatherLinearizedFieldAccessWrites
 
 object CUDA_GatherLinearizedFieldAccessWrites extends QuietDefaultStrategy("Gather local write accesses to LinearizedFieldAccess nodes for read-only cache usage") {
-  var writtenFieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
+  var writtenFieldAccesses = HashMap[String, IR_LinearizedFieldLikeAccess]()
 
-  def mapFieldAccess(access : IR_LinearizedFieldAccess) = {
+  def mapFieldAccess(access : IR_LinearizedFieldLikeAccess) = {
     writtenFieldAccesses.put(CUDA_IdentifierFromFieldAccess(access), access)
   }
 
   this += new Transformation("Searching", {
-    case stmt @ IR_Assignment(access : IR_LinearizedFieldAccess, _, _) =>
+    case stmt @ IR_Assignment(access : IR_LinearizedFieldLikeAccess, _, _) =>
       mapFieldAccess(access)
       stmt
   })

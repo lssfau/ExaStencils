@@ -27,7 +27,7 @@ import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir._
 import exastencils.scheduling.NoStrategyWrapper
@@ -47,10 +47,10 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (left : IR_StencilAccess, right : IR_FieldAccess)      =>
+        case (left : IR_StencilAccess, right : IR_FieldLikeAccess)      =>
           result += IR_StencilConvolution(left, right)
           prev = null
-        case (left : IR_StencilFieldAccess, right : IR_FieldAccess) =>
+        case (left : IR_StencilFieldAccess, right : IR_FieldLikeAccess) =>
           result += IR_StencilFieldConvolution(left, right)
           prev = null
         case _                                                      =>

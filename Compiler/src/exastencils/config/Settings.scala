@@ -242,6 +242,9 @@ object Settings {
         if (!additionalIncludes.contains("likwid-marker.h")) additionalIncludes += "likwid-marker.h"
         if (!additionalLibs.contains("likwid")) additionalLibs += "likwid"
         if (!additionalDefines.contains("LIKWID_PERFMON")) additionalDefines += "LIKWID_PERFMON"
+      case "talp" =>
+        if (!additionalLibs.contains("dlb_mpi")) additionalLibs += "dlb_mpi"
+        if (!additionalIncludes.contains("dlb_talp.h")) additionalIncludes += "dlb_talp.h"
       case _ =>
     }
     if (Platform.simd_mathLibrary == "mass_simd")

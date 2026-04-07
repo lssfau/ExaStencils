@@ -23,13 +23,13 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ProgressLocation
 import exastencils.base.l4._
 import exastencils.datastructures._
-import exastencils.field.l4._
+import exastencils.fieldlike.l4.L4_FieldLikeAccess
 import exastencils.operator.ir.IR_OperatorTimesField
 import exastencils.prettyprinting.PpStream
 
 /// L4_OperatorTimesField
 
-case class L4_OperatorTimesField(var lhs : L4_OperatorAccess, var rhs : L4_FieldAccess) extends L4_Expression {
+case class L4_OperatorTimesField(var lhs : L4_OperatorAccess, var rhs : L4_FieldLikeAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = out << lhs << " * " << rhs
   override def progress = ProgressLocation(IR_OperatorTimesField(lhs.progress, rhs.progress))
 }
@@ -45,8 +45,8 @@ object L4_ResolveOperatorTimesField extends DefaultStrategy("Resolving L4 operat
         case _ if skipNext => skipNext = false
 
         case op : L4_OperatorAccess =>
-          if (i + 1 < factors.indices.length && factors(i + 1).isInstanceOf[L4_FieldAccess]) {
-            newFactors += L4_OperatorTimesField(op, factors(i + 1).asInstanceOf[L4_FieldAccess])
+          if (i + 1 < factors.indices.length && factors(i + 1).isInstanceOf[L4_FieldLikeAccess]) {
+            newFactors += L4_OperatorTimesField(op, factors(i + 1).asInstanceOf[L4_FieldLikeAccess])
             skipNext = true
           } else {
             newFactors += op

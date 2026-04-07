@@ -1,27 +1,15 @@
 package exastencils.baseExt.ir.IR_MatNodes
 
 import scala.collection.mutable.ListBuffer
-import exastencils.base.ir.IR_Access
-import exastencils.base.ir.IR_Datatype
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ScalarDatatype
-import exastencils.base.ir.IR_Scope
-import exastencils.base.ir.IR_Statement
-import exastencils.base.ir.IR_VariableAccess
-import exastencils.baseExt.ir.IR_ClassifyMatShape
-import exastencils.baseExt.ir.IR_CompiletimeMatOps
-import exastencils.baseExt.ir.IR_MatNodeUtils
-import exastencils.baseExt.ir.IR_MatOperations.{IR_EvalMOpRuntimeExe, IR_GenerateRuntimeInversion}
-import exastencils.baseExt.ir.IR_MatShape
-import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.IR_MatrixExpression
-import exastencils.baseExt.ir.IR_PreItMOps
-import exastencils.baseExt.ir.IR_ResolveMatFuncs
-import exastencils.config.Knowledge
+
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MatOperations.IR_EvalMOpRuntimeExe
+import exastencils.baseExt.ir.IR_MatOperations.IR_GenerateRuntimeInversion
+import exastencils.baseExt.ir._
 import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
-import exastencils.field.ir.IR_FieldAccess
-import exastencils.field.ir.IR_MultiDimFieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
+import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
@@ -39,7 +27,7 @@ object IR_IntermediateInv {
       case _                                                     => Logger.error(s"argument of unexpected type: ${ arg }")
     }
 
-    new IR_IntermediateInv(argexpr, structInfo, determineStructure, IR_EvalMOpRuntimeExe("inverse",argexpr.rows) == "Runtime")
+    new IR_IntermediateInv(argexpr, structInfo, determineStructure, IR_EvalMOpRuntimeExe("inverse", argexpr.rows) == "Runtime")
   }
   def apply(args : ListBuffer[IR_Expression]) = {
 
@@ -56,11 +44,11 @@ object IR_IntermediateInv {
         case _ @ IR_VariableAccess(name, IR_MatrixDatatype(_, rows, _)) =>
           n = rows
           var initVal = IR_PreItMOps.variableCollector.getConstInitVal(name)
-          if(!initVal.isDefined) Logger.error("could not retrieve const init value of matrix to classify")
+          if (!initVal.isDefined) Logger.error("could not retrieve const init value of matrix to classify")
           initVal.get match {
             case me : IR_MatrixExpression => IR_ClassifyMatShape(me)
-            case va : IR_VariableAccess => IR_ClassifyMatShape(IR_MatNodeUtils.accessToMatExpr(va))
-            case _ => Logger.error(s"can not classify initial value of type: ${initVal.get}")
+            case va : IR_VariableAccess   => IR_ClassifyMatShape(IR_MatNodeUtils.accessToMatExpr(va))
+            case _                        => Logger.error(s"can not classify initial value of type: ${ initVal.get }")
           }
 
         case x : IR_MatrixExpression =>
@@ -112,12 +100,12 @@ case class IR_InverseCT(
         // get initial expression to use LU optimization
         //IR_MatNodeUtils.accessToExpression(va)
         val initOp = IR_ResolveMatFuncs.variableCollector.getConstInitVal(va.name)
-        if(initOp.isDefined){
+        if (initOp.isDefined) {
           Logger.warn("inverting initial expression")
         }
         initOp.getOrElse(IR_MatNodeUtils.accessToMatExpr(va)).asInstanceOf[IR_MatrixExpression]
-      case fa : IR_FieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                                   => IR_MatNodeUtils.accessToMatExpr(fa)
-      case fa : IR_MultiDimFieldAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                           => IR_MatNodeUtils.accessToMatExpr(fa)
+      case fa : IR_FieldLikeAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                               => IR_MatNodeUtils.accessToMatExpr(fa)
+      case fa : IR_MultiDimFieldLikeAccess if (fa.datatype.isInstanceOf[IR_MatrixDatatype])                                       => IR_MatNodeUtils.accessToMatExpr(fa)
       case _                                                                                                                      => Logger.error(s"argument of unexpected type: ${ arg }")
     }
     var tmp = IR_CompiletimeMatOps.inverse(argexpr, msi)
@@ -162,16 +150,16 @@ case class IR_InverseRT(
         newstmts += decl
         IR_VariableAccess(decl)
       case va : IR_VariableAccess              => va
-      case fa : IR_FieldAccess                 => fa
+      case fa : IR_FieldLikeAccess             => fa
       case _                                   => Logger.error(s"unexpected argument type: ${ arg }")
     }
 
     if (determineStructureAtRuntime) {
       // runtime inversion with structure classification
       val destname = dest match {
-        case va : IR_VariableAccess => va.name
-        case fa : IR_FieldAccess    => fa.name
-        case _                      => Logger.error("unexpected type")
+        case va : IR_VariableAccess  => va.name
+        case fa : IR_FieldLikeAccess => fa.name
+        case _                       => Logger.error("unexpected type")
       }
       newstmts += IR_GenerateRuntimeInversion.inverseBranchAtRuntime(inMatrix, destname, dest)
     }

@@ -75,11 +75,25 @@ abstract class L3_LeveledKnowledgeCollection[L3_Type <: L3_LeveledKnowledgeObjec
   var objects : ListBuffer[L3_Type] = ListBuffer()
   var declared : ListBuffer[NameAndLevel] = ListBuffer()
 
-  def exists(identifier : String) = { objects.exists(_.name == identifier) }
-  def exists(identifier : String, level : Int) = { objects.exists(f => f.name == identifier && f.level == level) }
+  def exists(identifier : String) : Boolean = { objects.exists(_.name == identifier) }
+  def exists(identifier : String, level : Int) : Boolean = { objects.exists(f => f.name == identifier && f.level == level) }
+  def exists(identifier : String, level : Option[L3_LevelSpecification]) : Boolean = {
+    if (level.isEmpty) Logger.error(s"Missing level specification for $identifier")
+    level.get match {
+      case L3_SingleLevel(lvl) => exists(identifier, lvl)
+      case other               => Logger.error(s"Unsupported level specification for $identifier: ${ other.prettyprint() }")
+    }
+  }
 
-  def existsDecl(identifier : String) = { declared.exists(_.name == identifier) }
-  def existsDecl(identifier : String, level : Int) = { declared.exists(f => f.name == identifier && f.level == level) }
+  def existsDecl(identifier : String) : Boolean = { declared.exists(_.name == identifier) }
+  def existsDecl(identifier : String, level : Int) : Boolean = { declared.exists(f => f.name == identifier && f.level == level) }
+  def existsDecl(identifier : String, level : Option[L3_LevelSpecification]) : Boolean = {
+    if (level.isEmpty) Logger.error(s"Missing level specification for $identifier")
+    level.get match {
+      case L3_SingleLevel(lvl) => existsDecl(identifier, lvl)
+      case other               => Logger.error(s"Unsupported level specification for $identifier: ${ other.prettyprint() }")
+    }
+  }
 
   def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[L3_Type] = {
     val ret = objects.find(f => f.name == identifier && f.level == level)
@@ -104,12 +118,12 @@ abstract class L3_LeveledKnowledgeCollection[L3_Type <: L3_LeveledKnowledgeObjec
     objects += newObj
   }
 
-  def addDeclared(name : String, level : Int) : Unit = { declared += NameAndLevel(name, level) }
-  def addDeclared(name : String, level : Option[L3_LevelSpecification]) : Unit = {
-    if (level.isEmpty) Logger.error(s"Missing level specification for $name")
+  def addDeclared(identifier : String, level : Int) : Unit = { declared += NameAndLevel(identifier, level) }
+  def addDeclared(identifier : String, level : Option[L3_LevelSpecification]) : Unit = {
+    if (level.isEmpty) Logger.error(s"Missing level specification for $identifier")
     level.get match {
-      case L3_SingleLevel(lvl) => addDeclared(name, lvl)
-      case other               => Logger.error(s"Unsupported level specification for $name: ${ other.prettyprint() }")
+      case L3_SingleLevel(lvl) => addDeclared(identifier, lvl)
+      case other               => Logger.error(s"Unsupported level specification for $identifier: ${ other.prettyprint() }")
     }
   }
 

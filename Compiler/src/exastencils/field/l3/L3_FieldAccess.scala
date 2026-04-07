@@ -20,8 +20,9 @@ package exastencils.field.l3
 
 import exastencils.base.ProgressLocation
 import exastencils.base.l3._
-import exastencils.datastructures._
 import exastencils.field.l4._
+import exastencils.fieldlike.l3.L3_FieldLike
+import exastencils.fieldlike.l3.L3_FieldLikeCollections
 import exastencils.knowledge.l3._
 import exastencils.prettyprinting.PpStream
 
@@ -29,12 +30,12 @@ import exastencils.prettyprinting.PpStream
 
 object L3_FieldAccess {
   def apply(access : L3_FutureFieldAccess) =
-    new L3_FieldAccess(L3_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.frozen)
-  def apply(target : L3_Field) = new L3_FieldAccess(target, L3_ActiveSlot, None)
+    new L3_FieldAccess(L3_FieldLikeCollections.getByIdentifier(access.name, access.level).get.toField, access.slot, access.offset, access.frozen)
+  def apply(target : L3_FieldLike[_]) = new L3_FieldAccess(target.toField, L3_ActiveSlot, None)
 }
 
 case class L3_FieldAccess(
-    var target : L3_Field,
+    var target : L3_Field, // TODO: abstract class
     var slot : L3_SlotSpecification,
     var offset : Option[L3_ConstIndex] = None,
     var frozen : Boolean = false) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset {
@@ -49,14 +50,4 @@ case class L3_FieldAccess(
   def getOffset = offset.getOrElse(L3_ConstIndex(Array.fill(target.numDimsGrid)(0)))
 
   override def progress = ProgressLocation(L4_FieldAccess(target.getProgressedObj(), slot.progress, L3_ProgressOption(offset)(_.progress), frozen))
-}
-
-/// L3_ResolveFieldAccesses
-
-object L3_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fields") {
-  this += new Transformation("Resolve applicable future accesses", {
-    // check if declaration has already been processed and promote access if possible
-    case access : L3_FutureFieldAccess if L3_FieldCollection.exists(access.name, access.level) =>
-      access.toFieldAccess
-  })
 }

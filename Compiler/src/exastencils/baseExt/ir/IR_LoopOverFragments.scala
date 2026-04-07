@@ -37,13 +37,15 @@ object IR_LoopOverFragments {
 
 case class IR_LoopOverFragments(
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_ScopedStatement with IR_SpecialExpandable with IR_HasParallelizationInfo {
-
-  import IR_LoopOverFragments.defIt
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_LoopOverProcessLocalBlocks {
 
   def expandSpecial() : Output[IR_ForLoop] = {
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
+
+    // if there is no loop found, we determine here if omp parallelization is reasonable
+    if (Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments & !body.exists(_.isInstanceOf[IR_HasParallelizationInfo]))
+      parallelization.potentiallyParallel &&= parallelizationOverFragmentsIsReasonable(Array(Knowledge.domain_numFragmentsPerBlock))
 
     val loop = IR_ForLoop(
       IR_VariableDeclaration(defIt, 0),

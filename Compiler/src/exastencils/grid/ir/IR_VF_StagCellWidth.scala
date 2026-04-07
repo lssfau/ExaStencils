@@ -24,7 +24,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_Domain
-import exastencils.field.ir._
+import exastencils.field.ir.IR_FieldCollection
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 
 /// IR_VF_StagCellWidthAsVec
@@ -102,7 +103,7 @@ case class IR_VF_StagCellWidthPerDim(
       // -> read widths from field in stagger dimensions
 
       if (dim == stagDim) // read from field
-        IR_FieldAccess(associatedField, 0, IR_GridUtil.projectIdx(index, dim))
+        IR_FieldLikeAccess(associatedField, 0, IR_GridUtil.projectIdx(index, dim))
       else // just the un-staggered cell width
         IR_VF_CellWidthPerDim.access(level, dim, index)
 

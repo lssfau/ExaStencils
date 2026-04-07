@@ -18,14 +18,43 @@
 
 package exastencils.boundary.ir
 
+import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ir.IR_Expression
+import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_Node
+import exastencils.base.ir.IR_Statement
+import exastencils.communication.NeighborInfo
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
+import exastencils.grid.ir.IR_AtCellCenter
+import exastencils.grid.ir.IR_AtFaceCenter
+import exastencils.grid.ir.IR_AtNode
 
 /// IR_BoundaryCondition
 
-trait IR_BoundaryCondition extends IR_Node
+trait IR_BoundaryCondition extends IR_Node {
+
+  def generateFieldUpdate(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
+    field.layout.localization match {
+      case IR_AtNode                                           => generateFieldUpdatesNode(field, slot, fragIdx, neigh)
+      case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => generateFieldUpdatesNode(field, slot, fragIdx, neigh)
+      case IR_AtCellCenter                                     => generateFieldUpdatesCell(field, slot, fragIdx, neigh)
+      case IR_AtFaceCenter(_)                                  => generateFieldUpdatesCell(field, slot, fragIdx, neigh)
+    }
+  }
+
+  def accessField(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, idx : IR_ExpressionIndex) = IR_FieldLikeAccess(field, slot, fragIdx, idx)
+
+  def generateFieldUpdatesNode(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) : ListBuffer[IR_Statement]
+  def generateFieldUpdatesCell(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) : ListBuffer[IR_Statement]
+}
 
 /// IR_NoBC
 
 case object IR_NoBC extends IR_BoundaryCondition {
   exastencils.core.Duplicate.registerConstant(this)
+
+  override def generateFieldUpdatesNode(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) = ListBuffer()
+  override def generateFieldUpdatesCell(field : IR_FieldLike, slot : IR_Expression, fragIdx : IR_Expression, neigh : NeighborInfo) = ListBuffer()
 }

@@ -139,6 +139,16 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
 
   /* structure of file access classes */
   def createOrOpenFile() : ListBuffer[IR_Statement]
+  def createOrOpenFileWithTimer() : ListBuffer[IR_Statement] = {
+    val stmts = createOrOpenFile()
+
+    val timingCategory = IR_AutomaticTimingCategory.IO
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_${ interfaceName }_${ if (writeAccess) "w" else "r" }", timingCategory)
+      stmts.prepend(IR_FunctionCall(IR_TimerFunctionReference(IR_StartTimer().name, IR_DoubleDatatype, None), timer))
+    }
+    stmts
+  }
   def setupAccess() : ListBuffer[IR_Statement]
   def fileAccess(bufIdx : Int) : ListBuffer[IR_Statement] = {
     if (writeAccess) {
@@ -150,6 +160,16 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
   def fileAccess(buffer : IR_DataBuffer) : ListBuffer[IR_Statement] = fileAccess(dataBuffers.indexOf(buffer))
   def cleanupAccess() : ListBuffer[IR_Statement]
   def closeFile() : ListBuffer[IR_Statement]
+  def closeFileWithTimer() : ListBuffer[IR_Statement] = {
+    val stmts = closeFile()
+
+    val timingCategory = IR_AutomaticTimingCategory.IO
+    if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
+      val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_${ interfaceName }_${ if (writeAccess) "w" else "r" }", timingCategory)
+      stmts.append(IR_FunctionCall(IR_TimerFunctionReference(IR_StopTimer().name, IR_DoubleDatatype, None), timer))
+    }
+    stmts
+  }
 
   // headers, libs and paths of each I/O interface
   def libraries : ListBuffer[String] = ListBuffer()
@@ -227,13 +247,13 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
     var stmts : ListBuffer[IR_Statement] = ListBuffer()
 
     if (dataBuffers.nonEmpty) {
-      stmts ++= createOrOpenFile()
+      stmts ++= createOrOpenFileWithTimer()
       stmts ++= setupAccess()
       for (bufIdx <- dataBuffers.indices) {
         stmts ++= fileAccess(bufIdx)
       }
       stmts ++= cleanupAccess()
-      stmts ++= closeFile()
+      stmts ++= closeFileWithTimer()
     }
 
     // handling for fields with transformed layout
@@ -247,6 +267,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
     IR_DataBuffer.resetDimensionalityMap()
 
     // add automatic timers for I/O
+    /*
     val timingCategory = IR_AutomaticTimingCategory.IO
     if (IR_AutomaticTimingCategory.categoryEnabled(timingCategory)) {
       val timer = IR_IV_AutomaticTimer(s"autoTime_${ timingCategory.toString }_${interfaceName}_${if (writeAccess) "w" else "r"}", timingCategory)
@@ -254,6 +275,7 @@ abstract class IR_FileAccess(interfaceName : String) extends IR_Statement with I
       stmts.prepend(IR_FunctionCall(IR_StartTimer().name, timer))
       stmts.append(IR_FunctionCall(IR_StopTimer().name, timer))
     }
+    */
 
     stmts
   }

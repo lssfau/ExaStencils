@@ -24,15 +24,19 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir.IR_IV_CommBufferLike
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_AdvanceSlot
+import exastencils.field.ir.IR_IV_ActiveSlot
+import exastencils.fieldlike.ir.IR_FieldLike
+import exastencils.fieldlike.ir.IR_IV_AbstractFieldLikeData
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.util.NoDuplicateWrapper
 import exastencils.util.ir._
+import exastencils.base.ir.IR_ImplicitConversion._
 
 /// CUDA_PrepareHostCode
 
@@ -50,8 +54,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   this.register(commKernelCollector)
   this.onBefore = () => this.resetCollectors()
 
-  var fieldAccesses = HashMap[String, IR_IV_FieldData]()
-  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
+  var fieldAccesses = HashMap[String, IR_IV_AbstractFieldLikeData]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBufferLike]()
 
   var accessedElementsFragLoop : mutable.HashMap[IR_ScopedStatement with IR_HasParallelizationInfo, CUDA_AccessedElementsInFragmentLoop] = mutable.HashMap()
 
@@ -71,11 +75,11 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     this.unregister(gatherBuffers)
     Logger.popLevel()
 
-    fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, acc) => str -> IR_IV_FieldData(acc.field, acc.slot, acc.fragIdx) }
+    fieldAccesses ++= gatherFields.fieldAccesses.map { case (str, acc) => str -> IR_IV_AbstractFieldLikeData(acc.field, acc.slot, acc.fragIdx) }
     bufferAccesses ++= gatherBuffers.bufferAccesses
   }
 
-  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream: CUDA_Stream) = {
+  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean, executionStream : CUDA_Stream) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
 
@@ -86,11 +90,15 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
 
     beforeHost ++= syncEventsBeforeHost(executionStream)
 
+    afterHost ++= syncFlagsAfterHost()
+
     // device sync stmts
 
     if (isParallel) {
       if (!Knowledge.experimental_cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
+
+      afterDevice ++= syncFlagsAfterDevice()
     }
 
     beforeDevice ++= syncEventsBeforeDevice(executionStream)
@@ -99,7 +107,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   }
 
   // extract estimated times for host/device from performance evaluation strategy (zero if estimation doesn't exist)
-  def getTimeEstimation(loop: IR_LoopOverDimensions, host: Boolean) =
+  def getTimeEstimation(loop : IR_LoopOverDimensions, host : Boolean) =
     loop.getAnnotation(if (host) "perf_timeEstimate_host" else "perf_timeEstimate_device").getOrElse(0.0).asInstanceOf[Double]
 
   // use condWrapper to prevent automatic removal of branching from simplification strategies
@@ -125,6 +133,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   this += new Transformation("Create overlapping fragment loop structure", {
     case loop : IR_LoopOverFragments                                                                                     =>
       createFragLoopHandler(loop)
+    case loop : IR_LoopOverProcessLocalBlocks                                                                            =>
+      createFragLoopHandler(loop)
     case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == IR_LoopOverFragments.defIt.name =>
       createFragLoopHandler(loop)
   }, false)
@@ -134,7 +144,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val hostStmts = new ListBuffer[IR_Statement]()
       val deviceStmts = new ListBuffer[IR_Statement]()
       val fieldOffset = new mutable.HashMap[(String, Int), Int]()
-      val fields = new mutable.HashMap[(String, Int), IR_Field]()
+      val fields = new mutable.HashMap[(String, Int), IR_FieldLike]()
       var hostCondStmt : IR_IfCondition = null
       var deviceCondStmt : IR_IfCondition = null
 

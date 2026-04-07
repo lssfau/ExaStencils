@@ -33,6 +33,7 @@ object L1_PrintKnowledgeDecl {
     }
 
     out << "// field declarations\n\n"
+    // TODO: Use FieldLikeCollections instead or FieldCollection
     L1_FieldCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
       out << "\n\n"

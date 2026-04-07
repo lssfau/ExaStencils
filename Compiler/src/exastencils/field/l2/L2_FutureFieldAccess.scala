@@ -20,13 +20,11 @@ package exastencils.field.l2
 
 import exastencils.base.ProgressLocation
 import exastencils.base.l2._
-import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.field.l3._
 import exastencils.knowledge.l2.L2_FutureKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
-import exastencils.util.l2.L2_LevelCollector
 
 /// L2_FutureFieldAccess
 
@@ -49,34 +47,6 @@ case class L2_FutureFieldAccess(
       L2_ProgressOption(offset)(_.progress),
       frozen)
   }
-
-  def toFieldAccess = L2_FieldAccess(this)
-}
-
-/// L2_PrepareFieldAccesses
-
-object L2_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fields") {
-  val collector = new L2_LevelCollector
-  this.register(collector)
-  this.onBefore = () => this.resetCollectors()
-
-  this += new Transformation("Resolve applicable unresolved accesses", {
-    case access : L2_UnresolvedAccess if L2_FieldCollection.existsDecl(access.name) =>
-      val lvl = {
-        if (access.level.isDefined) access.level.get.resolveLevel
-        else if (collector.inLevelScope) collector.getCurrentLevel
-        else Logger.error(s"Missing level for access to field ${ access.name }")
-      }
-
-      if (!L2_FieldCollection.existsDecl(access.name, lvl))
-        Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
-
-      if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
-      if (access.dirAccess.isDefined) Logger.warn(s"Discarding meaningless direction access on ${ access.name }")
-      if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
-
-      L2_FutureFieldAccess(access.name, lvl, access.offset)
-  })
 }
 
 /// L2_ResolveFrozenFields

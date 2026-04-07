@@ -20,13 +20,14 @@ package exastencils.field.ir
 
 import exastencils.config.Knowledge
 import exastencils.config.Platform
+import exastencils.fieldlike.ir.IR_FieldLikeLayoutCollections
 import exastencils.scheduling.NoStrategyWrapper
 
 /// IR_AddPaddingToFieldLayouts
 
 object IR_AddPaddingToFieldLayouts {
   def apply() = {
-    for (fieldLayout <- IR_FieldLayoutCollection.objects) {
+    for (fieldLayout <- IR_FieldLikeLayoutCollections.collections.flatMap(_.objects)) {
       // shortcut to innermost layout information
       val innerLayout = fieldLayout.layoutsPerDim(0)
 

@@ -23,7 +23,7 @@ jobs:
       - name: Build compiler
         run: java -version; sbt compile; sbt assembly
       - name: Upload compiler artifact
-        uses: actions/upload-artifact@v2.2.4
+        uses: actions/upload-artifact@v4
         with:
           name: Compiler.jar
           path: Compiler/Compiler.jar

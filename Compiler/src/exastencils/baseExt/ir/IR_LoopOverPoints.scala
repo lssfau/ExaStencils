@@ -27,7 +27,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.field.ir.IR_Field
+import exastencils.fieldlike.ir.IR_FieldLike
 import exastencils.logger.Logger
 import exastencils.parallelization.ir._
 import exastencils.util.ir.IR_StackCollector
@@ -39,17 +39,17 @@ case class IR_RegionSpecification(var region : String, var dir : IR_ConstIndex, 
 /// IR_LoopOverPoints
 
 object IR_LoopOverPoints {
-  def apply(field : IR_Field, body : ListBuffer[IR_Statement]) =
+  def apply(field : IR_FieldLike, body : ListBuffer[IR_Statement]) =
     new IR_LoopOverPoints(field, None, IR_ExpressionIndex(Array.fill(field.layout.numDimsGrid)(0)),
       IR_ExpressionIndex(Array.fill(field.layout.numDimsGrid)(0)),
       IR_ExpressionIndex(Array.fill(field.layout.numDimsGrid)(1)),
       body)
 
-  def apply(field : IR_Field, body : IR_Statement*) : IR_LoopOverPoints = apply(field, body.to[ListBuffer])
+  def apply(field : IR_FieldLike, body : IR_Statement*) : IR_LoopOverPoints = apply(field, body.to[ListBuffer])
 }
 
 case class IR_LoopOverPoints(
-    var field : IR_Field,
+    var field : IR_FieldLike,
     var region : Option[IR_RegionSpecification],
     var startOffset : IR_ExpressionIndex,
     var endOffset : IR_ExpressionIndex,

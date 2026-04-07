@@ -23,7 +23,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir._
 import exastencils.util.ir.IR_StackCollector
@@ -57,7 +57,7 @@ object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functi
               index.indices :+= (access.stencilField.findStencilEntryIndex(centralOffset).get : IR_Expression)
               index.indices :+= (0 : IR_Expression) // honor matrix data type
 
-              IR_FieldAccess(access.field, Duplicate(access.slot), Duplicate(access.fragIdx), index)
+              IR_FieldLikeAccess(access.field, Duplicate(access.slot), Duplicate(access.fragIdx), index)
 
             case _ =>
               Logger.warn("diag with unknown arg " + args(0))

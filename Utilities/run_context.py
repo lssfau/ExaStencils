@@ -28,6 +28,10 @@ class RunContext:
         if not self.use_likwid and self.use_likwid_perfctr:
             raise ValueError('use_likwid_perfctr is only available in conjunction with use_likwid.')
 
+        ## talp
+        self.use_talp = getattr(args, "use_talp", False)
+        self.path_to_talp = getattr(args, "path_to_talp", "/usr/local/share/doc/dlb/scripts/talp.sh")
+
         ## mpi
         self.mpi_run_as_root = getattr(args, "mpi_run_as_root", False)
 

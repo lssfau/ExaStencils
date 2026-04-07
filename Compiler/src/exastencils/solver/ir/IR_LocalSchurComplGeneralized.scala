@@ -19,14 +19,14 @@ import exastencils.baseExt.ir.IR_MatShape
 import exastencils.baseExt.ir.IR_MatrixDatatype
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_SlotAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 import exastencils.logger.Logger
 //import exastencils.baseExt.ir.m
 
 object IR_LocalSchurComplGeneralized {
 
-  def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatShape) = {
     msi.shape match {
       case "schur" => schur(AVals, fVals, unknowns, jacobiType, relax, omitConditions, msi)
@@ -34,7 +34,7 @@ object IR_LocalSchurComplGeneralized {
     }
   }
 
-  def schur(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
+  def schur(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldLikeAccess],
       jacobiType : Boolean, relax : Option[IR_Expression], omitConditions : Boolean, msi : IR_MatShape) : ListBuffer[IR_Statement] = {
 
     val bsize : Int = msi.size("block")

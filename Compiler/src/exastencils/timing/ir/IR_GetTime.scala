@@ -35,7 +35,7 @@ case class IR_GetTotalTime() extends IR_TimerFunction {
 
   override def generateFct() = {
     val body =
-      IR_IfCondition(0 Neq accessMember("totalTimeAveraged"),
+      IR_IfCondition(accessMember("totalTimeAveraged") >= IR_DoubleConstant(1E-12),
         IR_Return(Some(accessMember("totalTimeAveraged"))),
         IR_ReturnConvertToMS(accessMember("totalTimeMeasured")))
 
@@ -60,7 +60,7 @@ case class IR_GetMeanTime() extends IR_TimerFunction {
       IR_Return(IR_TernaryCondition(
         0 EqEq accessMember("numMeasurements"),
         0.0,
-        IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype), "stopWatch") / accessMember("numMeasurements")))
+        IR_FunctionCall(IR_TimerFunctionReference("getTotalTime", IR_DoubleDatatype, None), "stopWatch") / accessMember("numMeasurements")))
 
     val fct = IR_PlainFunction(name, IR_DoubleDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
     fct.allowFortranInterface = false

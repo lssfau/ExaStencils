@@ -49,19 +49,19 @@ class L4_LevelCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case decl : L4_LeveledKnowledgeDecl => enterLevel(decl.levels)
-      case fct : L4_FunctionDecl          => enterLevel(fct.levels)
-      case fct : L4_LeveledFunction       => enterLevel(fct.level)
-      case _                              =>
+      case decl : L4_LeveledKnowledgeDecl                   => enterLevel(decl.levels)
+      case fct : L4_FunctionDecl                            => enterLevel(fct.levels)
+      case fct : L4_LeveledFunction                         => enterLevel(fct.level)
+      case _                                                =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case decl : L4_LeveledKnowledgeDecl => leaveLevel(decl.levels)
-      case fct : L4_FunctionDecl          => leaveLevel(fct.levels)
-      case fct : L4_LeveledFunction       => leaveLevel(fct.level)
-      case _                              =>
+      case decl : L4_LeveledKnowledgeDecl                   => leaveLevel(decl.levels)
+      case fct : L4_FunctionDecl                            => leaveLevel(fct.levels)
+      case fct : L4_LeveledFunction                         => leaveLevel(fct.level)
+      case _                                                =>
     }
   }
 

@@ -23,7 +23,8 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
+import exastencils.fieldlike.ir.IR_FieldLikeAccess
 
 /// TODO: IR_SplitLoopsForCommunication
 
@@ -38,10 +39,10 @@ object IR_GatherFieldAccessOffsets extends QuietDefaultStrategy("Gather field ac
   }
 
   this += new Transformation("Gather", {
-    case fa : IR_FieldAccess        =>
+    case fa : IR_FieldLikeAccess        =>
       addAccess(fa.field.codeName, fa.index - IR_LoopOverDimensions.defIt(fa.index.length))
       fa
-    case dfa : IR_DirectFieldAccess =>
+    case dfa : IR_DirectFieldLikeAccess =>
       addAccess(dfa.field.codeName, dfa.index - dfa.field.referenceOffset - IR_LoopOverDimensions.defIt(dfa.index.length))
       dfa
   })
