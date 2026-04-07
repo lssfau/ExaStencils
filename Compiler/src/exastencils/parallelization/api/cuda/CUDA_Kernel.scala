@@ -194,7 +194,7 @@ case class CUDA_Kernel(
                   numThreadsPerBlockIsInt = false
                   0
               })
-          case _ =>
+          case _                                           =>
             numThreadsPerBlockIsInt = false
         }
       } else {
@@ -216,24 +216,25 @@ case class CUDA_Kernel(
           case _                 => -1
         })
 
-      // 2.4 consider this field for shared memory if all conditions are met
-      if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
-        val access = IR_DirectFieldLikeAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
-        access.allowLinearization = false
-        fieldNames += name
-        fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
-        fieldForSharedMemory(name) = access
-        fieldAccesses.indices.foreach(x => fieldAccesses(x).annotate(ConstantIndexPart, fieldIndicesConstantPart(name)(x)))
-        fieldAccessesForSharedMemory(name) = fieldAccesses
-        fieldOffset(name) = Duplicate(offset)
-        leftDeviations(name) = leftDeviationFromBaseIndex
-        leftDeviation(name) = leftDeviationFromBaseIndex.head
-        rightDeviations(name) = rightDeviationFromBaseIndex
-        rightDeviation(name) = rightDeviationFromBaseIndex.head
-        sharedArraySize(name) = arraySize
-        fieldDatatype(name) = access.field.layout.datatype
-        foundSomeAppropriateField = true
-        availableSharedMemory -= requiredMemoryInByte
+        // 2.4 consider this field for shared memory if all conditions are met
+        if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
+          val access = IR_DirectFieldLikeAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
+          access.allowLinearization = false
+          fieldNames += name
+          fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
+          fieldForSharedMemory(name) = access
+          fieldAccesses.indices.foreach(x => fieldAccesses(x).annotate(ConstantIndexPart, fieldIndicesConstantPart(name)(x)))
+          fieldAccessesForSharedMemory(name) = fieldAccesses
+          fieldOffset(name) = Duplicate(offset)
+          leftDeviations(name) = leftDeviationFromBaseIndex
+          leftDeviation(name) = leftDeviationFromBaseIndex.head
+          rightDeviations(name) = rightDeviationFromBaseIndex
+          rightDeviation(name) = rightDeviationFromBaseIndex.head
+          sharedArraySize(name) = arraySize
+          fieldDatatype(name) = access.field.layout.datatype
+          foundSomeAppropriateField = true
+          availableSharedMemory -= requiredMemoryInByte
+        }
       }
     }
 
