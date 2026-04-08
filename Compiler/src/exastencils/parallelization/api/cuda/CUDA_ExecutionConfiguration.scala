@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.config.Platform
+import exastencils.core.Duplicate
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
@@ -144,8 +145,7 @@ case class CUDA_ExecutionConfigurationStatic(
 
 case class CUDA_ExecutionConfigurationDynamic(
     var executionDim : Int,
-    var lowerBounds : ListBuffer[IR_Expression],
-    var upperBounds : ListBuffer[IR_Expression],
+    var requiredThreadsPerDim: ListBuffer[IR_Expression],
     var stepSize : ListBuffer[IR_Expression],
     var stream : CUDA_Stream,
     var sharedMemPerBlock : IR_Expression = CUDA_ExecutionConfiguration.defaultSharedMemPerBlock
@@ -157,7 +157,7 @@ case class CUDA_ExecutionConfigurationDynamic(
   val getThreadsFunc = CUDA_ComputeExecutionConfigurationFunction.getBlockDimConfig(executionDim)
 
   def getNumBlocks = {
-    val requiredThreads = (lowerBounds, upperBounds).zipped.map((a, b) => b - a : IR_Expression)
+    val requiredThreads = Duplicate(requiredThreadsPerDim)
     if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
       for (d <- executionDim until Knowledge.dimensionality)
         requiredThreads(0) *= requiredThreads(d)

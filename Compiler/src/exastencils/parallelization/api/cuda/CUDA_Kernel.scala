@@ -338,15 +338,15 @@ case class CUDA_Kernel(
       val reqThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
 
       if (null == reqThreadsPerDim || reqThreadsPerDim.product <= 0) {
-        // iteration space unknown -> dynamic determination of grid/block dimensions via function call
-        val cfg = CUDA_ExecutionConfigurationDynamic(executionDim, Duplicate(lowerBounds), Duplicate(upperBounds), Duplicate(stepSize), stream)
+        requiredThreadsPerDim = (upperBounds, lowerBounds).zipped.map(_ - _).toArray
 
+        // iteration space unknown -> dynamic determination of grid/block dimensions via function call
+        val cfg = CUDA_ExecutionConfigurationDynamic(Duplicate(executionDim), Duplicate(requiredThreadsPerDim.to[ListBuffer]), Duplicate(stepSize), Duplicate(stream))
         executionConfiguration = Some(cfg)
-        requiredThreadsPerDim = (lowerBounds, upperBounds).zipped.take(executionDim).map(tup => tup._2 - tup._1).toArray
       } else {
         // all dimensions are known during codegen -> static determination
         val cfg = CUDA_ExecutionConfigurationStatic(stream)
-        cfg.computeGridAndBlockDimensions(executionDim, Duplicate(reqThreadsPerDim), Duplicate(stepSize))
+        cfg.computeGridAndBlockDimensions(Duplicate(executionDim), Duplicate(reqThreadsPerDim), Duplicate(stepSize))
 
         executionConfiguration = Some(cfg)
         requiredThreadsPerDim = reqThreadsPerDim.map(IR_IntegerConstant)
