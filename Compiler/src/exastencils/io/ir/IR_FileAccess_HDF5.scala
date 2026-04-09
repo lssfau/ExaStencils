@@ -417,6 +417,7 @@ case class IR_FileAccess_HDF5(
     setTargetCompilerToMpiWrapper()
   }
 
+  // TODO: CMake handling
   override def includes : ListBuffer[String] = ListBuffer("hdf5.h")
   override def libraries : ListBuffer[String] = ListBuffer("hdf5")
   override def pathsInc : ListBuffer[String] = ListBuffer("$(HDF5_HOME)/include")

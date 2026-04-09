@@ -143,12 +143,18 @@ object Settings {
 
   var binary : String = "exastencils"
 
+  var cxx_standard : Int = 11
+
   var makefile_makeLibs : Boolean = false
   var makefile_additionalCFlags : ListBuffer[String] = ListBuffer()
   var makefile_additionalLDFlags : ListBuffer[String] = ListBuffer()
   // Additional flags for CUDA compiler
   var makefile_additionalCudaFlags : ListBuffer[String] = ListBuffer()
   var makefile_additionalObjFiles : ListBuffer[String] = ListBuffer()
+
+  var cmake_buildStandalone : Boolean = true
+  var cmake_languages : ListBuffer[String] = ListBuffer("CXX")
+  var cmake_additionalPackages : ListBuffer[String] = ListBuffer()
 
   /// performance estimates (experimental)
 
@@ -223,6 +229,14 @@ object Settings {
     // parse here to fail early
     BuildfileGenerator.parseGenerators(buildfileGenerators)
 
+    // handle OpenMP
+    if (Knowledge.omp_enabled)
+      if (!cmake_additionalPackages.contains("OpenMP")) cmake_additionalPackages += "OpenMP"
+
+    // handle MPI
+    if (Knowledge.mpi_enabled)
+      if (!cmake_additionalPackages.contains("MPI")) cmake_additionalPackages += "MPI"
+
     // handle CUDA
     if (Knowledge.cuda_enabled) {
       Platform.targetOS match {
@@ -235,7 +249,11 @@ object Settings {
           if (!additionalLibs.contains("cuda")) additionalLibs += "cuda"
           if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
       }
+      if (!cmake_additionalPackages.contains("CUDAToolkit")) cmake_additionalPackages += "CUDAToolkit"
+      if (!cmake_languages.contains("CUDA")) cmake_languages += "CUDA"
     }
+
+    // handle benchmark tools
     Knowledge.benchmark_backend match {
       case "likwid" =>
         if (!additionalIncludes.contains("likwid.h")) additionalIncludes += "likwid.h"
@@ -247,6 +265,8 @@ object Settings {
         if (!additionalIncludes.contains("dlb_talp.h")) additionalIncludes += "dlb_talp.h"
       case _ =>
     }
+
+    // handle SIMD math libs
     if (Platform.simd_mathLibrary == "mass_simd")
       additionalLibs += "mass_simd"
   }

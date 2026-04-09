@@ -301,6 +301,9 @@ case class IR_FileAccess_SIONlib(
   // resolve makefile flags
   if (!Settings.makefile_additionalCFlags.contains(IR_FileAccess_SIONlib.selectCflags))
     Settings.makefile_additionalCFlags += IR_FileAccess_SIONlib.selectCflags
+  // TODO: needs testing
+  if (!Settings.cmake_additionalPackages.contains("SIONlib"))
+    Settings.cmake_additionalPackages += "SIONlib"
   IR_FileAccess_SIONlib.setLdLibs()
 
   override def includes : ListBuffer[String] = ListBuffer("sion.h", "unistd.h", "stdio.h", "stdlib.h") ++
