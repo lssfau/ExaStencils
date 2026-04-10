@@ -12,7 +12,7 @@ stages:
 #######################################
 
 .test_template:
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
     dependencies:
         - build:generator
     tags:
@@ -62,7 +62,7 @@ stages:
 
 .test_template_IO:
     extends: .test_template
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
     artifacts:
         when: on_failure
         paths:
@@ -83,7 +83,7 @@ stages:
 .benchmark_template:
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
     tags:
         - docker-benchmark
     artifacts:
@@ -112,9 +112,9 @@ generate-docker-image-base:
         - docker-docker
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11 || true
-        - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11 || true
+        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
 
 generate-docker-image-pario:
     stage: .pre
@@ -124,9 +124,9 @@ generate-docker-image-pario:
         - docker-docker
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io || true
-        - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11-par-io.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
-        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io || true
+        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11-par-io.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
+        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
 
 #######################################
 ##                                   ##
@@ -136,7 +136,7 @@ generate-docker-image-pario:
 
 build:generator:
     stage: build
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
     tags:
         - docker
     artifacts:
