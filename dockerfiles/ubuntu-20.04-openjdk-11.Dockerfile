@@ -14,7 +14,7 @@ RUN \
 
 RUN \
    git clone https://i10git.cs.fau.de/exastencils/exastencils_runner.git exastencils_runner && \
-   python3 -m pip install -e exastencils_runner
+   python3 -m pip install ./exastencils_runner
 
 # sbt
 RUN \
