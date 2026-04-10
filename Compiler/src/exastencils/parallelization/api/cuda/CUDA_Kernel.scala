@@ -32,6 +32,7 @@ import exastencils.fieldlike.ir.IR_DirectFieldLikeAccess
 import exastencils.fieldlike.ir.IR_LinearizedFieldLikeAccess
 import exastencils.fieldlike.ir.IR_MultiDimFieldLikeAccess
 import exastencils.logger.Logger
+import exastencils.optimization.ir.EvaluationException
 import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// CUDA_Kernel
@@ -94,10 +95,8 @@ case class CUDA_Kernel(
   var minIndices = Array[Long]()
   var maxIndices = Array[Long]()
 
-  var evaluatedExecutionConfiguration = false
-  var requiredThreadsPerDim = Array[Long]()
-  var numThreadsPerBlock = Array[Long]()
-  var numBlocksPerDim = Array[Long]()
+  var requiredThreadsPerDim : Array[IR_Expression] = Array()
+  var executionConfiguration : Option[CUDA_ExecutionConfiguration] = None
 
   // thread ids
   //var localThreadId = Array[IR_Expression]()
@@ -175,44 +174,67 @@ case class CUDA_Kernel(
         spatialBlockingCanBeApplied = false
         executionDim = math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
         evaluatedIndexBounds = false
-        evaluatedExecutionConfiguration = false
+        executionConfiguration = None
         evalIndexBounds()
         evalExecutionConfiguration()
         evalThreadIds()
       }
 
-      // 2.3 calculate the required amount of shared memory
-      val numDupLayersLeft = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersLeft)
-      val numDupLayersRight = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersRight)
-      val numInnerLayers = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numInnerLayers)
-      val numPointsInStencil = (numDupLayersLeft, numInnerLayers, numDupLayersRight).zipped.map((x, y, z) => x + y + z)
-      val numPointsInStencilPerThreadBlock = (numPointsInStencil, numThreadsPerBlock).zipped.map((x, y) => math.min(x, y))
-      val arraySize = ((numPointsInStencilPerThreadBlock, leftDeviationFromBaseIndex).zipped.map(_ + _), rightDeviationFromBaseIndex).zipped.map(_ + _)
-      requiredMemoryInByte = arraySize.product * (fieldAccesses.head.field.layout.datatype match {
-        case IR_RealDatatype   => if (Knowledge.useDblPrecision) 8 else 4
-        case IR_DoubleDatatype => 8
-        case IR_FloatDatatype  => 4
-        case _                 => -1
-      })
+      // 2.3 calculate the required amount of shared memory (only if data dimensions are known)
+      var numThreadsPerBlockIsInt = true
+      var numThreadsPerBlockAsInt : Array[Long] = Array()
+      if (executionConfiguration.nonEmpty) {
+        executionConfiguration.get match {
+          case execCfg : CUDA_ExecutionConfigurationStatic =>
+            numThreadsPerBlockAsInt = execCfg.numThreadsPerBlock.map(expr =>
+              try {
+                IR_SimplifyExpression.evalIntegral(expr)
+              } catch {
+                case _ : EvaluationException =>
+                  numThreadsPerBlockIsInt = false
+                  0
+              })
+          case _                                           =>
+            numThreadsPerBlockIsInt = false
+        }
+      } else {
+        numThreadsPerBlockIsInt = false
+      }
 
-      // 2.4 consider this field for shared memory if all conditions are met
-      if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
-        val access = IR_DirectFieldLikeAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
-        access.allowLinearization = false
-        fieldNames += name
-        fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
-        fieldForSharedMemory(name) = access
-        fieldAccesses.indices.foreach(x => fieldAccesses(x).annotate(ConstantIndexPart, fieldIndicesConstantPart(name)(x)))
-        fieldAccessesForSharedMemory(name) = fieldAccesses
-        fieldOffset(name) = Duplicate(offset)
-        leftDeviations(name) = leftDeviationFromBaseIndex
-        leftDeviation(name) = leftDeviationFromBaseIndex.head
-        rightDeviations(name) = rightDeviationFromBaseIndex
-        rightDeviation(name) = rightDeviationFromBaseIndex.head
-        sharedArraySize(name) = arraySize
-        fieldDatatype(name) = access.field.layout.datatype
-        foundSomeAppropriateField = true
-        availableSharedMemory -= requiredMemoryInByte
+      // only compute required memory
+      if (numThreadsPerBlockIsInt) {
+        val numDupLayersLeft = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersLeft)
+        val numDupLayersRight = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numDupLayersRight)
+        val numInnerLayers = fieldAccesses.head.field.layout.layoutsPerDim.map(x => x.numInnerLayers)
+        val numPointsInStencil = (numDupLayersLeft, numInnerLayers, numDupLayersRight).zipped.map((x, y, z) => x + y + z)
+        val numPointsInStencilPerThreadBlock = (numPointsInStencil, numThreadsPerBlockAsInt).zipped.map((x, y) => math.min(x, y))
+        val arraySize = ((numPointsInStencilPerThreadBlock, leftDeviationFromBaseIndex).zipped.map(_ + _), rightDeviationFromBaseIndex).zipped.map(_ + _)
+        requiredMemoryInByte = arraySize.product * (fieldAccesses.head.field.layout.datatype match {
+          case IR_RealDatatype   => if (Knowledge.useDblPrecision) 8 else 4
+          case IR_DoubleDatatype => 8
+          case IR_FloatDatatype  => 4
+          case _                 => -1
+        })
+
+        // 2.4 consider this field for shared memory if all conditions are met
+        if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
+          val access = IR_DirectFieldLikeAccess(fieldAccesses.head.field, Duplicate(fieldAccesses.head.slot), IR_ExpressionIndex(baseIndex))
+          access.allowLinearization = false
+          fieldNames += name
+          fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
+          fieldForSharedMemory(name) = access
+          fieldAccesses.indices.foreach(x => fieldAccesses(x).annotate(ConstantIndexPart, fieldIndicesConstantPart(name)(x)))
+          fieldAccessesForSharedMemory(name) = fieldAccesses
+          fieldOffset(name) = Duplicate(offset)
+          leftDeviations(name) = leftDeviationFromBaseIndex
+          leftDeviation(name) = leftDeviationFromBaseIndex.head
+          rightDeviations(name) = rightDeviationFromBaseIndex
+          rightDeviation(name) = rightDeviationFromBaseIndex.head
+          sharedArraySize(name) = arraySize
+          fieldDatatype(name) = access.field.layout.datatype
+          foundSomeAppropriateField = true
+          availableSharedMemory -= requiredMemoryInByte
+        }
       }
     }
 
@@ -223,7 +245,7 @@ case class CUDA_Kernel(
     // 4. ensure correct executionDim if no appropriate field was found
     if (!foundSomeAppropriateField) {
       executionDim = math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
-      evaluatedExecutionConfiguration = false
+      executionConfiguration = None
       evalExecutionConfiguration()
       evalThreadIds()
     }
@@ -312,92 +334,23 @@ case class CUDA_Kernel(
     * Calculate the execution configuration for this kernel.
     */
   def evalExecutionConfiguration() = {
-    if (!evaluatedExecutionConfiguration) {
-      requiredThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
+    if (executionConfiguration.isEmpty) {
+      val reqThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
 
-      if (null == requiredThreadsPerDim || requiredThreadsPerDim.product <= 0) {
-        Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
-        requiredThreadsPerDim = (0 until executionDim).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
+      if (null == reqThreadsPerDim || reqThreadsPerDim.product <= 0) {
+        requiredThreadsPerDim = (upperBounds, lowerBounds).zipped.map(_ - _).toArray
+
+        // iteration space unknown -> dynamic determination of grid/block dimensions via function call
+        val cfg = CUDA_ExecutionConfigurationDynamic(Duplicate(executionDim), Duplicate(requiredThreadsPerDim.to[ListBuffer]), Duplicate(stepSize), Duplicate(stream))
+        executionConfiguration = Some(cfg)
+      } else {
+        // all dimensions are known during codegen -> static determination
+        val cfg = CUDA_ExecutionConfigurationStatic(stream)
+        cfg.computeGridAndBlockDimensions(Duplicate(executionDim), Duplicate(reqThreadsPerDim), Duplicate(stepSize))
+
+        executionConfiguration = Some(cfg)
+        requiredThreadsPerDim = reqThreadsPerDim.map(IR_IntegerConstant)
       }
-
-      def getIntersectionWithIterationSpace(blockSizes : Array[Long]) =
-        blockSizes.zipWithIndex.map { case (blockSize, idx) => scala.math.min(blockSize, requiredThreadsPerDim(idx)) }
-
-      // use user-defined block sizes as initial config and intersect iteration space with cuda block sizes
-      var blockSizes = getIntersectionWithIterationSpace(Knowledge.cuda_blockSizeAsVec.take(executionDim))
-      var done = false
-      if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
-        // case 1: greater than min block size -> use intersection
-        numThreadsPerBlock = blockSizes.map(identity)
-        done = true
-      }
-
-      var prevTrimSize = 0L
-      val resizeOrder = if (executionDim == 3) List(0, 2, 1) else 0 until executionDim
-      while (blockSizes.product != prevTrimSize && !done) {
-        prevTrimSize = blockSizes.product
-
-        // case 2: intersected block is equivalent to iter space -> return
-        if (blockSizes.zip(requiredThreadsPerDim.take(executionDim)).forall(tup => tup._1 == tup._2)) {
-          numThreadsPerBlock = blockSizes.map(identity)
-          done = true
-        } else {
-          // double block size in each dimension until block is large enough (or case 2 triggers)
-          for (d <- resizeOrder) {
-            // resize
-            blockSizes(d) *= 2
-
-            // optional: trim innermost dim to multiples of warp size
-            if (d == 0 && blockSizes(d) > Platform.hw_cuda_warpSize && blockSizes(d) % Platform.hw_cuda_warpSize != 0)
-              blockSizes(d) = blockSizes(d) - (blockSizes(d) % Platform.hw_cuda_warpSize) // subtract remainder
-
-            // check if block sizes are within hardware capabilities
-            blockSizes(d) = math.min(blockSizes(d), Platform.hw_cuda_maxBlockSizes(d))
-
-            // intersect again
-            blockSizes = getIntersectionWithIterationSpace(blockSizes.map(identity))
-
-            // case 3: intersected block is large enough
-            if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
-              numThreadsPerBlock = blockSizes.map(identity)
-              done = true
-            }
-          }
-        }
-      }
-
-      // shrink if max number of threads is exceeded
-      while (blockSizes.product >= Platform.hw_cuda_maxNumThreads) {
-        var shrink = true
-        var d = 0
-        while (shrink && d < resizeOrder.length) {
-          val idx = resizeOrder.reverse(d)
-          blockSizes(idx) /= 2
-          blockSizes(idx) = math.max(1, blockSizes(idx))
-
-          if (blockSizes.product < Platform.hw_cuda_maxNumThreads)
-            shrink = false
-
-          d = d + 1
-        }
-      }
-
-
-      // adapt thread count for reduced dimensions
-      if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
-        for (d <- executionDim until Knowledge.dimensionality)
-          numThreadsPerBlock(0) *= Knowledge.cuda_blockSizeAsVec(d)
-
-      numBlocksPerDim = (0 until executionDim).map(dim => {
-        val inc = stepSize(dim) match {
-          case IR_IntegerConstant(i) => i
-          case _                     => 1
-        }
-        val nrThreads = (requiredThreadsPerDim(dim) + inc - 1) / inc
-        (nrThreads + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
-      }).toArray
-
-      evaluatedExecutionConfiguration = true
     }
   }
 
@@ -635,7 +588,7 @@ case class CUDA_Kernel(
       callArgs += arg.access
 
     // execution config
-    val execCfg = new CUDA_ExecutionConfiguration(numBlocksPerDim.map(n => n : IR_Expression), numThreadsPerBlock.map(n => n : IR_Expression), stream)
+    val execCfg = executionConfiguration.get
 
     var body = ListBuffer[IR_Statement]()
 
@@ -644,7 +597,7 @@ case class CUDA_Kernel(
       val resultDt = CUDA_Util.getReductionDatatype(target)
       val baseDt = resultDt.resolveBaseDatatype
 
-      val bufSize = requiredThreadsPerDim.product
+      val bufSize = requiredThreadsPerDim.reduce(_ * _)
       val bufAccess = CUDA_ReductionDeviceData(bufSize, resultDt)
       var callArgsReduction = ListBuffer[IR_Expression](bufAccess, bufSize)
       if (Knowledge.domain_numFragmentsPerBlock > 1)

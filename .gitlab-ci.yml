@@ -760,16 +760,21 @@ test:FAS_2D_Basic:
 test:CUDA:
     extends: .test_template_CUDA
     script:
-        # CUDA_SISC_2D_ConstCoeff
+        # CUDA_SISC_2D_ConstCoeff (& variable field size version)
         - python3 run_test.py CUDA_SISC_2D_ConstCoeff CUDA 2D_ConstCoeff.knowledge "2D_ConstCoeff.exa4" ../SISC/2D_ConstCoeff.results Platform/chimaira-gpu.platform output
-        # CUDA_SISC_2D_VarCoeff: has its own expected results due to rounding differences compared to original SISC version
+        - python3 run_test.py CUDA_SISC_2D_ConstCoeff_VarFieldSize CUDA 2D_ConstCoeff_VarFieldSize.knowledge "2D_ConstCoeff.exa4" ../SISC/2D_ConstCoeff.results Platform/chimaira-gpu.platform output
+        # CUDA_SISC_2D_VarCoeff (& variable field size version): has its own expected results due to rounding differences compared to original SISC version
         - python3 run_test.py CUDA_SISC_2D_VarCoeff CUDA 2D_VarCoeff.knowledge "2D_VarCoeff.exa4" 2D_VarCoeff.results Platform/chimaira-gpu.platform output
-        # CUDA_SISC_3D_ConstCoeff
+        - python3 run_test.py CUDA_SISC_2D_VarCoeff_VarFieldSize CUDA 2D_VarCoeff_VarFieldSize.knowledge "2D_VarCoeff.exa4" 2D_VarCoeff.results Platform/chimaira-gpu.platform output
+        # CUDA_SISC_3D_ConstCoeff (& variable field size version)
         - python3 run_test.py CUDA_SISC_3D_ConstCoeff CUDA 3D_ConstCoeff.knowledge "3D_ConstCoeff.exa4" ../SISC/3D_ConstCoeff.results Platform/chimaira-gpu.platform output
-        # CUDA_SISC_3D_VarCoeff
+        - python3 run_test.py CUDA_SISC_3D_ConstCoeff_VarFieldSize CUDA 3D_ConstCoeff_VarFieldSize.knowledge "3D_ConstCoeff.exa4" ../SISC/3D_ConstCoeff.results Platform/chimaira-gpu.platform output
+        # CUDA_SISC_3D_VarCoeff (& variable field size version)
         - python3 run_test.py CUDA_SISC_3D_VarCoeff CUDA 3D_VarCoeff.knowledge "3D_VarCoeff.exa4" ../SISC/3D_VarCoeff.results Platform/chimaira-gpu.platform output
-        # CUDA_ExaFluids_Bingham
+        - python3 run_test.py CUDA_SISC_3D_VarCoeff_VarFieldSize CUDA 3D_VarCoeff_VarFieldSize.knowledge "3D_VarCoeff.exa4" ../SISC/3D_VarCoeff.results Platform/chimaira-gpu.platform output
+        # CUDA_ExaFluids_Bingham (variable field size version skipped since it uses too many registers)
         - python3 run_test.py CUDA_ExaFluids_Bingham CUDA 3D_ExaFluids_NN_CUDA.knowledge "3D_ExaFluids_NN_CUDA.exa4" 3D_ExaFluids_NN_CUDA.results Platform/chimaira-gpu.platform output
+        #- python3 run_test.py CUDA_ExaFluids_Bingham_VarFieldSize CUDA 3D_ExaFluids_NN_CUDA_VarFieldSize.knowledge "3D_ExaFluids_NN_CUDA.exa4" 3D_ExaFluids_NN_CUDA.results Platform/chimaira-gpu.platform output
 
 test:CUDA_2D_MatrixReduction:
     extends: .test_template_CUDA

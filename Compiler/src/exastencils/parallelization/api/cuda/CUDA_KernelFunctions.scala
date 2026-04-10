@@ -194,7 +194,10 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
 
       // compile args
       def blocks = IR_VariableAccess("blocks", IR_SpecialDatatype("size_t"))
-      val execCfg = CUDA_ExecutionConfiguration(Array[IR_Expression](blocks), Array[IR_Expression](blockSize), stream)
+      val execCfg = CUDA_ExecutionConfigurationStatic(stream)
+      execCfg.numBlocksPerDim = Array(blocks)
+      execCfg.numThreadsPerBlock = Array(blockSize)
+
       val kernelCallArgs = ListBuffer[IR_Expression](data.access, numElements.access, halfStride)
 
       // compile loop body
