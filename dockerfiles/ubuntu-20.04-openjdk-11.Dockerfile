@@ -6,9 +6,13 @@ ARG SBT_VERSION=1.3.2
 ARG LIKWID_VERSION=5.2.0
 
 # basic stuff
-RUN \
-  apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant time wget gfortran libjpeg-dev libpng-dev && \
-  python3 -m pip install sympy numpy influxdb GitPython
+RUN apt-get update && \
+    apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant time wget gfortran libjpeg-dev libpng-dev
+
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN python3 -m pip install sympy numpy influxdb GitPython
 
 # exastencils_runner module
 
