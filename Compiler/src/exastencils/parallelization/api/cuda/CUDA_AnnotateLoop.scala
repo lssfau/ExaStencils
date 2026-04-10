@@ -24,6 +24,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
+import exastencils.field.ir.IR_IV_IndexFromField
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
@@ -64,34 +65,28 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
     loop.body.head match {
       case innerLoop : IR_ForLoop if loop.body.size == 1 &&
         CUDA_Util.verifyCudaLoopSuitability(innerLoop) && CUDA_Util.verifyCudaLoopParallel(innerLoop) =>
+        val (loopVariables, lowerBounds, upperBounds, _) = CUDA_Util.extractRelevantLoopInformation(ListBuffer(innerLoop))
+        val (lower, upper) = (lowerBounds.head, upperBounds.head)
+
         try {
-          val (loopVariables, lowerBounds, upperBounds, _) = CUDA_Util.extractRelevantLoopInformation(ListBuffer(innerLoop))
-          // a dependence on previous loop iterator should not be a problem anymore,
-          // since the begin of every dimension is now computed on the GPU
-          //var loopDependsOnSurroundingIterators = false
-          //CUDA_GatherLoopIteratorUsage.loopIterators = extremaMap.keySet
-          //CUDA_GatherLoopIteratorUsage.usedLoopIterators.clear()
-          //CUDA_GatherLoopIteratorUsage.applyStandalone(IR_Scope(IR_ExpressionStatement(lowerBounds.head)))
-          //loopDependsOnSurroundingIterators |= CUDA_GatherLoopIteratorUsage.usedLoopIterators.nonEmpty
-          //CUDA_GatherLoopIteratorUsage.usedLoopIterators.clear()
-          //CUDA_GatherLoopIteratorUsage.applyStandalone(IR_Scope(IR_ExpressionStatement(upperBounds.head)))
-          //loopDependsOnSurroundingIterators |= CUDA_GatherLoopIteratorUsage.usedLoopIterators.nonEmpty
+          val l = IR_SimplifyExpression.evalIntegralExtrema(lower, extremaMap)._1
+          val u = IR_SimplifyExpression.evalIntegralExtrema(upper, extremaMap)._2
 
-          extremaMap.put(loopVariables.head, (IR_SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, IR_SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
-          innerLoop.annotate(IR_SimplifyExpression.EXTREMA_MAP, extremaMap)
+          extremaMap.put(loopVariables.head, (l, u))
+          loop.annotate(IR_SimplifyExpression.EXTREMA_MAP, extremaMap)
 
-          //if (loopDependsOnSurroundingIterators) {
-          //  innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_INNER)
-          //  annotateInnerCudaLoops(innerLoop)
-          //} else {
           innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_PART)
           calculateLoopsInBand(extremaMap, innerLoop)
-          //}
         } catch {
           case e : EvaluationException =>
             Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${ e.msg }'""")
-            innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_INNER)
-            annotateInnerCudaLoops(innerLoop)
+            if (lower.isInstanceOf[IR_IV_IndexFromField] || upper.isInstanceOf[IR_IV_IndexFromField]) {
+              innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_PART)
+              calculateLoopsInBand(extremaMap, innerLoop)
+            } else {
+              innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_INNER)
+              annotateInnerCudaLoops(innerLoop)
+            }
         }
       case _                                                                                          =>
         loop.body.foreach {
@@ -112,31 +107,36 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
   def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : IR_ForLoop, bodyDecl : ListBuffer[IR_Statement] = ListBuffer[IR_Statement]()) : Boolean = {
     var anyDeviceCode : Boolean = false
     if (CUDA_Util.verifyCudaLoopSuitability(loop)) {
+      val (loopVariables, lowerBounds, upperBounds, _) = CUDA_Util.extractRelevantLoopInformation(ListBuffer(loop))
+
       try {
-        val (loopVariables, lowerBounds, upperBounds, _) = CUDA_Util.extractRelevantLoopInformation(ListBuffer(loop))
-        extremaMap.put(loopVariables.head, (IR_SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, IR_SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
-        loop.annotate(IR_SimplifyExpression.EXTREMA_MAP, extremaMap)
+        val lower = IR_SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1
+        val upper = IR_SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2
 
-        if (CUDA_Util.verifyCudaLoopParallel(loop)) {
-          loop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_START)
-          loop.annotate(CUDA_Util.CUDA_BODY_DECL, bodyDecl)
-
-          calculateLoopsInBand(extremaMap, loop)
-
-          anyDeviceCode = true
-        } else {
-          val innerLoops : ListBuffer[IR_ForLoop] = loop.body.filter(x => x.isInstanceOf[IR_ForLoop]).asInstanceOf[ListBuffer[IR_ForLoop]]
-
-          // if there is no more inner loop and a band start is not found, add the body declarations to this loop
-          if (innerLoops.nonEmpty)
-            for (il <- innerLoops)
-              anyDeviceCode = updateLoopAnnotations(extremaMap, il) || anyDeviceCode
-          else
-            loop.annotate(CUDA_Util.CUDA_BODY_DECL, bodyDecl)
-        }
-      } catch {
+        extremaMap.put(loopVariables.head, (lower, upper))
+      }
+      catch {
         case e : EvaluationException =>
           Logger.warning(s"""Error while searching for band start! Failed to calculate bounds extrema: '${ e.msg }'""")
+      }
+      loop.annotate(IR_SimplifyExpression.EXTREMA_MAP, extremaMap)
+
+      if (CUDA_Util.verifyCudaLoopParallel(loop)) {
+        loop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_START)
+        loop.annotate(CUDA_Util.CUDA_BODY_DECL, bodyDecl)
+
+        calculateLoopsInBand(extremaMap, loop)
+
+        anyDeviceCode = true
+      } else {
+        val innerLoops : ListBuffer[IR_ForLoop] = loop.body.filter(x => x.isInstanceOf[IR_ForLoop]).asInstanceOf[ListBuffer[IR_ForLoop]]
+
+        // if there is no more inner loop and a band start is not found, add the body declarations to this loop
+        if (innerLoops.nonEmpty)
+          for (il <- innerLoops)
+            anyDeviceCode = updateLoopAnnotations(extremaMap, il) || anyDeviceCode
+        else
+          loop.annotate(CUDA_Util.CUDA_BODY_DECL, bodyDecl)
       }
     }
     anyDeviceCode
