@@ -25,6 +25,8 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
   private var waLBerlaReductionDataForKernel : mutable.HashMap[String, GPU_WaLBerlaReductionDeviceData] = mutable.HashMap()
 
+  private var waLBerlaFieldShapeInfoForKernel : mutable.HashMap[String, ListBuffer[IR_WaLBerlaFieldShapeInfo]] = mutable.HashMap()
+
   private var adaptedKernelCalls : mutable.HashSet[CUDA_FunctionCall] = mutable.HashSet()
   private var adaptedWrapperFunctions : mutable.HashSet[String] = mutable.HashSet()
 
@@ -45,6 +47,21 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
       case fc : CUDA_FunctionCall if kernelCall.isEmpty =>
         kernelCall = Some(fc)
         fc
+    })
+  }
+
+  object FindFieldShapeInfoAccesses extends QuietDefaultStrategy("Find accesses to field shape infos") {
+    var fieldShapeInfoAccesses : ListBuffer[IR_WaLBerlaFieldShapeInfo] = ListBuffer()
+
+    override def applyStandalone(node : Node) : Unit = {
+      fieldShapeInfoAccesses.clear()
+      super.applyStandalone(node)
+    }
+
+    this += Transformation("Find", {
+      case fsi : IR_WaLBerlaFieldShapeInfo if fieldShapeInfoAccesses.contains(fsi) =>
+        fieldShapeInfoAccesses.append(fsi)
+        fsi
     })
   }
 
@@ -106,6 +123,15 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
   def getFunctionArgForWaLBerlaReductionData(reductionData : CUDA_ReductionDeviceDataLike) =
     IR_FunctionArgument(reductionData.resolveName(), IR_PointerDatatype(reductionData.targetDt))
+
+  this += Transformation("Prepare wrapper function for new field shape infos and apply filter", {
+    case func : IR_Function if CUDA_KernelFunctions.get.functions.contains(func) && isWrapperFunction(func) =>
+      val kernelCall = FindKernelCall.kernelCall.get
+
+      // TODO
+
+      func
+  })
 
   this += Transformation("Prepare wrapper function for new field/buffer args and apply filter", {
     case func : IR_Function if CUDA_KernelFunctions.get.functions.contains(func) && isWrapperFunction(func) =>

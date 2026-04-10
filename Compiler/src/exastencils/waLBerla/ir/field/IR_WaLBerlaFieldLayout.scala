@@ -32,13 +32,10 @@ case class IR_WaLBerlaFieldLayout(
 
   lazy val wbField : IR_WaLBerlaField = IR_WaLBerlaFieldCollection.getByLayoutIdentifierLevExp(name, level, suppressError = true).get
 
-  // layout assumed to be equal for slotted and CPU/GPU variants
+  // layout assumed to be equal for slotted and CPU/GPU variants -> use "0" as default
   private def getField = IR_IV_WaLBerlaGetField(wbField, 0, onGPU = false)
 
-  // layouts are identical for each slot: use "0" as default
-  private def callMemberFunc(name : String) = IR_MemberFunctionCallArrowWithDt(getField, name, IR_IntegerDatatype)
-
-  private def callMemberFuncForDim(name : String, dim : Int) = {
+  private def getFieldShapeInfoForDim(name : String, dim : Int) = {
     // TODO handling layout transformations ?
     var newLayout = Duplicate(layoutName)
     for (d <- 0 until 3 - numDimsGrid)
@@ -48,12 +45,12 @@ case class IR_WaLBerlaFieldLayout(
     val prefix = dim match {
       case d if d < newLayout.length => newLayout.reverse(d) // rightmost is innermost dim
     }
-    IR_MemberFunctionCallArrowWithDt(getField, prefix + name, IR_IntegerDatatype)
+    IR_WaLBerlaFieldShapeInfo(getField, prefix + name)
   }
 
   private def numPadLayersLeft(dim : Int) : IR_Expression = 0
 
-  private def numGhostLayersLeft(dim : Int) = IR_Cast(IR_IntegerDatatype, callMemberFunc("nrOfGhostLayers"))
+  private def numGhostLayersLeft(dim : Int) = IR_WaLBerlaFieldShapeInfo(getField, "nrOfGhostLayers")
 
   private def numDupLayersLeft(dim : Int) : IR_Expression = 0 // cell-centered
 
@@ -61,7 +58,7 @@ case class IR_WaLBerlaFieldLayout(
 
   private def numDupLayersRight(dim : Int) : IR_Expression = 0 // cell-centered
 
-  private def numGhostLayersRight(dim : Int) = IR_Cast(IR_IntegerDatatype, callMemberFunc("nrOfGhostLayers"))
+  private def numGhostLayersRight(dim : Int) = IR_WaLBerlaFieldShapeInfo(getField, "nrOfGhostLayers")
 
   private def numPadLayersRight(dim : Int) = numPad(dim) // at the end of each coordinate
 
@@ -69,9 +66,9 @@ case class IR_WaLBerlaFieldLayout(
 
   private def numGhost(d : Int) = numGhostLayersLeft(d) + numGhostLayersRight(d)
 
-  private def numInner(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("Size", d))
+  private def numInner(d : Int) = getFieldShapeInfoForDim("Size", d)
 
-  private def numPad(d : Int) = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", d) - numInner(d) - numDup(d) - numGhost(d))
+  private def numPad(d : Int) = getFieldShapeInfoForDim("AllocSize", d) - numInner(d) - numDup(d) - numGhost(d)
 
   def useFixedLayoutSizes = {
     if (Knowledge.waLBerla_useFixedLayoutsFromExa && layoutName != "fzyx")
@@ -109,7 +106,7 @@ case class IR_WaLBerlaFieldLayout(
   else
     regularLayout.defTotalFixed(dim)
 
-  def defTotalExpr(dim : Int) : IR_Expression = IR_Cast(IR_IntegerDatatype, callMemberFuncForDim("AllocSize", dim))
+  def defTotalExpr(dim : Int) : IR_Expression = getFieldShapeInfoForDim("AllocSize", dim)
 
   def defIdxByIdFixed(id : String, dim : Int) : Int = {
     if (!useFixedLayoutSizes && dim < Knowledge.dimensionality)
