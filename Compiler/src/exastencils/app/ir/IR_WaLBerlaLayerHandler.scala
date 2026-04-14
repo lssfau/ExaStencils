@@ -13,7 +13,6 @@ import exastencils.optimization.ir.IR_GeneralSimplifyUntilDoneWrapper
 import exastencils.parallelization.api.cuda._
 import exastencils.scheduling._
 import exastencils.waLBerla.ir.blockforest._
-import exastencils.waLBerla.ir.field.IR_ResolveWaLBerlaFieldShapeInfo
 import exastencils.waLBerla.ir.gpu._
 import exastencils.waLBerla.ir.replacements._
 import exastencils.waLBerla.ir.interfacing._
@@ -97,7 +96,6 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // generate interface at last
     scheduler.appendToFirstFound(IR_HACK_TypeAliases,
       IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection,
-      IR_ResolveWaLBerlaFieldShapeInfo,
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
       IR_ExpandWrapper,
