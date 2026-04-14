@@ -31,9 +31,9 @@ abstract class IR_IV_WaLBerlaGetFieldShapeInfo extends IR_WaLBerlaInterfaceMembe
   protected def resolveAccess() : IR_Expression = resolveAccess(resolveMemberBaseAccess(), fragmentIdx, level, IR_NullExpression)
 }
 
-/// IR_WaLBerlaFieldShapeInfo
+/// IR_IV_WaLBerlaFieldShapeInfo
 
-case class IR_WaLBerlaFieldShapeInfo(
+case class IR_IV_WaLBerlaFieldShapeInfo(
     var field : IR_WaLBerlaField,
     var name : String,
 ) extends IR_IV_WaLBerlaGetFieldShapeInfo {
