@@ -29,7 +29,7 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${SION_HOME}/lib"
 RUN wget http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/pnetcdf-1.12.1.tar.gz && \
     tar xvf pnetcdf-1.12.1.tar.gz && \
     cd pnetcdf-1.12.1 && \
-    CC=mpicc ./configure --prefix=/opt/PnetCDF && \
+    CC=mpicc ./configure --prefix=/opt/PnetCDF --disable-fortran && \
     make -j 8 && \
     make install
 
