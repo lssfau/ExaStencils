@@ -673,7 +673,6 @@ test:SISC_3D:
 # MISC TESTS                                  #
 ###############################################
 
-# execute Inlining only on chimaira, maybe this leads to more stable results
 test:MISC:
     extends: .test_template
     script:
@@ -761,43 +760,43 @@ test:CUDA:
     extends: .test_template_CUDA
     script:
         # CUDA_SISC_2D_ConstCoeff
-        - run-exastencils-test CUDA_SISC_2D_ConstCoeff CUDA 2D_ConstCoeff.knowledge "2D_ConstCoeff.exa4" ../SISC/2D_ConstCoeff.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_SISC_2D_ConstCoeff CUDA 2D_ConstCoeff.knowledge "2D_ConstCoeff.exa4" ../SISC/2D_ConstCoeff.results Platform/i10swarm-gpu.platform output
         # CUDA_SISC_2D_VarCoeff: has its own expected results due to rounding differences compared to original SISC version
-        - run-exastencils-test CUDA_SISC_2D_VarCoeff CUDA 2D_VarCoeff.knowledge "2D_VarCoeff.exa4" 2D_VarCoeff.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_SISC_2D_VarCoeff CUDA 2D_VarCoeff.knowledge "2D_VarCoeff.exa4" 2D_VarCoeff.results Platform/i10swarm-gpu.platform output
         # CUDA_SISC_3D_ConstCoeff
-        - run-exastencils-test CUDA_SISC_3D_ConstCoeff CUDA 3D_ConstCoeff.knowledge "3D_ConstCoeff.exa4" ../SISC/3D_ConstCoeff.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_SISC_3D_ConstCoeff CUDA 3D_ConstCoeff.knowledge "3D_ConstCoeff.exa4" ../SISC/3D_ConstCoeff.results Platform/i10swarm-gpu.platform output
         # CUDA_SISC_3D_VarCoeff
-        - run-exastencils-test CUDA_SISC_3D_VarCoeff CUDA 3D_VarCoeff.knowledge "3D_VarCoeff.exa4" ../SISC/3D_VarCoeff.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_SISC_3D_VarCoeff CUDA 3D_VarCoeff.knowledge "3D_VarCoeff.exa4" ../SISC/3D_VarCoeff.results Platform/i10swarm-gpu.platform output
         # CUDA_ExaFluids_Bingham
-        - run-exastencils-test CUDA_ExaFluids_Bingham CUDA 3D_ExaFluids_NN_CUDA.knowledge "3D_ExaFluids_NN_CUDA.exa4" 3D_ExaFluids_NN_CUDA.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_ExaFluids_Bingham CUDA 3D_ExaFluids_NN_CUDA.knowledge "3D_ExaFluids_NN_CUDA.exa4" 3D_ExaFluids_NN_CUDA.results Platform/i10swarm-gpu.platform output
 
 test:CUDA_2D_MatrixReduction:
     extends: .test_template_CUDA
     script:
         # base variant
-        - run-exastencils-test CUDA_2D_MatrixReduction CUDA 2D_MatrixReduction.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_2D_MatrixReduction CUDA 2D_MatrixReduction.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/i10swarm-gpu.platform output
         # managed memory variant
         - cp CUDA/2D_MatrixReduction.knowledge CUDA/2D_MatrixReduction_MM.knowledge
         - echo -e "\ncuda_useManagedMemory = true" >> CUDA/2D_MatrixReduction_MM.knowledge
         - echo -e "\ncuda_usePinnedHostMemory = false" >> CUDA/2D_MatrixReduction_MM.knowledge
-        - run-exastencils-test CUDA_2D_MatrixReduction_MM CUDA 2D_MatrixReduction_MM.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_2D_MatrixReduction_MM CUDA 2D_MatrixReduction_MM.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/i10swarm-gpu.platform output
         # zero copy variant
         - cp CUDA/2D_MatrixReduction.knowledge CUDA/2D_MatrixReduction_ZC.knowledge
         - echo -e "\ncuda_useZeroCopy = true" >> CUDA/2D_MatrixReduction_ZC.knowledge
         - echo -e "\ncuda_usePinnedHostMemory = false" >> CUDA/2D_MatrixReduction_ZC.knowledge
-        - run-exastencils-test CUDA_2D_MatrixReduction_ZC CUDA 2D_MatrixReduction_ZC.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_2D_MatrixReduction_ZC CUDA 2D_MatrixReduction_ZC.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/i10swarm-gpu.platform output
         # no stream variant
         - cp CUDA/2D_MatrixReduction.knowledge CUDA/2D_MatrixReduction_NoStream.knowledge
         - echo -e "\nexperimental_cuda_useStreams = false" >> CUDA/2D_MatrixReduction_NoStream.knowledge
-        - run-exastencils-test CUDA_2D_MatrixReduction_NoStream CUDA 2D_MatrixReduction_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_2D_MatrixReduction_NoStream CUDA 2D_MatrixReduction_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/i10swarm-gpu.platform output
         # managed memory && no stream variant
         - cp CUDA/2D_MatrixReduction_MM.knowledge CUDA/2D_MatrixReduction_MM_NoStream.knowledge
         - echo -e "\nexperimental_cuda_useStreams = false" >> CUDA/2D_MatrixReduction_MM_NoStream.knowledge
-        - run-exastencils-test CUDA_2D_MatrixReduction_MM_NoStream CUDA 2D_MatrixReduction_MM_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_2D_MatrixReduction_MM_NoStream CUDA 2D_MatrixReduction_MM_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/i10swarm-gpu.platform output
         # zero copy && no stream variant
         - cp CUDA/2D_MatrixReduction_ZC.knowledge CUDA/2D_MatrixReduction_ZC_NoStream.knowledge
         - echo -e "\nexperimental_cuda_useStreams = false" >> CUDA/2D_MatrixReduction_ZC_NoStream.knowledge
-        - run-exastencils-test CUDA_2D_MatrixReduction_ZC_NoStream CUDA 2D_MatrixReduction_ZC_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/chimaira-gpu.platform output
+        - run-exastencils-test CUDA_2D_MatrixReduction_ZC_NoStream CUDA 2D_MatrixReduction_ZC_NoStream.knowledge "2D_MatrixReduction.exa4" 2D_MatrixReduction.results Platform/i10swarm-gpu.platform output
 
 
 ###############################################
