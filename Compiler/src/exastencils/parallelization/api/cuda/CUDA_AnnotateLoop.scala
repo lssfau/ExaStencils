@@ -24,7 +24,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.field.ir.IR_IV_IndexFromField
+import exastencils.field.ir.IR_HasVariableFieldSize
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
@@ -80,7 +80,7 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
         } catch {
           case e : EvaluationException =>
             Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${ e.msg }'""")
-            if (lower.isInstanceOf[IR_IV_IndexFromField] || upper.isInstanceOf[IR_IV_IndexFromField]) {
+            if (lower.isInstanceOf[IR_HasVariableFieldSize] || upper.isInstanceOf[IR_HasVariableFieldSize]) {
               innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_PART)
               calculateLoopsInBand(extremaMap, innerLoop)
             } else {

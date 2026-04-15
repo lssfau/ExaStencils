@@ -29,9 +29,18 @@ import exastencils.fieldlike.ir.IR_FieldLikeCollections
 import exastencils.interfacing.ir.IR_ExternalFieldCollection
 import exastencils.prettyprinting._
 
+/// IR_HasVariableFieldSize
+
+trait IR_HasVariableFieldSize
+
 /// IR_IV_IndexFromField
 
-case class IR_IV_IndexFromField(var layoutIdentifier : String, var level : IR_Expression, var indexId : String, var dim : Int, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
+case class IR_IV_IndexFromField(
+    var layoutIdentifier : String,
+    var level : IR_Expression,
+    var indexId : String,
+    var dim : Int,
+    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) with IR_HasVariableFieldSize {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = false

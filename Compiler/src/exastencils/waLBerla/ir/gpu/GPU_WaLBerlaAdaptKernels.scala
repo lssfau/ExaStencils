@@ -25,8 +25,6 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
   private var waLBerlaReductionDataForKernel : mutable.HashMap[String, GPU_WaLBerlaReductionDeviceData] = mutable.HashMap()
 
-  private var waLBerlaFieldShapeInfosForKernel : mutable.HashMap[String, ListBuffer[IR_IV_WaLBerlaFieldShapeInfo]] = mutable.HashMap()
-
   private var adaptedKernelCalls : mutable.HashSet[CUDA_FunctionCall] = mutable.HashSet()
   private var adaptedWrapperFunctions : mutable.HashSet[String] = mutable.HashSet()
 
@@ -50,21 +48,6 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
     })
   }
 
-  object FindFieldShapeInfoAccesses extends QuietDefaultStrategy("Find accesses to field shape infos") {
-    var fieldShapeInfoAccesses : ListBuffer[IR_IV_WaLBerlaFieldShapeInfo] = ListBuffer()
-
-    override def applyStandalone(node : Node) : Unit = {
-      fieldShapeInfoAccesses.clear()
-      super.applyStandalone(node)
-    }
-
-    this += Transformation("Find", {
-      case fsi : IR_IV_WaLBerlaFieldShapeInfo if !fieldShapeInfoAccesses.contains(fsi) =>
-        fieldShapeInfoAccesses.append(fsi)
-        fsi
-    })
-  }
-
   object FindReductionDataAccess extends QuietDefaultStrategy("Find CUDA reduction data accesses") {
     var reductionDataAccess : Option[CUDA_ReductionDeviceDataLike] = None
 
@@ -83,11 +66,6 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
   def isWrapperFunction(func : IR_Function) = {
     FindKernelCall.applyStandalone(func)
     FindKernelCall.kernelCall.isDefined && func.functionQualifiers == "extern \"C\""
-  }
-
-  def getFieldShapeInfoAccesses(func : IR_Function) = {
-    FindFieldShapeInfoAccesses.applyStandalone(func)
-    FindFieldShapeInfoAccesses.fieldShapeInfoAccesses
   }
 
   def getReductionDataAccess(func : IR_Function) = {
@@ -123,32 +101,11 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
   def getFunctionArgForWaLBerlaField(waLBerlaField : IR_WaLBerlaField, slot : IR_Expression, fragmentIdx : IR_Expression) =
     IR_FunctionArgument(getSlottedName(waLBerlaField, slot, fragmentIdx), IR_PointerDatatype(waLBerlaField.resolveDeclType))
 
-  def getFunctionArgForWaLBerlaFieldShapeInfo(waLBerlaFSI : IR_IV_WaLBerlaFieldShapeInfo) =
-    IR_FunctionArgument(waLBerlaFSI.resolveName(), waLBerlaFSI.resolveDatatype().resolveBaseDatatype)
-
   def getFunctionArgForWaLBerlaBuffer(waLBerlaBuffer : GPU_WaLBerlaBufferDeviceData) =
     IR_FunctionArgument(waLBerlaBuffer.resolveName(), waLBerlaBuffer.baseDatatype)
 
   def getFunctionArgForWaLBerlaReductionData(reductionData : CUDA_ReductionDeviceDataLike) =
     IR_FunctionArgument(reductionData.resolveName(), IR_PointerDatatype(reductionData.targetDt))
-
-  this += Transformation("Prepare wrapper function for new field shape infos", {
-    case func : IR_Function if CUDA_KernelFunctions.get.functions.contains(func) && isWrapperFunction(func) =>
-      val kernelCall = FindKernelCall.kernelCall.get
-
-      val fieldShapeInfoAccesses = getFieldShapeInfoAccesses(func)
-      if (fieldShapeInfoAccesses.nonEmpty) {
-        adaptedKernelCalls += kernelCall
-        adaptedWrapperFunctions += func.name
-
-        // extend wrapper parameters
-        func.parameters ++= fieldShapeInfoAccesses.map(getFunctionArgForWaLBerlaFieldShapeInfo)
-
-        waLBerlaFieldShapeInfosForKernel += (func.name -> fieldShapeInfoAccesses)
-      }
-
-      func
-  })
 
   this += Transformation("Prepare wrapper function for new field/buffer args and apply filter", {
     case func : IR_Function if CUDA_KernelFunctions.get.functions.contains(func) && isWrapperFunction(func) =>
@@ -225,10 +182,6 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
   this += Transformation("Adapt call to kernel wrapper function for fields/buffers", {
     case funcCall @ IR_FunctionCall(func, _) if adaptedWrapperFunctions.contains(funcCall.name) =>
-      // use wb field shape infos
-      if (waLBerlaFieldShapeInfosForKernel.contains(func.name))
-        funcCall.arguments ++= waLBerlaFieldShapeInfosForKernel(func.name)
-
       // use wb field data pointers
       if (waLBerlaFieldPointersForKernel.contains(func.name))
         funcCall.arguments = Duplicate(funcCall.arguments) ++ waLBerlaFieldPointersForKernel(func.name)

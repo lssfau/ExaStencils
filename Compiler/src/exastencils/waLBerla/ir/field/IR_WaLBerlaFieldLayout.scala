@@ -42,12 +42,12 @@ case class IR_WaLBerlaFieldLayout(
     val prefix = dim match {
       case d if d < newLayout.length => newLayout.reverse(d) // rightmost is innermost dim
     }
-    IR_IV_WaLBerlaFieldShapeInfo(wbField, prefix + name)
+    IR_WaLBerlaFieldShapeInfo(wbField, prefix + name)
   }
 
   private def numPadLayersLeft(dim : Int) : IR_Expression = 0
 
-  private def numGhostLayersLeft(dim : Int) = IR_IV_WaLBerlaFieldShapeInfo(wbField, "nrOfGhostLayers")
+  private def numGhostLayersLeft(dim : Int) = IR_WaLBerlaFieldShapeInfo(wbField, "nrOfGhostLayers")
 
   private def numDupLayersLeft(dim : Int) : IR_Expression = 0 // cell-centered
 
@@ -55,7 +55,7 @@ case class IR_WaLBerlaFieldLayout(
 
   private def numDupLayersRight(dim : Int) : IR_Expression = 0 // cell-centered
 
-  private def numGhostLayersRight(dim : Int) = IR_IV_WaLBerlaFieldShapeInfo(wbField, "nrOfGhostLayers")
+  private def numGhostLayersRight(dim : Int) = IR_WaLBerlaFieldShapeInfo(wbField, "nrOfGhostLayers")
 
   private def numPadLayersRight(dim : Int) = numPad(dim) // at the end of each coordinate
 
