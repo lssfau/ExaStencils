@@ -49,18 +49,17 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // use walberla functions for GPU field memory operations
     scheduler.appendToFirstFound(CUDA_PrepareMPICode,
       ConditionedStrategyContainerWrapper(
-        Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa,
+        Knowledge.cuda_enabled,
         GPU_WaLBerlaReplaceGPUIVs,
         GPU_WaLBerlaHandleGPUMemory))
 
     // adapt cuda kernels for walberla support
     if (Knowledge.cuda_enabled) {
       scheduler.appendToFirstFound(CUDA_FunctionConversionWrapper,
-        ConditionedStrategyContainerWrapper(
-          Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa,
           GPU_WaLBerlaReplaceGPUIVs,
           GPU_WaLBerlaAdaptKernels,
-          GPU_WaLBerlaHandleGPUMemory))
+          GPU_WaLBerlaHandleGPUMemory,
+          )
 
       scheduler.prependToFirstFound(CUDA_HandleFragmentLoops,
         GPU_ReplaceReductionIVs)
