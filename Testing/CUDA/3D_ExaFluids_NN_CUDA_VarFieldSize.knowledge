@@ -1,0 +1,3 @@
+import "3D_ExaFluids_NN_CUDA.knowledge"
+
+data_genVariableFieldSizes = true
