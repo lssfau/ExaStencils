@@ -130,6 +130,5 @@ object IR_WaLBerlaResolveLoopOverBlocks extends DefaultStrategy("Resolve waLBerl
 
   this += Transformation("Resolve", {
     case loop : IR_WaLBerlaLoopOverLocalBlocks => loop.expandSpecial(collector)
-    case loop : IR_WaLBerlaLoopOverLocalBlockArray => loop.expandSpecial()
   })
 }

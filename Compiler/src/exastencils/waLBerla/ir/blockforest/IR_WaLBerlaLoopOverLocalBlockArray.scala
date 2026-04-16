@@ -7,8 +7,11 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
 import exastencils.config.Knowledge
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.util.ir.IR_StackCollector
 
 /// IR_WaLBerlaLoopOverLocalBlockArray
 
@@ -60,4 +63,14 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
 
     loop
   }
+}
+
+object IR_WaLBerlaResolveLoopOverLocalBlockArray extends DefaultStrategy("Resolve waLBerla LoopOverBlocks") {
+  val collector = new IR_StackCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
+
+  this += Transformation("Resolve", {
+    case loop : IR_WaLBerlaLoopOverLocalBlockArray => loop.expandSpecial()
+  })
 }

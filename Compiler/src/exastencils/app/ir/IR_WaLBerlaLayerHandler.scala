@@ -56,10 +56,10 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // adapt cuda kernels for walberla support
     if (Knowledge.cuda_enabled) {
       scheduler.appendToFirstFound(CUDA_FunctionConversionWrapper,
-          GPU_WaLBerlaReplaceGPUIVs,
-          GPU_WaLBerlaAdaptKernels,
-          GPU_WaLBerlaHandleGPUMemory,
-          )
+        GPU_WaLBerlaReplaceGPUIVs,
+        GPU_WaLBerlaAdaptKernels,
+        GPU_WaLBerlaHandleGPUMemory,
+      )
 
       scheduler.prependToFirstFound(CUDA_HandleFragmentLoops,
         GPU_ReplaceReductionIVs)
@@ -86,6 +86,8 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaReplaceCommIVs,
       IR_WaLBerlaReplaceFragmentLoops,
       ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs),
+      IR_WaLBerlaResolveLoopOverBlocks,
+      IR_WaLBerlaResolveLoopOverLocalBlockArray,
       IR_WaLBerlaAddInterfaceMembers)
 
     // ... and adapt memory allocations
@@ -101,7 +103,6 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_ExpandWrapper,
       IR_WaLBerlaReplaceFragmentLoops,
       ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaResolveLoopOverBlocks,
       ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,
