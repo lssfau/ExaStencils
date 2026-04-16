@@ -209,6 +209,15 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     scheduler.register(IR_TypeInferenceWrapper(warnMissingDeclarations = true)) // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
+    scheduler.register(IR_LayoutTansformation)
+
+    // before converting kernel functions -> requires linearized accesses
+    scheduler.register(IR_LinearizeDirectFieldLikeAccess)
+    scheduler.register(IR_LinearizeExternalFieldAccess)
+    scheduler.register(IR_LinearizeTempBufferAccess)
+    scheduler.register(CUDA_LinearizeReductionDeviceDataAccess)
+    scheduler.register(IR_LinearizeLoopCarriedCSBufferAccess)
+
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
     scheduler.register(ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled,
       CUDA_AnnotateLoop,
@@ -218,15 +227,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_HandleReductions,
       CUDA_ReplaceStdFunctionCallsWrapper,
       CUDA_SetExecutionBranching))
-
-    scheduler.register(IR_LayoutTansformation)
-
-    // before converting kernel functions -> requires linearized accesses
-    scheduler.register(IR_LinearizeDirectFieldLikeAccess)
-    scheduler.register(IR_LinearizeExternalFieldAccess)
-    scheduler.register(IR_LinearizeTempBufferAccess)
-    scheduler.register(CUDA_LinearizeReductionDeviceDataAccess)
-    scheduler.register(IR_LinearizeLoopCarriedCSBufferAccess)
 
     scheduler.register(IR_SimplifyModulo)
 

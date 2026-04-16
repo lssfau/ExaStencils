@@ -73,8 +73,8 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     scheduler.prependToAllFound(IR_ResolveLoopOverFragments,
       IR_WaLBerlaReplaceFragmentLoops,
       IR_WaLBerlaReplaceCommIVs,
-      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaResolveLoopOverBlocks)
+      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs)
+    )
 
     // resolve block loops before fieldlike accesses are resolved
     scheduler.prependToFirstFound(IR_ResolveFieldLikeAccess,
