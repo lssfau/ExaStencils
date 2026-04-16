@@ -215,7 +215,6 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(IR_LinearizeDirectFieldLikeAccess)
     scheduler.register(IR_LinearizeExternalFieldAccess)
     scheduler.register(IR_LinearizeTempBufferAccess)
-    scheduler.register(CUDA_LinearizeReductionDeviceDataAccess)
     scheduler.register(IR_LinearizeLoopCarriedCSBufferAccess)
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
@@ -226,7 +225,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_HandleFragmentLoops,
       CUDA_HandleReductions,
       CUDA_ReplaceStdFunctionCallsWrapper,
-      CUDA_SetExecutionBranching))
+      CUDA_SetExecutionBranching,
+      CUDA_LinearizeReductionDeviceDataAccess))
 
     scheduler.register(IR_SimplifyModulo)
 
