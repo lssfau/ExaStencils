@@ -85,7 +85,7 @@ object Settings {
   var poly_explorationConfig : String = ""
 
   // specifies if the poly exploration config ids should be appended to the output path (one after the other)
-  var poly_exploration_appendID2path : Boolean = true
+  var poly_exploration_appendID2path : Boolean = false
 
   /// output
 
