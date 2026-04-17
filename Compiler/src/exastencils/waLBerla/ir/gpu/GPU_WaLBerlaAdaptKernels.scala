@@ -13,11 +13,16 @@ import exastencils.datastructures.Transformation
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.fieldlike.ir._
 import exastencils.parallelization.api.cuda._
+import exastencils.util.ir.IR_StackCollector
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.field._
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaAABB
 
 object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kernels with waLBerla fields") {
+
+  var collector = new IR_StackCollector
+  this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   private var waLBerlaFieldPointersForKernel : mutable.HashMap[String, ListBuffer[IR_IV_WaLBerlaFieldData]] = mutable.HashMap()
 
@@ -49,7 +54,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
   }
 
   object FindReductionDataAccess extends QuietDefaultStrategy("Find CUDA reduction data accesses") {
-    var reductionDataAccess : Option[CUDA_ReductionDeviceDataLike] = None
+    var reductionDataAccess : Option[CUDA_ReductionDeviceData] = None
 
     override def applyStandalone(node : Node) : Unit = {
       reductionDataAccess = None
@@ -57,7 +62,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
     }
 
     this += Transformation("Find", {
-      case fc : CUDA_ReductionDeviceDataLike if reductionDataAccess.isEmpty =>
+      case fc : CUDA_ReductionDeviceData if reductionDataAccess.isEmpty =>
         reductionDataAccess = Some(fc)
         fc
     })
@@ -66,6 +71,13 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
   def isWrapperFunction(func : IR_Function) = {
     FindKernelCall.applyStandalone(func)
     FindKernelCall.kernelCall.isDefined && func.functionQualifiers == "extern \"C\""
+  }
+
+  def isEnclosedByWrapperFunction() : Boolean = {
+    collector.stack.exists {
+      case f : IR_Function => adaptedWrapperFunctions.contains(f.name)
+      case _ => false
+    }
   }
 
   def getReductionDataAccess(func : IR_Function) = {
@@ -95,6 +107,9 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
     }
     identifier
   }
+
+  def toWaLBerlaReductionData(data : CUDA_ReductionDeviceData) =
+    GPU_WaLBerlaReductionDeviceData(Duplicate(data.numPoints), Duplicate(data.targetDt), Duplicate(data.fragmentIdx))
 
   def getWaLBerlaField(fieldData : IR_IV_AbstractFieldLikeData) = IR_WaLBerlaFieldCollection.getByIdentifier(fieldData.field.name, fieldData.field.level).get
 
@@ -159,7 +174,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
         // convert from 'regular' reduction data type to waLBerla counterpart
         val reductionDataAcc = reductionDataAccOpt.get
-        val wbReductionDataAcc = GPU_WaLBerlaReductionDeviceData(reductionDataAcc.numPoints, reductionDataAcc.targetDt, reductionDataAcc.fragmentIdx)
+        val wbReductionDataAcc = toWaLBerlaReductionData(reductionDataAcc)
 
         // extend wrapper args
         func.parameters += getFunctionArgForWaLBerlaReductionData(wbReductionDataAcc)
@@ -206,19 +221,30 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
       func
   })
 
-  this += Transformation("Change kernel call args for fields/buffers and apply filter", {
+  this += Transformation("Change accesses to wb reduction device data as it is already passed as pointer to the kernel wrapper", {
+    case data : CUDA_ReductionDeviceData if isEnclosedByWrapperFunction() =>
+      // just forward pointer for reduction data passed to wrapper function
+      getFunctionArgForWaLBerlaReductionData(toWaLBerlaReductionData(data)).access
+  })
+
+  this += Transformation("Change accesses to wb field device data as it is already passed as pointer to the kernel wrapper", {
+    case deviceData : CUDA_FieldDeviceData if isEnclosedByWrapperFunction() &&
+      IR_WaLBerlaFieldCollection.exists(deviceData.field.name, deviceData.field.level) =>
+
+      getFunctionArgForWaLBerlaField(getWaLBerlaField(deviceData), deviceData.slot, deviceData.fragmentIdx).access
+  })
+
+  this += Transformation("Change accesses to wb buffer device data as it is already passed as pointer to the kernel wrapper", {
+    case _ @ CUDA_BufferDeviceData(field, send, size, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx) if isEnclosedByWrapperFunction() &&
+      IR_WaLBerlaFieldCollection.objects.contains(field)  =>
+
+      val wbDeviceBuffer = GPU_WaLBerlaBufferDeviceData(field, send, size, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx)
+      getFunctionArgForWaLBerlaBuffer(wbDeviceBuffer).access
+  })
+
+  this += Transformation("Apply filter to final kernel call args", {
     case fc : CUDA_FunctionCall if adaptedKernelCalls.contains(fc) =>
-      // use waLBerla fieldData in kernel call
       val newArgs = Duplicate(fc.arguments)
-        .map { // re-map pointers to waLBerla data
-          case deviceData : CUDA_FieldDeviceData if IR_WaLBerlaFieldCollection.exists(deviceData.field.name, deviceData.field.level)                                            =>
-            getFunctionArgForWaLBerlaField(getWaLBerlaField(deviceData), deviceData.slot, deviceData.fragmentIdx).access
-          case _ @ CUDA_BufferDeviceData(field, send, size, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx) if IR_WaLBerlaFieldCollection.objects.contains(field) =>
-            val wbDeviceBuffer = GPU_WaLBerlaBufferDeviceData(field, send, size, neighIdx, concurrencyId, indexOfRefinedNeighbor, fragmentIdx)
-            getFunctionArgForWaLBerlaBuffer(wbDeviceBuffer).access
-          case arg                                                                                                                                                              =>
-            arg
-        }
 
       // also apply filter to kernel call args
       val filtered = applyFilterExpr(newArgs)

@@ -56,13 +56,12 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // adapt cuda kernels for walberla support
     if (Knowledge.cuda_enabled) {
       scheduler.appendToFirstFound(CUDA_FunctionConversionWrapper,
-          GPU_WaLBerlaReplaceGPUIVs,
-          GPU_WaLBerlaAdaptKernels,
-          GPU_WaLBerlaHandleGPUMemory,
-          )
+        GPU_WaLBerlaReplaceGPUIVs,
+        GPU_WaLBerlaAdaptKernels,
+        GPU_WaLBerlaHandleGPUMemory)
 
       scheduler.prependToFirstFound(CUDA_HandleFragmentLoops,
-        GPU_ReplaceReductionIVs)
+        GPU_WaLBerlaReplaceReductionIVs)
 
       scheduler.appendToFirstFound(CUDA_HandleFragmentLoops,
         GPU_WaLBerlaReplaceGPUIVs,
@@ -73,13 +72,15 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     scheduler.prependToAllFound(IR_ResolveLoopOverFragments,
       IR_WaLBerlaReplaceFragmentLoops,
       IR_WaLBerlaReplaceCommIVs,
-      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs)
+      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
+      IR_WaLBerlaResolveLoopOverBlocks
     )
 
     // resolve block loops before fieldlike accesses are resolved
     scheduler.prependToFirstFound(IR_ResolveFieldLikeAccess,
       IR_WaLBerlaReplaceCommIVs,
-      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs))
+      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
+      IR_WaLBerlaResolveLoopOverBlocks)
 
     // also add walberla IVs ...
     scheduler.prependToFirstFound(IR_AddInternalVariables,
@@ -101,7 +102,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_ExpandWrapper,
       IR_WaLBerlaReplaceFragmentLoops,
       ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaResolveLoopOverBlocks,
+      IR_WaLBerlaResolveLoopOverLocalBlockArray,
       ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,
