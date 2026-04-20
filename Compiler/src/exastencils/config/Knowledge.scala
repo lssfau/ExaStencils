@@ -542,7 +542,7 @@ object Knowledge {
   var waLBerla_cacheFieldPointers : Boolean = true
 
   // [true|false]: optimization.
-  // use fixed layout sizes for waLBerla fields, required for optimizations and CUDA parallelization
+  // use fixed layout sizes for waLBerla fields, required for optimizations
   var waLBerla_useFixedLayoutsFromExa : Boolean = false
 
   // --- Parallel I/O ---
