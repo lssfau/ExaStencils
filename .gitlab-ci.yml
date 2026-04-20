@@ -29,6 +29,7 @@ stages:
         - python3 --version
         - mpirun --version
         - source .venv/bin/activate
+        - cmake --version
         - cd Testing
 
 .test_template_AVX:
@@ -61,6 +62,7 @@ stages:
         - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
         - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
         - source .venv/bin/activate
+        - cmake --version
         - cd Testing
 
 .test_template_IO:
@@ -81,6 +83,7 @@ stages:
         - h5pcc -showconfig
         - pnetcdf-config --all
         - source .venv/bin/activate
+        - cmake --version
         - cd Testing
 
 
@@ -102,6 +105,7 @@ stages:
         - python3 --version
         - mpirun --version
         - source .venv/bin/activate
+        - cmake --version
         - cd Benchmark
 
 #######################################
@@ -170,6 +174,7 @@ build:test-runner:
     script:
         - python3 -m venv .venv
         - .venv/bin/pip install git+https://i10git.cs.fau.de/exastencils/exastencils_runner.git
+        - .venv/bin/pip install cmake==3.31.0
 
 #######################################
 ##                                   ##
