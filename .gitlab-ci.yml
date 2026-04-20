@@ -15,6 +15,7 @@ stages:
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
     dependencies:
         - build:generator
+        - build:test-runner
     tags:
         - docker
     artifacts:
@@ -27,6 +28,7 @@ stages:
         - java -version
         - python3 --version
         - mpirun --version
+        - source .venv/bin/activate
         - cd Testing
 
 .test_template_AVX:
@@ -58,6 +60,7 @@ stages:
         - locate libcudart
         - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
         - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - source .venv/bin/activate
         - cd Testing
 
 .test_template_IO:
@@ -77,12 +80,14 @@ stages:
         - sionversion
         - h5pcc -showconfig
         - pnetcdf-config --all
+        - source .venv/bin/activate
         - cd Testing
 
 
 .benchmark_template:
     dependencies:
         - build:generator
+        - build:test-runner
     image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
     tags:
         - docker-benchmark
@@ -96,6 +101,7 @@ stages:
         - java -version
         - python3 --version
         - mpirun --version
+        - source .venv/bin/activate
         - cd Benchmark
 
 #######################################
@@ -151,6 +157,19 @@ build:generator:
         - java -version
         - sbt compile
         - sbt assembly
+
+build:test-runner:
+    stage: build
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        paths:
+            - .venv/
+        expire_in: 1 weeks
+    script:
+        - python3 -m venv .venv
+        - .venv/bin/pip install git+https://i10git.cs.fau.de/exastencils/exastencils_runner.git
 
 #######################################
 ##                                   ##

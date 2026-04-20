@@ -14,12 +14,6 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 RUN python3 -m pip install sympy numpy influxdb GitPython
 
-# exastencils_runner module
-
-RUN \
-   git clone https://i10git.cs.fau.de/exastencils/exastencils_runner.git exastencils_runner && \
-   python3 -m pip install ./exastencils_runner
-
 # sbt
 RUN \
   (echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list) && \
