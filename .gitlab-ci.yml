@@ -174,7 +174,7 @@ build:test-runner:
     script:
         - python3 -m venv .venv
         - .venv/bin/pip install git+https://i10git.cs.fau.de/exastencils/exastencils_runner.git
-        - .venv/bin/pip install cmake==3.31.0
+        - .venv/bin/pip install cmake==3.31.6
 
 #######################################
 ##                                   ##
