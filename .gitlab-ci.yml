@@ -995,41 +995,41 @@ example:StokesExamples_1D:
     extends: .test_template
     script:
         # 1D_FD_Stokes_fromL1
-        - run-exastencils-test 1D_FD_Stokes_fromL1 Examples/Stokes 1D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output
+        - run-exastencils-test 1D_FD_Stokes_fromL1 Examples/Stokes 1D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output --settings_file=1D_FD_Stokes_fromL1.settings
 
 example:StokesExamples_2D:
     stage: example
     extends: .test_template
     script:
         # 2D_FD_Stokes_fromL1
-        - run-exastencils-test 2D_FD_Stokes_fromL1 Examples/Stokes 2D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Stokes_fromL1 Examples/Stokes 2D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output --settings_file=2D_FD_Stokes_fromL1.settings
         # 2D_FD_Stokes_fromL2
-        - run-exastencils-test 2D_FD_Stokes_fromL2 Examples/Stokes 2D_FD_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Stokes_fromL2 Examples/Stokes 2D_FD_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_Stokes_fromL2.settings
         # 2D_FD_Stokes_fromL4
-        - run-exastencils-test 2D_FD_Stokes_fromL4 Examples/Stokes 2D_FD_Stokes_fromL4.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Stokes_fromL4 Examples/Stokes 2D_FD_Stokes_fromL4.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL4.exa4" "" Platform/random.platform output --settings_file=2D_FD_Stokes_fromL4.settings
         # 2D_FD_Stokes_Lisa_fromL2
-        - run-exastencils-test 2D_FD_Stokes_Lisa_fromL2 Examples/Stokes 2D_FD_Stokes_Lisa_fromL2.knowledge "../../../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Stokes_Lisa_fromL2 Examples/Stokes 2D_FD_Stokes_Lisa_fromL2.knowledge "../../../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_Stokes_Lisa_fromL2.settings
         # 2D_FE_Stokes_fromL2
-        - run-exastencils-test 2D_FE_Stokes_fromL2 Examples/Stokes 2D_FE_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FE_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FE_Stokes_fromL2 Examples/Stokes 2D_FE_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FE_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FE_Stokes_fromL2.settings
         # 2D_FV_Stokes_fromL2
-        - run-exastencils-test 2D_FV_Stokes_fromL2 Examples/Stokes 2D_FV_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FV_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_Stokes_fromL2 Examples/Stokes 2D_FV_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FV_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_Stokes_fromL2.settings
         # 2D_FV_Stokes_fromL4
-        - run-exastencils-test 2D_FV_Stokes_fromL4 Examples/Stokes 2D_FV_Stokes_fromL4.knowledge "../../../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_Stokes_fromL4 Examples/Stokes 2D_FV_Stokes_fromL4.knowledge "../../../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "" Platform/random.platform output --settings_file=2D_FV_Stokes_fromL4.settings
 
 example:StokesExamples_3D:
     stage: example
     extends: .test_template
     script:
         # 3D_FD_Stokes_fromL1
-        - run-exastencils-test 3D_FD_Stokes_fromL1 Examples/Stokes 3D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Stokes_fromL1 Examples/Stokes 3D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output --settings_file=3D_FD_Stokes_fromL1.settings
         # 3D_FD_Stokes_fromL2
-        - run-exastencils-test 3D_FD_Stokes_fromL2 Examples/Stokes 3D_FD_Stokes_fromL2.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Stokes_fromL2 Examples/Stokes 3D_FD_Stokes_fromL2.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FD_Stokes_fromL2.settings
         # 3D_FD_Stokes_fromL4
-        - run-exastencils-test 3D_FD_Stokes_fromL4 Examples/Stokes 3D_FD_Stokes_fromL4.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Stokes_fromL4 Examples/Stokes 3D_FD_Stokes_fromL4.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL4.exa4" "" Platform/random.platform output --settings_file=3D_FD_Stokes_fromL4.settings
         # 3D_FV_Stokes_fromL2
-        - run-exastencils-test 3D_FV_Stokes_fromL2 Examples/Stokes 3D_FV_Stokes_fromL2.knowledge "../../../Examples/Stokes/3D_FV_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_Stokes_fromL2 Examples/Stokes 3D_FV_Stokes_fromL2.knowledge "../../../Examples/Stokes/3D_FV_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_Stokes_fromL2.settings
         # 3D_FV_Stokes_fromL4
-        - run-exastencils-test 3D_FV_Stokes_fromL4 Examples/Stokes 3D_FV_Stokes_fromL4.knowledge "../../../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_Stokes_fromL4 Examples/Stokes 3D_FV_Stokes_fromL4.knowledge "../../../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "" Platform/random.platform output --settings_file=3D_FV_Stokes_fromL4.settings
 
 ###############################################
 # SWE EXAMPLES                                #
@@ -1039,4 +1039,4 @@ example:ShallowWaterExamples_2D:
     stage: example
     extends: .test_template
     script:
-        - run-exastencils-test 2D_FV_SWE Examples/SWE 2D_FV_SWE.knowledge "../../../Examples/SWE/2D_FV_SWE.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_SWE Examples/SWE 2D_FV_SWE.knowledge "../../../Examples/SWE/2D_FV_SWE.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_SWE.settings
