@@ -12,7 +12,7 @@ case class IR_WaLBerlaFieldShapeInfo(
     var funcName : String,
 ) extends IR_WaLBerlaBlockLoopVariable with IR_HasVariableFieldSize {
 
-  override def resolveName() : String = s"${field.name}_${funcName}"
+  override def resolveName() : String = s"${field.codeName}_${funcName}"
 
   override def resolveDatatype() : IR_Datatype = IR_IntegerDatatype
 
