@@ -1,0 +1,21 @@
+user	= "Guest"
+
+basePathPrefix	= "Examples/NavierStokes"
+
+l4file	 = "../../../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa4"
+l3file	 = "../../../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa3"
+l2file	 = "../../../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa2"
+
+debugL1File	= "../../output/Debug/2D_FV_NavierStokes_localNewton_debug.exa1"
+debugL2File	= "../../output/Debug/2D_FV_NavierStokes_localNewton_debug.exa2"
+debugL3File	= "../../output/Debug/2D_FV_NavierStokes_localNewton_debug.exa3"
+debugL4File	= "../../output/Debug/2D_FV_NavierStokes_localNewton_debug.exa4"
+htmlLogFile	= "../../output/Debug/2D_FV_NavierStokes_localNewton_log.html"
+
+outputPath	= "../../output/generated/2D_FV_NavierStokes_localNewton_random"
+
+produceHtmlLog	= true
+timeStrategies	= true
+
+buildfileGenerators	= {"CMakeGenerator"}
+cmake_buildStandalone	= true
