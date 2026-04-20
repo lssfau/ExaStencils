@@ -833,7 +833,7 @@ example:BiHarmonicExamples_2D:
     extends: .test_template
     script:
         # 2D_FD_BiHarmonic_fromL2
-        - run-exastencils-test 2D_FD_BiHarmonic_fromL2 Examples/BiHarmonic 2D_FD_BiHarmonic_fromL2.knowledge "../../../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_BiHarmonic_fromL2 Examples/BiHarmonic 2D_FD_BiHarmonic_fromL2.knowledge "../../../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_BiHarmonic_fromL2.settings
 
 ###############################################
 # HelmHoltz EXAMPLES                          #
@@ -844,16 +844,16 @@ example:HelmHoltzExamples_2D:
     extends: .test_template
     script:
         # 2D_FD_Helmholtz_fromL3
-        -  run-exastencils-test 2D_FD_Helmholtz_fromL3 Examples/Helmholtz 2D_FD_Helmholtz_fromL3.knowledge "../../../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Helmholtz_fromL3 Examples/Helmholtz 2D_FD_Helmholtz_fromL3.knowledge "../../../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_Helmholtz_fromL3.settings
         # 2D_FD_Helmholtz_MPI_fromL3
-        - run-exastencils-test 2D_FD_Helmholtz_MPI_fromL3 Examples/Helmholtz 2D_FD_Helmholtz_MPI_fromL3.knowledge "../../../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Helmholtz_MPI_fromL3 Examples/Helmholtz 2D_FD_Helmholtz_MPI_fromL3.knowledge "../../../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_Helmholtz_MPI_fromL3.settings
 
 example:HelmHoltzExamples_3D:
     stage: example
     extends: .test_template
     script:
         # 3D_FD_Helmholtz_fromL3
-        - run-exastencils-test 3D_FD_Helmholtz_fromL3 Examples/Helmholtz 3D_FD_Helmholtz_fromL3.knowledge "../../../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Helmholtz_fromL3 Examples/Helmholtz 3D_FD_Helmholtz_fromL3.knowledge "../../../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FD_Helmholtz_fromL3.settings
 
 ###############################################
 # LinearElasticity EXAMPLES                   #
@@ -864,7 +864,7 @@ example:LinearElasticityExamples_2D:
     extends: .test_template
     script:
         # 2D_FD_LinearElasticity_fromL2
-        - run-exastencils-test 2D_FD_LinearElasticity_fromL2 Examples/LinearElasticity 2D_FD_LinearElasticity_fromL2.knowledge "../../../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_LinearElasticity_fromL2 Examples/LinearElasticity 2D_FD_LinearElasticity_fromL2.knowledge "../../../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_LinearElasticity_fromL2.settings
 
 ###############################################
 # NavierStokes EXAMPLES                       #
