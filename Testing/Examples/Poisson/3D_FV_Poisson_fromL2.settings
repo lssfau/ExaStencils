@@ -1,0 +1,20 @@
+user	= "Guest"
+
+basePathPrefix	= "Examples/Poisson"
+
+l2file	 = "../../../Examples/Poisson/3D_FV_Poisson_fromL2.exa2"
+l3file	 = "../../../Examples/Poisson/3D_FV_Poisson_fromL2.exa3"
+
+debugL1File	= "../../output/Debug/3D_FV_Poisson_fromL2_debug.exa1"
+debugL2File	= "../../output/Debug/3D_FV_Poisson_fromL2_debug.exa2"
+debugL3File	= "../../output/Debug/3D_FV_Poisson_fromL2_debug.exa3"
+debugL4File	= "../../output/Debug/3D_FV_Poisson_fromL2_debug.exa4"
+htmlLogFile	= "../../output/Debug/3D_FV_Poisson_fromL2_log.html"
+
+outputPath	= "../../output/generated/3D_FV_Poisson_fromL2_random"
+
+produceHtmlLog	= true
+timeStrategies	= true
+
+buildfileGenerators	= {"CMakeGenerator"}
+cmake_buildStandalone	= true

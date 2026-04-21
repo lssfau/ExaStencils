@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.4.1-devel-ubuntu20.04
+FROM nvidia/cuda:12.5.1-devel-ubuntu24.04
 
 ENV DEBIAN_FRONTEND="noninteractive" TZ="Europe/Berlin"
 
@@ -6,9 +6,13 @@ ARG SBT_VERSION=1.3.2
 ARG LIKWID_VERSION=5.2.0
 
 # basic stuff
-RUN \
-  apt-get update && apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant mlocate time wget gfortran libjpeg-dev libpng-dev && \
-  python3 -m pip install sympy numpy influxdb GitPython
+RUN apt-get update && \
+    apt-get install -y build-essential curl git openjdk-11-jdk python3 python3-pip python3-venv openmpi-bin openmpi-common libopenmpi-dev libopenmpi3 ant time plocate wget gfortran libjpeg-dev libpng-dev
+
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN python3 -m pip install sympy numpy influxdb GitPython
 
 # sbt
 RUN \

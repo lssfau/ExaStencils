@@ -60,6 +60,7 @@ object IR_SetupVisit extends DefaultStrategy("Setup Visit functions") {
         fctCollection += IR_VisItSlaveProcessCallback()
       }
 
+      // TODO: CMake handling
       Settings.pathsInc = (Settings.pathsInc :+ "$(SIMV2DIR)/include").distinct
       Settings.pathsLib = (Settings.pathsLib :+ "$(SIMV2DIR)/lib").distinct
       Settings.additionalLibs += "simV2"

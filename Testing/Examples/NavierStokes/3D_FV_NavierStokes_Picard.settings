@@ -1,0 +1,21 @@
+user	= "Guest"
+
+basePathPrefix	= "Examples/NavierStokes"
+
+l2file	 = "../../../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa2"
+l3file	 = "../../../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa3"
+l4file	 = "../../../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa4"
+
+debugL1File	= "../../output/Debug/3D_FV_NavierStokes_Picard_debug.exa1"
+debugL2File	= "../../output/Debug/3D_FV_NavierStokes_Picard_debug.exa2"
+debugL3File	= "../../output/Debug/3D_FV_NavierStokes_Picard_debug.exa3"
+debugL4File	= "../../output/Debug/3D_FV_NavierStokes_Picard_debug.exa4"
+htmlLogFile	= "../../output/Debug/3D_FV_NavierStokes_Picard_log.html"
+
+outputPath	= "../../output/generated/3D_FV_NavierStokes_Picard_random"
+
+produceHtmlLog	= true
+timeStrategies	= true
+
+buildfileGenerators	= {"CMakeGenerator"}
+cmake_buildStandalone	= true

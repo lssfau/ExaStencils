@@ -292,7 +292,7 @@ object Platform {
 
     targetCudaCompiler match {
       case "NVCC" =>
-        flags += s" -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }"
+        flags += s" -std=c++${Settings.cxx_standard} -O3 -DNDEBUG -lineinfo -arch=sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }"
 
         // cannot find mpi.h from Globals/Globals.h when compiling with nvcc otherwise
         if (Knowledge.mpi_enabled) {
@@ -314,7 +314,7 @@ object Platform {
         if (Knowledge.omp_enabled) flags += " -qsmp=omp"
 
       case "GCC" =>
-        flags += " -O3 -DNDEBUG -std=c++11"
+        flags += f" -O3 -DNDEBUG -std=c++${Settings.cxx_standard}"
 
         if (Knowledge.omp_enabled) flags += " -fopenmp"
 
@@ -335,7 +335,7 @@ object Platform {
       case "MSVC" => // nothing to do
 
       case "ICC" =>
-        flags += " -O3 -fno-alias -std=c++11"
+        flags += f" -O3 -fno-alias -std=c++${Settings.cxx_standard}"
 
         if (Knowledge.omp_enabled) {
           if (targetCompilerVersion >= 15)
@@ -355,7 +355,7 @@ object Platform {
         }
 
       case "CLANG" =>
-        flags += " -O3 -std=c++11 -Wno-parentheses-equality"
+        flags += f" -O3 -std=c++${Settings.cxx_standard} -Wno-parentheses-equality"
 
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
 

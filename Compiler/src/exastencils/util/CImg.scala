@@ -25,6 +25,8 @@ import exastencils.config._
 import exastencils.prettyprinting._
 
 object CImg {
+  // TODO: CMake handling?
+
   def resolveLdLibs() : String = {
     var flags = ""
 
