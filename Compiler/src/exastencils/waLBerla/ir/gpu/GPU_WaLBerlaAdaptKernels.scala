@@ -30,7 +30,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
   private var waLBerlaReductionDataForKernel : mutable.HashMap[String, GPU_WaLBerlaReductionDeviceData] = mutable.HashMap()
 
-  private var adaptedKernelCalls : mutable.HashSet[CUDA_FunctionCall] = mutable.HashSet()
+  private var adaptedKernelCalls : mutable.HashSet[String] = mutable.HashSet()
   private var adaptedWrapperFunctions : mutable.HashSet[String] = mutable.HashSet()
 
   // filter complex data structures which shall not be passed to the kernel (e.g. wb block)
@@ -135,7 +135,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
 
       // remember field data pointers associated with kernel
       if (wbFieldData.nonEmpty || wbBufferData.nonEmpty) {
-        adaptedKernelCalls += kernelCall
+        adaptedKernelCalls += kernelCall.name
         adaptedWrapperFunctions += func.name
 
         // extend wrapper parameters
@@ -153,7 +153,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
       // apply argument/parameter filter
       val filtered = applyFilterArg(func.parameters)
       if (filtered.size != func.parameters.size) {
-        adaptedKernelCalls += kernelCall
+        adaptedKernelCalls += kernelCall.name
         adaptedWrapperFunctions += func.name
 
         func.parameters = filtered
@@ -169,7 +169,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
       // add pointer arg for reduction buffer to wrapper
       val reductionDataAccOpt = getReductionDataAccess(func)
       if (reductionDataAccOpt.isDefined) {
-        adaptedKernelCalls += kernelCall
+        adaptedKernelCalls += kernelCall.name
         adaptedWrapperFunctions += func.name
 
         // convert from 'regular' reduction data type to waLBerla counterpart
@@ -243,7 +243,7 @@ object GPU_WaLBerlaAdaptKernels extends DefaultStrategy("Handling for CUDA kerne
   })
 
   this += Transformation("Apply filter to final kernel call args", {
-    case fc : CUDA_FunctionCall if adaptedKernelCalls.contains(fc) =>
+    case fc : CUDA_FunctionCall if adaptedKernelCalls.contains(fc.name) =>
       val newArgs = Duplicate(fc.arguments)
 
       // also apply filter to kernel call args
