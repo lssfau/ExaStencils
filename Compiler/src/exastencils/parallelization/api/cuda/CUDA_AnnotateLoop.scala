@@ -80,7 +80,28 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
         } catch {
           case e : EvaluationException =>
             Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${ e.msg }'""")
-            if (lower.isInstanceOf[IR_HasVariableFieldSize] || upper.isInstanceOf[IR_HasVariableFieldSize]) {
+
+            object FindVariableFieldSize extends QuietDefaultStrategy("Find IR_HasVariableFieldSize nodes in expression") {
+              var found = false
+
+              override def applyStandalone(node : Node) : Unit = {
+                found = false
+                super.applyStandalone(node)
+              }
+
+              this += Transformation("..", {
+                case vfs : IR_HasVariableFieldSize =>
+                  found = true
+                  vfs
+              })
+            }
+
+            def containsVariableFieldSize(expr : IR_Expression) = {
+              FindVariableFieldSize.applyStandalone(expr)
+              FindVariableFieldSize.found
+            }
+
+            if (containsVariableFieldSize(lower) || containsVariableFieldSize(upper)) {
               innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_PART)
               calculateLoopsInBand(extremaMap, innerLoop)
             } else {
