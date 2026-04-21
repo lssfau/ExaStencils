@@ -97,7 +97,7 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
             }
 
             def containsVariableFieldSize(expr : IR_Expression) = {
-              FindVariableFieldSize.applyStandalone(expr)
+              FindVariableFieldSize.applyStandalone(IR_ExpressionStatement(expr))
               FindVariableFieldSize.found
             }
 
