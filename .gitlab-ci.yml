@@ -12,9 +12,10 @@ stages:
 #######################################
 
 .test_template:
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
     dependencies:
         - build:generator
+        - build:test-runner
     tags:
         - docker
     artifacts:
@@ -27,6 +28,8 @@ stages:
         - java -version
         - python3 --version
         - mpirun --version
+        - source .venv/bin/activate
+        - cmake --version
         - cd Testing
 
 .test_template_AVX:
@@ -58,11 +61,13 @@ stages:
         - locate libcudart
         - export CPATH=$CPATH:/usr/local/cuda-11.4/targets/x86_64-linux/include
         - ln -s /usr/local/cuda-11.4/targets/x86_64-linux/lib/libcudart.so /usr/lib
+        - source .venv/bin/activate
+        - cmake --version
         - cd Testing
 
 .test_template_IO:
     extends: .test_template
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
     artifacts:
         when: on_failure
         paths:
@@ -77,13 +82,16 @@ stages:
         - sionversion
         - h5pcc -showconfig
         - pnetcdf-config --all
+        - source .venv/bin/activate
+        - cmake --version
         - cd Testing
 
 
 .benchmark_template:
     dependencies:
         - build:generator
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+        - build:test-runner
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
     tags:
         - docker-benchmark
     artifacts:
@@ -96,6 +104,8 @@ stages:
         - java -version
         - python3 --version
         - mpirun --version
+        - source .venv/bin/activate
+        - cmake --version
         - cd Benchmark
 
 #######################################
@@ -112,9 +122,9 @@ generate-docker-image-base:
         - docker-docker
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11 || true
-        - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
-        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11 || true
+        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
 
 generate-docker-image-pario:
     stage: .pre
@@ -124,9 +134,9 @@ generate-docker-image-pario:
         - docker-docker
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io || true
-        - docker build --pull . -f  dockerfiles/ubuntu-20.04-openjdk-11-par-io.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
-        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11-par-io
+        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io || true
+        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11-par-io.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
+        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
 
 #######################################
 ##                                   ##
@@ -136,7 +146,7 @@ generate-docker-image-pario:
 
 build:generator:
     stage: build
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-20.04-openjdk-11
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -151,6 +161,20 @@ build:generator:
         - java -version
         - sbt compile
         - sbt assembly
+
+build:test-runner:
+    stage: build
+    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+    tags:
+        - docker
+    artifacts:
+        paths:
+            - .venv/
+        expire_in: 1 weeks
+    script:
+        - python3 -m venv .venv
+        - .venv/bin/pip install git+https://i10git.cs.fau.de/exastencils/exastencils_runner.git
+        - .venv/bin/pip install cmake==3.31.6
 
 #######################################
 ##                                   ##
@@ -833,7 +857,7 @@ example:BiHarmonicExamples_2D:
     extends: .test_template
     script:
         # 2D_FD_BiHarmonic_fromL2
-        - run-exastencils-test 2D_FD_BiHarmonic_fromL2 Examples/BiHarmonic 2D_FD_BiHarmonic_fromL2.knowledge "../../../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_BiHarmonic_fromL2 Examples/BiHarmonic 2D_FD_BiHarmonic_fromL2.knowledge "../../../Examples/BiHarmonic/2D_FD_BiHarmonic_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_BiHarmonic_fromL2.settings
 
 ###############################################
 # HelmHoltz EXAMPLES                          #
@@ -844,16 +868,16 @@ example:HelmHoltzExamples_2D:
     extends: .test_template
     script:
         # 2D_FD_Helmholtz_fromL3
-        -  run-exastencils-test 2D_FD_Helmholtz_fromL3 Examples/Helmholtz 2D_FD_Helmholtz_fromL3.knowledge "../../../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Helmholtz_fromL3 Examples/Helmholtz 2D_FD_Helmholtz_fromL3.knowledge "../../../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_Helmholtz_fromL3.settings
         # 2D_FD_Helmholtz_MPI_fromL3
-        - run-exastencils-test 2D_FD_Helmholtz_MPI_fromL3 Examples/Helmholtz 2D_FD_Helmholtz_MPI_fromL3.knowledge "../../../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Helmholtz_MPI_fromL3 Examples/Helmholtz 2D_FD_Helmholtz_MPI_fromL3.knowledge "../../../Examples/Helmholtz/2D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_Helmholtz_MPI_fromL3.settings
 
 example:HelmHoltzExamples_3D:
     stage: example
     extends: .test_template
     script:
         # 3D_FD_Helmholtz_fromL3
-        - run-exastencils-test 3D_FD_Helmholtz_fromL3 Examples/Helmholtz 3D_FD_Helmholtz_fromL3.knowledge "../../../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Helmholtz_fromL3 Examples/Helmholtz 3D_FD_Helmholtz_fromL3.knowledge "../../../Examples/Helmholtz/3D_FD_Helmholtz_fromL3.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FD_Helmholtz_fromL3.settings
 
 ###############################################
 # LinearElasticity EXAMPLES                   #
@@ -864,7 +888,7 @@ example:LinearElasticityExamples_2D:
     extends: .test_template
     script:
         # 2D_FD_LinearElasticity_fromL2
-        - run-exastencils-test 2D_FD_LinearElasticity_fromL2 Examples/LinearElasticity 2D_FD_LinearElasticity_fromL2.knowledge "../../../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_LinearElasticity_fromL2 Examples/LinearElasticity 2D_FD_LinearElasticity_fromL2.knowledge "../../../Examples/LinearElasticity/2D_FD_LinearElasticity_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_LinearElasticity_fromL2.settings
 
 ###############################################
 # NavierStokes EXAMPLES                       #
@@ -875,44 +899,44 @@ example:NavierStokesExamples_2D:
     extends: .test_template
     script:
         # 2D_FV_NavierStokes_localNewton
-        - run-exastencils-test 2D_FV_NavierStokes_localNewton Examples/NavierStokes 2D_FV_NavierStokes_localNewton.knowledge "../../../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_NavierStokes_localNewton Examples/NavierStokes 2D_FV_NavierStokes_localNewton.knowledge "../../../Examples/NavierStokes/2D_FV_NavierStokes_localNewton.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_NavierStokes_localNewton.settings
         # 2D_FV_NavierStokes_localPicard
-        - run-exastencils-test 2D_FV_NavierStokes_localPicard Examples/NavierStokes 2D_FV_NavierStokes_localPicard.knowledge "../../../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_NavierStokes_localPicard Examples/NavierStokes 2D_FV_NavierStokes_localPicard.knowledge "../../../Examples/NavierStokes/2D_FV_NavierStokes_localPicard.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_NavierStokes_localPicard.settings
         # 2D_FV_NavierStokes_Newton
-        - run-exastencils-test 2D_FV_NavierStokes_Newton Examples/NavierStokes 2D_FV_NavierStokes_Newton.knowledge "../../../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_NavierStokes_Newton Examples/NavierStokes 2D_FV_NavierStokes_Newton.knowledge "../../../Examples/NavierStokes/2D_FV_NavierStokes_Newton.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_NavierStokes_Newton.settings
         # 2D_FV_NavierStokes_Picard
-        - run-exastencils-test 2D_FV_NavierStokes_Picard Examples/NavierStokes 2D_FV_NavierStokes_Picard.knowledge "../../../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_NavierStokes_Picard Examples/NavierStokes 2D_FV_NavierStokes_Picard.knowledge "../../../Examples/NavierStokes/2D_FV_NavierStokes_Picard.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_NavierStokes_Picard.settings
 
 example:NonNewtonianExamples_2D:
     stage: example
     extends: .test_template
     script:
         # 2D_FV_NonNewtonian_Newton
-        - run-exastencils-test 2D_FV_NonNewtonian_Newton Examples/NavierStokes 2D_FV_NonNewtonian_Newton.knowledge "../../../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_NonNewtonian_Newton Examples/NavierStokes 2D_FV_NonNewtonian_Newton.knowledge "../../../Examples/NavierStokes/2D_FV_NonNewtonian_Newton.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_NonNewtonian_Newton.settings
         # 2D_FV_NonNewtonian_Picard
-        - run-exastencils-test 2D_FV_NonNewtonian_Picard Examples/NavierStokes 2D_FV_NonNewtonian_Picard.knowledge "../../../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_NonNewtonian_Picard Examples/NavierStokes 2D_FV_NonNewtonian_Picard.knowledge "../../../Examples/NavierStokes/2D_FV_NonNewtonian_Picard.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_NonNewtonian_Picard.settings
 
 example:NavierStokesExamples_3D:
     stage: example
     extends: .test_template
     script:
         # 3D_FV_NavierStokes_localNewton
-        - run-exastencils-test 3D_FV_NavierStokes_localNewton Examples/NavierStokes 3D_FV_NavierStokes_localNewton.knowledge "../../../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_NavierStokes_localNewton Examples/NavierStokes 3D_FV_NavierStokes_localNewton.knowledge "../../../Examples/NavierStokes/3D_FV_NavierStokes_localNewton.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_NavierStokes_localNewton.settings
         # 3D_FV_NavierStokes_localPicard
-        - run-exastencils-test 3D_FV_NavierStokes_localPicard Examples/NavierStokes 3D_FV_NavierStokes_localPicard.knowledge "../../../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_NavierStokes_localPicard Examples/NavierStokes 3D_FV_NavierStokes_localPicard.knowledge "../../../Examples/NavierStokes/3D_FV_NavierStokes_localPicard.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_NavierStokes_localPicard.settings
         # 3D_FV_NavierStokes_Newton
-        - run-exastencils-test 3D_FV_NavierStokes_Newton Examples/NavierStokes 3D_FV_NavierStokes_Newton.knowledge "../../../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_NavierStokes_Newton Examples/NavierStokes 3D_FV_NavierStokes_Newton.knowledge "../../../Examples/NavierStokes/3D_FV_NavierStokes_Newton.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_NavierStokes_Newton.settings
         # 3D_FV_NavierStokes_Picard
-        - run-exastencils-test 3D_FV_NavierStokes_Picard Examples/NavierStokes 3D_FV_NavierStokes_Picard.knowledge "../../../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_NavierStokes_Picard Examples/NavierStokes 3D_FV_NavierStokes_Picard.knowledge "../../../Examples/NavierStokes/3D_FV_NavierStokes_Picard.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_NavierStokes_Picard.settings
 
 example:NonNewtonianExamples_3D:
     stage: example
     extends: .test_template
     script:
         # 3D_FV_NonNewtonian_Newton
-        - run-exastencils-test 3D_FV_NonNewtonian_Newton Examples/NavierStokes 3D_FV_NonNewtonian_Newton.knowledge "../../../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_NonNewtonian_Newton Examples/NavierStokes 3D_FV_NonNewtonian_Newton.knowledge "../../../Examples/NavierStokes/3D_FV_NonNewtonian_Newton.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_NonNewtonian_Newton.settings
         # 3D_FV_NonNewtonian_Picard
-        - run-exastencils-test 3D_FV_NonNewtonian_Picard Examples/NavierStokes 3D_FV_NonNewtonian_Picard.knowledge "../../../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_NonNewtonian_Picard Examples/NavierStokes 3D_FV_NonNewtonian_Picard.knowledge "../../../Examples/NavierStokes/3D_FV_NonNewtonian_Picard.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_NonNewtonian_Picard.settings
 
 
 ###############################################
@@ -924,20 +948,20 @@ example:OptFlowExamples_2D:
     extends: .test_template
     script:
         # 2D_FD_OptFlow_fromL2
-        - run-exastencils-test 2D_FD_OptFlow_fromL2 Examples/OpticalFlow 2D_FD_OptFlow_fromL2.knowledge "../../../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_OptFlow_fromL2 Examples/OpticalFlow 2D_FD_OptFlow_fromL2.knowledge "../../../Examples/OpticalFlow/2D_FD_OptFlow_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_OptFlow_fromL2.settings
         # 2D_FD_OptFlow_fromL4
-        - run-exastencils-test 2D_FD_OptFlow_fromL4 Examples/OpticalFlow 2D_FD_OptFlow_fromL4.knowledge "../../../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_OptFlow_fromL4 Examples/OpticalFlow 2D_FD_OptFlow_fromL4.knowledge "../../../Examples/OpticalFlow/2D_FD_OptFlow_fromL4.exa4" "" Platform/random.platform output --settings_file=2D_FD_OptFlow_fromL4.settings
         # 2D_FD_OptFlow_fromL4_Vec
-        - run-exastencils-test 2D_FD_OptFlow_fromL4_Vec Examples/OpticalFlow 2D_FD_OptFlow_fromL4_Vec.knowledge "../../../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.exa4" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_OptFlow_fromL4_Vec Examples/OpticalFlow 2D_FD_OptFlow_fromL4_Vec.knowledge "../../../Examples/OpticalFlow/2D_FD_OptFlow_fromL4_Vec.exa4" "" Platform/random.platform output --settings_file=2D_FD_OptFlow_fromL4_Vec.settings
 
 example:OptFlowExamples_3D:
     stage: example
     extends: .test_template
     script:
         # 3D_FD_OptFlow_fromL2
-        - run-exastencils-test 3D_FD_OptFlow_fromL2 Examples/OpticalFlow 3D_FD_OptFlow_fromL2.knowledge "../../../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_OptFlow_fromL2 Examples/OpticalFlow 3D_FD_OptFlow_fromL2.knowledge "../../../Examples/OpticalFlow/3D_FD_OptFlow_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FD_OptFlow_fromL2.settings
         # 3D_FD_OptFlow_fromL4_Vec
-        - run-exastencils-test 3D_FD_OptFlow_fromL4_Vec Examples/OpticalFlow 3D_FD_OptFlow_fromL4_Vec.knowledge "../../../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.exa4" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_OptFlow_fromL4_Vec Examples/OpticalFlow 3D_FD_OptFlow_fromL4_Vec.knowledge "../../../Examples/OpticalFlow/3D_FD_OptFlow_fromL4_Vec.exa4" "" Platform/random.platform output --settings_file=3D_FD_OptFlow_fromL4_Vec.settings
 
 ###############################################
 # Poisson EXAMPLES                            #
@@ -948,43 +972,43 @@ example:PoissonExamples_1D:
     extends: .test_template
     script:
         # 1D_FD_Poisson_fromL1
-        - run-exastencils-test 1D_FD_Poisson_fromL1 Examples/Poisson 1D_FD_Poisson_fromL1.knowledge "../../../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "" Platform/random.platform output
+        - run-exastencils-test 1D_FD_Poisson_fromL1 Examples/Poisson 1D_FD_Poisson_fromL1.knowledge "../../../Examples/Poisson/1D_FD_Poisson_fromL1.exa1" "" Platform/random.platform output --settings_file=1D_FD_Poisson_fromL1.settings
 
 example:PoissonExamples_2D:
     stage: example
     extends: .test_template
     script:
         # 2D_FD_Poisson_fromL1
-        - run-exastencils-test 2D_FD_Poisson_fromL1 Poisson 2D_FD_Poisson_fromL1.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" 2D_FD_Poisson_fromL1.results Platform/random.platform output
+        - run-exastencils-test 2D_FD_Poisson_fromL1 Poisson 2D_FD_Poisson_fromL1.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL1.exa1" 2D_FD_Poisson_fromL1.results Platform/random.platform output --settings_file=2D_FD_Poisson_fromL1.settings
         # 2D_FD_Poisson_fromL2
-        - run-exastencils-test 2D_FD_Poisson_fromL2 Poisson 2D_FD_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL2.exa[1-4]" 2D_FD_Poisson_fromL2.results Platform/random.platform output
+        - run-exastencils-test 2D_FD_Poisson_fromL2 Poisson 2D_FD_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL2.exa[1-4]" 2D_FD_Poisson_fromL2.results Platform/random.platform output --settings_file=2D_FD_Poisson_fromL2.settings
         # 2D_FD_Poisson_fromL3
-        - run-exastencils-test 2D_FD_Poisson_fromL3 Poisson 2D_FD_Poisson_fromL3.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL3.exa[1-4]" 2D_FD_Poisson_fromL3.results Platform/random.platform output
+        - run-exastencils-test 2D_FD_Poisson_fromL3 Poisson 2D_FD_Poisson_fromL3.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL3.exa[1-4]" 2D_FD_Poisson_fromL3.results Platform/random.platform output --settings_file=2D_FD_Poisson_fromL3.settings
         # 2D_FD_Poisson_fromL4
-        - run-exastencils-test 2D_FD_Poisson_fromL4 Poisson 2D_FD_Poisson_fromL4.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" 2D_FD_Poisson_fromL4.results Platform/random.platform output
+        - run-exastencils-test 2D_FD_Poisson_fromL4 Poisson 2D_FD_Poisson_fromL4.knowledge "../../Examples/Poisson/2D_FD_Poisson_fromL4.exa4" 2D_FD_Poisson_fromL4.results Platform/random.platform output --settings_file=2D_FD_Poisson_fromL4.settings
         # 2D_FE_Poisson_fromL2
-        - run-exastencils-test 2D_FE_Poisson_fromL2 Poisson 2D_FE_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FE_Poisson_fromL2.exa[1-4]" 2D_FE_Poisson_fromL2.results Platform/random.platform output
+        - run-exastencils-test 2D_FE_Poisson_fromL2 Poisson 2D_FE_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FE_Poisson_fromL2.exa[1-4]" 2D_FE_Poisson_fromL2.results Platform/random.platform output --settings_file=2D_FE_Poisson_fromL2.settings
         # 2D_FV_Poisson_fromL2
-        - run-exastencils-test 2D_FV_Poisson_fromL2 Poisson 2D_FV_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FV_Poisson_fromL2.exa[1-4]" 2D_FV_Poisson_fromL2.results Platform/random.platform output
+        - run-exastencils-test 2D_FV_Poisson_fromL2 Poisson 2D_FV_Poisson_fromL2.knowledge "../../Examples/Poisson/2D_FV_Poisson_fromL2.exa[1-4]" 2D_FV_Poisson_fromL2.results Platform/random.platform output --settings_file=2D_FV_Poisson_fromL2.settings
         # 2D_FV_Poisson_fromL4
-        - run-exastencils-test 2D_FV_Poisson_fromL4 Poisson 2D_FV_Poisson_fromL4.knowledge "../../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" 2D_FV_Poisson_fromL4.results Platform/random.platform output
+        - run-exastencils-test 2D_FV_Poisson_fromL4 Poisson 2D_FV_Poisson_fromL4.knowledge "../../Examples/Poisson/2D_FV_Poisson_fromL4.exa4" 2D_FV_Poisson_fromL4.results Platform/random.platform output --settings_file=2D_FV_Poisson_fromL4.settings
 
 example:PoissonExamples_3D:
     stage: example
     extends: .test_template
     script:
         # 3D_FD_Poisson_fromL1
-        - run-exastencils-test 3D_FD_Poisson_fromL1 Examples/Poisson 3D_FD_Poisson_fromL1.knowledge "../../../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Poisson_fromL1 Examples/Poisson 3D_FD_Poisson_fromL1.knowledge "../../../Examples/Poisson/3D_FD_Poisson_fromL1.exa1" "" Platform/random.platform output --settings_file=3D_FD_Poisson_fromL1.settings
         - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
         # 3D_FD_Poisson_fromL2
-        - run-exastencils-test 3D_FD_Poisson_fromL2 Examples/Poisson 3D_FD_Poisson_fromL2.knowledge "../../../Examples/Poisson/3D_FD_Poisson_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Poisson_fromL2 Examples/Poisson 3D_FD_Poisson_fromL2.knowledge "../../../Examples/Poisson/3D_FD_Poisson_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FD_Poisson_fromL2.settings
         # 3D_FD_Poisson_fromL4
-        - run-exastencils-test 3D_FD_Poisson_fromL4 Examples/Poisson 3D_FD_Poisson_fromL4.knowledge "../../../Examples/Poisson/3D_FD_Poisson_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Poisson_fromL4 Examples/Poisson 3D_FD_Poisson_fromL4.knowledge "../../../Examples/Poisson/3D_FD_Poisson_fromL4.exa4" "" Platform/random.platform output --settings_file=3D_FD_Poisson_fromL4.settings
         - mkdir -p lib/ && cp ../Examples/lib/solver_singleScalarEquation.exa3 lib/solver_singleScalarEquation.exa3
         # 3D_FV_Poisson_fromL2
-        - run-exastencils-test 3D_FV_Poisson_fromL2 Examples/Poisson 3D_FV_Poisson_fromL2.knowledge "../../../Examples/Poisson/3D_FV_Poisson_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_Poisson_fromL2 Examples/Poisson 3D_FV_Poisson_fromL2.knowledge "../../../Examples/Poisson/3D_FV_Poisson_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_Poisson_fromL2.settings
         # 3D_FV_Poisson_fromL4
-        - run-exastencils-test 3D_FV_Poisson_fromL4 Examples/Poisson 3D_FV_Poisson_fromL4.knowledge "../../../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_Poisson_fromL4 Examples/Poisson 3D_FV_Poisson_fromL4.knowledge "../../../Examples/Poisson/3D_FV_Poisson_fromL4.exa4" "" Platform/random.platform output --settings_file=3D_FV_Poisson_fromL4.settings
 
 ###############################################
 # Stokes EXAMPLES                             #
@@ -995,41 +1019,41 @@ example:StokesExamples_1D:
     extends: .test_template
     script:
         # 1D_FD_Stokes_fromL1
-        - run-exastencils-test 1D_FD_Stokes_fromL1 Examples/Stokes 1D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output
+        - run-exastencils-test 1D_FD_Stokes_fromL1 Examples/Stokes 1D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/1D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output --settings_file=1D_FD_Stokes_fromL1.settings
 
 example:StokesExamples_2D:
     stage: example
     extends: .test_template
     script:
         # 2D_FD_Stokes_fromL1
-        - run-exastencils-test 2D_FD_Stokes_fromL1 Examples/Stokes 2D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Stokes_fromL1 Examples/Stokes 2D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output --settings_file=2D_FD_Stokes_fromL1.settings
         # 2D_FD_Stokes_fromL2
-        - run-exastencils-test 2D_FD_Stokes_fromL2 Examples/Stokes 2D_FD_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Stokes_fromL2 Examples/Stokes 2D_FD_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_Stokes_fromL2.settings
         # 2D_FD_Stokes_fromL4
-        - run-exastencils-test 2D_FD_Stokes_fromL4 Examples/Stokes 2D_FD_Stokes_fromL4.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Stokes_fromL4 Examples/Stokes 2D_FD_Stokes_fromL4.knowledge "../../../Examples/Stokes/2D_FD_Stokes_fromL4.exa4" "" Platform/random.platform output --settings_file=2D_FD_Stokes_fromL4.settings
         # 2D_FD_Stokes_Lisa_fromL2
-        - run-exastencils-test 2D_FD_Stokes_Lisa_fromL2 Examples/Stokes 2D_FD_Stokes_Lisa_fromL2.knowledge "../../../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FD_Stokes_Lisa_fromL2 Examples/Stokes 2D_FD_Stokes_Lisa_fromL2.knowledge "../../../Examples/Stokes/2D_FD_Stokes_Lisa_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FD_Stokes_Lisa_fromL2.settings
         # 2D_FE_Stokes_fromL2
-        - run-exastencils-test 2D_FE_Stokes_fromL2 Examples/Stokes 2D_FE_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FE_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FE_Stokes_fromL2 Examples/Stokes 2D_FE_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FE_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FE_Stokes_fromL2.settings
         # 2D_FV_Stokes_fromL2
-        - run-exastencils-test 2D_FV_Stokes_fromL2 Examples/Stokes 2D_FV_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FV_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_Stokes_fromL2 Examples/Stokes 2D_FV_Stokes_fromL2.knowledge "../../../Examples/Stokes/2D_FV_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_Stokes_fromL2.settings
         # 2D_FV_Stokes_fromL4
-        - run-exastencils-test 2D_FV_Stokes_fromL4 Examples/Stokes 2D_FV_Stokes_fromL4.knowledge "../../../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_Stokes_fromL4 Examples/Stokes 2D_FV_Stokes_fromL4.knowledge "../../../Examples/Stokes/2D_FV_Stokes_fromL4.exa4" "" Platform/random.platform output --settings_file=2D_FV_Stokes_fromL4.settings
 
 example:StokesExamples_3D:
     stage: example
     extends: .test_template
     script:
         # 3D_FD_Stokes_fromL1
-        - run-exastencils-test 3D_FD_Stokes_fromL1 Examples/Stokes 3D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Stokes_fromL1 Examples/Stokes 3D_FD_Stokes_fromL1.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL1.exa1" "" Platform/random.platform output --settings_file=3D_FD_Stokes_fromL1.settings
         # 3D_FD_Stokes_fromL2
-        - run-exastencils-test 3D_FD_Stokes_fromL2 Examples/Stokes 3D_FD_Stokes_fromL2.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Stokes_fromL2 Examples/Stokes 3D_FD_Stokes_fromL2.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FD_Stokes_fromL2.settings
         # 3D_FD_Stokes_fromL4
-        - run-exastencils-test 3D_FD_Stokes_fromL4 Examples/Stokes 3D_FD_Stokes_fromL4.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 3D_FD_Stokes_fromL4 Examples/Stokes 3D_FD_Stokes_fromL4.knowledge "../../../Examples/Stokes/3D_FD_Stokes_fromL4.exa4" "" Platform/random.platform output --settings_file=3D_FD_Stokes_fromL4.settings
         # 3D_FV_Stokes_fromL2
-        - run-exastencils-test 3D_FV_Stokes_fromL2 Examples/Stokes 3D_FV_Stokes_fromL2.knowledge "../../../Examples/Stokes/3D_FV_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_Stokes_fromL2 Examples/Stokes 3D_FV_Stokes_fromL2.knowledge "../../../Examples/Stokes/3D_FV_Stokes_fromL2.exa[1-4]" "" Platform/random.platform output --settings_file=3D_FV_Stokes_fromL2.settings
         # 3D_FV_Stokes_fromL4
-        - run-exastencils-test 3D_FV_Stokes_fromL4 Examples/Stokes 3D_FV_Stokes_fromL4.knowledge "../../../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "" Platform/random.platform output
+        - run-exastencils-test 3D_FV_Stokes_fromL4 Examples/Stokes 3D_FV_Stokes_fromL4.knowledge "../../../Examples/Stokes/3D_FV_Stokes_fromL4.exa4" "" Platform/random.platform output --settings_file=3D_FV_Stokes_fromL4.settings
 
 ###############################################
 # SWE EXAMPLES                                #
@@ -1039,4 +1063,4 @@ example:ShallowWaterExamples_2D:
     stage: example
     extends: .test_template
     script:
-        - run-exastencils-test 2D_FV_SWE Examples/SWE 2D_FV_SWE.knowledge "../../../Examples/SWE/2D_FV_SWE.exa[1-4]" "" Platform/random.platform output
+        - run-exastencils-test 2D_FV_SWE Examples/SWE 2D_FV_SWE.knowledge "../../../Examples/SWE/2D_FV_SWE.exa[1-4]" "" Platform/random.platform output --settings_file=2D_FV_SWE.settings

@@ -1,0 +1,21 @@
+user	= "Guest"
+
+basePathPrefix	= "Examples/SWE"
+
+l3file	 = "../../../Examples/SWE/2D_FV_SWE.exa3"
+l4file	 = "../../../Examples/SWE/2D_FV_SWE.exa4"
+l2file	 = "../../../Examples/SWE/2D_FV_SWE.exa2"
+
+debugL1File	= "../../output/Debug/2D_FV_SWE_debug.exa1"
+debugL2File	= "../../output/Debug/2D_FV_SWE_debug.exa2"
+debugL3File	= "../../output/Debug/2D_FV_SWE_debug.exa3"
+debugL4File	= "../../output/Debug/2D_FV_SWE_debug.exa4"
+htmlLogFile	= "../../output/Debug/2D_FV_SWE_log.html"
+
+outputPath	= "../../output/generated/2D_FV_SWE_random"
+
+produceHtmlLog	= true
+timeStrategies	= true
+
+buildfileGenerators	= {"CMakeGenerator"}
+cmake_buildStandalone	= true
