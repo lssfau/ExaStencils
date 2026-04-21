@@ -1,5 +1,7 @@
 FROM nvidia/cuda:10.1-devel-ubuntu18.04
 
+# DEPRECATED: 01.04.26
+
 ARG SBT_VERSION=1.3.2
 
 RUN \

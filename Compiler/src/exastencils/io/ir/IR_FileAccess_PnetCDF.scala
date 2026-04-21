@@ -403,6 +403,7 @@ case class IR_FileAccess_PnetCDF(
   override def closeFile() : ListBuffer[IR_Statement] = ncmpi_close(ncFile)
 
   // headers, paths and libs
+  // TODO: CMake handling
   override def includes : ListBuffer[String] = ListBuffer(if (Knowledge.mpi_enabled) "pnetcdf.h" else "netcdf.h")
   override def libraries : ListBuffer[String] = ListBuffer(if (Knowledge.mpi_enabled) "pnetcdf" else "netcdf")
   override def pathsInc : ListBuffer[String] = ListBuffer("$(PNETCDF_HOME)/include")

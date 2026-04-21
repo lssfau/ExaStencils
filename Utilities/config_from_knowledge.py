@@ -2,6 +2,8 @@
 
 import os
 import json
+from typing_extensions import deprecated
+
 from generation_helpers import *
 
 
@@ -9,7 +11,10 @@ from generation_helpers import *
 # - config class - #
 ####################
 
-
+@deprecated("""
+Python utilities for running ExaStencils CodeGen have been moved to
+exastencils_runner module https://i10git.cs.fau.de/exastencils/exastencils_runner
+""")
 class ConfigFromKnowledge:
 
     def parse_file(self, file_path: str, is_knowledge: bool):
