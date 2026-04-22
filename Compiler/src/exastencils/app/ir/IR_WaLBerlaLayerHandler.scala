@@ -94,15 +94,20 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaReplaceFragmentLoops,
       IR_WaLBerlaReplaceAllocateData)
 
+    scheduler.prependToLastFound(IR_ResolveLoopOverFragments,
+      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
+      ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
+      IR_WaLBerlaReplaceFragmentLoops,
+      IR_WaLBerlaResolveLoopOverBlocks,
+      IR_WaLBerlaResolveLoopOverLocalBlockArray,
+    )
+
     // generate interface at last
     scheduler.appendToFirstFound(IR_HACK_TypeAliases,
       IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection,
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
       IR_ExpandWrapper,
-      IR_WaLBerlaReplaceFragmentLoops,
-      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaResolveLoopOverLocalBlockArray,
       ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,
