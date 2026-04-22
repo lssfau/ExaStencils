@@ -45,24 +45,36 @@ case class Scheduler() extends StrategyScheduler {
     items.flatMap(convertToSchedulerEntriesWrapper).to[ListBuffer]
   }
 
-  private def entryExistsInQueue(toFind : SingleSchedulable) : Boolean = {
-    queue.map(_.toSchedule).exists {
-      case c : ConditionedSingleStrategyWrapper if c.strat == toFind => true
-      case s : SingleSchedulable if s == toFind => true
-      case _ => false
-    }
-  }
-
-  private def getIndexInQueue(toFind : SingleSchedulable, from : Int) : Int = {
-    if (!entryExistsInQueue(toFind))
-      Logger.error("Trying to add to non-existing item in scheduler queue: " + toFind)
-
-    queue.map(_.toSchedule).indexWhere( {
+  private def matches(toFind : SingleSchedulable)(entry : SingleSchedulable) : Boolean = {
+    entry match {
       case c : ConditionedSingleStrategyWrapper if c.strat == toFind => true
       case s : SingleSchedulable if s == toFind                      => true
       case _                                                         => false
-    }, from)
+    }
   }
+
+  private def indexWhereEntry(toFind : SingleSchedulable, from : Int = 0) : Int = {
+    queue.indexWhere(e => matches(toFind)(e.toSchedule), from)
+  }
+
+  private def lastIndexWhereEntry(toFind : SingleSchedulable) : Int = {
+    queue.lastIndexWhere(e => matches(toFind)(e.toSchedule))
+  }
+
+  private def requireIndex(idx : Int, toFind : SingleSchedulable) : Int = {
+    if (idx == -1)
+      Logger.error("Trying to add to non-existing item in scheduler queue: " + toFind)
+    idx
+  }
+
+  private def getIndexInQueue(toFind : SingleSchedulable, from : Int) : Int =
+    requireIndex(indexWhereEntry(toFind, from), toFind)
+
+  private def getLastIndexInQueue(toFind : SingleSchedulable) : Int =
+    requireIndex(lastIndexWhereEntry(toFind), toFind)
+
+  private def entryExistsInQueue(toFind : SingleSchedulable) : Boolean =
+    indexWhereEntry(toFind) != -1
 
   private def getOccurrencesInQueue(toFind : SingleSchedulable) : Int = {
     if (!entryExistsInQueue(toFind))
@@ -108,6 +120,10 @@ case class Scheduler() extends StrategyScheduler {
     prependToQueue(getIndexInQueue(toFind, from = 0), convertItemListToSchedulerEntries(items))
   }
 
+  def prependToLastFound(toFind : SingleSchedulable, items : Schedulable*): Unit = {
+    prependToQueue(getLastIndexInQueue(toFind), convertItemListToSchedulerEntries(items))
+  }
+
   def appendToAllFound(toFind : SingleSchedulable, items : Schedulable*) : Unit = {
     val itemList = convertItemListToSchedulerEntries(items)
 
@@ -126,6 +142,10 @@ case class Scheduler() extends StrategyScheduler {
 
   def appendToFirstFound(toFind : SingleSchedulable, items : Schedulable*) : Unit = {
     appendToQueue(getIndexInQueue(toFind, from = 0), convertItemListToSchedulerEntries(items))
+  }
+
+  def appendToLastFound(toFind : SingleSchedulable, items : Schedulable*): Unit = {
+    appendToQueue(getLastIndexInQueue(toFind), convertItemListToSchedulerEntries(items))
   }
 
   override def register(strat : Schedulable) : Unit = {
