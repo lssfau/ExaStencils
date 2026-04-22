@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.ir._
-import exastencils.datastructures.Node
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation
 import exastencils.parallelization.api.cuda._
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
@@ -55,6 +55,6 @@ object IR_WaLBerlaReplaceFragmentLoops extends IR_WaLBerlaReplacementStrategy("R
     case loopOverFrags : IR_LoopOverFragments if containsWaLBerlaFieldAccesses(loopOverFrags) ||
       IR_WaLBerlaPrepareReplaceFragmentLoops.fragmentLoopsToReplace.contains(loopOverFrags) =>
 
-      IR_WaLBerlaLoopOverLocalBlocks(loopOverFrags.body, loopOverFrags.parallelization)
+      IR_WaLBerlaLoopOverLocalBlocks(loopOverFrags.body, Duplicate(loopOverFrags.parallelization))
   })
 }

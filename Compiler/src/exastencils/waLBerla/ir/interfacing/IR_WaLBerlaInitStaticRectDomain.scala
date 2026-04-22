@@ -47,6 +47,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   def blockID = IR_WaLBerlaBlockID("blockID", block)
   def defIt = IR_WaLBerlaLoopOverLocalBlockArray.defIt
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
+  def localBlocks = IR_WaLBerlaLocalBlocks()
 
   // flags signaling potential neighbors
   def canHaveLocalNeighs = !Knowledge.domain_isPartitioningKnown || Knowledge.domain_canHaveLocalNeighs
@@ -205,11 +206,11 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
         def findLocalNeighborBlockIndex() = {
           val findEntry = IR_FunctionCall("std::find_if",
-            IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "begin"), IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "end"),
+            IR_MemberFunctionCall(localBlocks, "begin"), IR_MemberFunctionCall(localBlocks, "end"),
             compareBlockIDs)
 
-          IR_TernaryCondition(findEntry Neq IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "end"),
-            IR_FunctionCall("std::distance", IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "begin"), findEntry),
+          IR_TernaryCondition(findEntry Neq IR_MemberFunctionCall(localBlocks, "end"),
+            IR_FunctionCall("std::distance", IR_MemberFunctionCall(localBlocks, "begin"), findEntry),
             invalidIndex)
         }
 
