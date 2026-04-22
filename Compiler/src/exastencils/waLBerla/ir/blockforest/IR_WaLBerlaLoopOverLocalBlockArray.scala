@@ -7,6 +7,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
@@ -55,7 +56,7 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
       IR_Lower(defIt, upperBound),
       IR_PreIncrement(defIt),
       compiledBody,
-      parallelization)
+      Duplicate(parallelization))
 
     if (upperBoundKnown)
       loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)

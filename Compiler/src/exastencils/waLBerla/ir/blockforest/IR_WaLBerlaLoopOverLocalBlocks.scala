@@ -117,7 +117,7 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
     compiledBody ++= body
 
     if (!insideBlockLoop)
-      IR_Scope(IR_WaLBerlaLoopOverLocalBlockArray(compiledBody, parallelization))
+      IR_Scope(IR_WaLBerlaLoopOverLocalBlockArray(compiledBody, Duplicate(parallelization)))
     else
       IR_Scope(compiledBody)
   }
