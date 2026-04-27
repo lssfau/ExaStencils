@@ -26,7 +26,7 @@ import exastencils.config.Knowledge
 import exastencils.core.ObjectWithState
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.StatementList
-import exastencils.util.ir.IR_RawPrint
+import exastencils.util.ir.IR_PrintOnRoot
 
 /// CUDA_CheckError
 
@@ -46,7 +46,7 @@ case class CUDA_CheckError(var exp : IR_Expression) extends CUDA_HostStatement w
 
     def status = IR_VariableAccess(statusName, IR_SpecialDatatype("cudaError_t"))
 
-    def print = IR_RawPrint("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", status,
+    def print = IR_PrintOnRoot("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", status,
       "\" -> \"", IR_FunctionCall(IR_ExternalFunctionReference("cudaGetErrorString"), status), "std::endl")
 
     def printAndExit : ListBuffer[IR_Statement] = ListBuffer(print, IR_FunctionCall(IR_ExternalFunctionReference("exit"), 1))

@@ -83,7 +83,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     begin ++ end
   }
 
-  def checkError(cond : IR_Expression, msg : String) = IR_Assert(cond, ListBuffer(IR_StringConstant(msg)), IR_FunctionCall("exit", 1))
+  def checkError(cond : IR_Expression, msg : String) = IR_Assert(cond, ListBuffer(IR_StringConstant(msg)))
 
   override def isInterfaceFunction : Boolean = true
   override def inlineIncludeImplementation : Boolean = true

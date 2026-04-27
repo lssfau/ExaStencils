@@ -6,7 +6,7 @@ import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.config.Knowledge
-import exastencils.util.ir.IR_RawPrint
+import exastencils.util.ir.IR_PrintOnRoot
 
 abstract class CUDA_IV extends IR_UnduplicatedVariable {
   // default value is not applicable since mpi iv will be initialized in a separate routine
@@ -25,8 +25,7 @@ case object CUDA_DeviceCount extends CUDA_IV {
     ListBuffer[IR_Statement](
       IR_FunctionCall(IR_ExternalFunctionReference("cudaGetDeviceCount"), IR_AddressOf(deviceCount)),
       IR_Assert(IR_Lower(Knowledge.cuda_deviceId, CUDA_DeviceCount),
-        ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", deviceCount, "\")\""),
-        IR_FunctionCall(IR_ExternalFunctionReference("exit"), 1)),
+        ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", deviceCount, "\")\"")),
       s"cudaSetDevice(${ Knowledge.cuda_deviceId })"
     )
   }
@@ -42,7 +41,7 @@ case object CUDA_DeviceProperties extends CUDA_IV {
 
     ListBuffer[IR_Statement](
       IR_FunctionCall(IR_ExternalFunctionReference("cudaGetDeviceProperties"), IR_AddressOf(deviceProp), s"${ Knowledge.cuda_deviceId }"),
-      IR_RawPrint("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", IR_MemberAccess(acc, "name"), "std::endl"))
+      IR_PrintOnRoot("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", IR_MemberAccess(acc, "name"), "std::endl"))
   }
 }
 

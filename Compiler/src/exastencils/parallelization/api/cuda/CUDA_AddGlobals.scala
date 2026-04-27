@@ -25,7 +25,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.util.ir.IR_RawPrint
+import exastencils.util.ir.IR_PrintOnRoot
 
 object CUDA_AddGlobals extends NoTraversalStrategy("Extend globals for CUDA") {
   override def doWork() : Unit = {

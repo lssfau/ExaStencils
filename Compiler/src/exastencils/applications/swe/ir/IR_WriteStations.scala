@@ -163,7 +163,7 @@ case class IR_WriteStations(var resolveId : Int, var arguments : ListBuffer[IR_E
       case Some(v) => IR_VariableAccess(v)
     }
 
-    stationStmts += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileNameWithId), IR_FunctionCall("exit", 1))
+    stationStmts += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileNameWithId))
     stationStmts += IR_Print(file, "std::scientific << std::setprecision(10)")
     stationStmts += IR_Print(file, t, IR_StringConstant("\\t"), quantity, IR_Print.endl)
     stationStmts += IR_MemberFunctionCall(file, "close")

@@ -172,11 +172,7 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
       } else {
         condWrapper.value = IR_BooleanConstant(true) // no CUDA version -> enforce host
         IR_Assert(IR_BooleanConstant(false),
-          ListBuffer(IR_StringConstant("missing CUDA code: loop is sequential")),
-          IR_ExpressionStatement(if (Knowledge.mpi_enabled)
-            IR_FunctionCall("MPI_Abort", MPI_IV_MpiComm, IR_IntegerConstant(1))
-          else
-            IR_FunctionCall("exit", IR_IntegerConstant(1))))
+          ListBuffer(IR_StringConstant("missing CUDA code: loop is sequential")))
       }
     case scope : IR_Scope if scope.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       scope.removeAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION)

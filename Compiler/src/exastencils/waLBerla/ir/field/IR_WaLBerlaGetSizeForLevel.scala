@@ -43,7 +43,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
 
       for (d <- Knowledge.dimensions) {
         body += IR_Assert(IR_ArrayAccess(cells, d) Mod (2 Pow math.abs(lvlDiff)) EqEq 0,
-          ListBuffer(IR_StringConstant("Coarsening with factors other than two")), IR_FunctionCall("exit", 1))
+          ListBuffer(IR_StringConstant("Coarsening with factors other than two")))
       }
 
       for (d <- Knowledge.dimensions) {
@@ -63,8 +63,7 @@ case class IR_WaLBerlaGetSizeForLevel(var level : Int) extends IR_WaLBerlaFuture
       val check = (0 until 3).map(d => IR_ArrayAccess(cells, d) EqEq expectedCellsPerBlock(d) : IR_Expression).reduce(_ AndAnd _)
       body += IR_Assert(check,
         ListBuffer(IR_StringConstant("Number of cells per block do not coincide with expected numbers for " +
-          "fixed-size layouts with sizes on the finest level: [" + expectedCellsPerBlock.mkString(",") + "]")),
-        IR_FunctionCall("exit", 1))
+          "fixed-size layouts with sizes on the finest level: [" + expectedCellsPerBlock.mkString(",") + "]")))
     }
 
     body += IR_Return(cells)

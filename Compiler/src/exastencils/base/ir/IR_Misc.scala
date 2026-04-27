@@ -20,6 +20,8 @@ package exastencils.base.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.config.Knowledge
+import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir._
 
@@ -45,8 +47,14 @@ case class IR_Comment(var comment : String) extends IR_Statement {
 
 /// IR_Assert
 
-case class IR_Assert(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : IR_Statement) extends IR_Statement with IR_Expandable {
-  override def expand() = IR_IfCondition(IR_Negation(check), ListBuffer(IR_RawPrint(msg), abort))
+case class IR_Assert(var check : IR_Expression, var msg : ListBuffer[IR_Expression]) extends IR_Statement with IR_Expandable {
+  override def expand() = IR_IfCondition(IR_Negation(check),
+    ListBuffer(
+      IR_PrintPerRank(msg),
+      IR_ExpressionStatement(if (Knowledge.mpi_enabled)
+        IR_FunctionCall("MPI_Abort", MPI_IV_MpiComm, IR_IntegerConstant(1))
+      else
+        IR_FunctionCall("exit", IR_IntegerConstant(1)))))
 }
 
 /// IR_InitializerList
