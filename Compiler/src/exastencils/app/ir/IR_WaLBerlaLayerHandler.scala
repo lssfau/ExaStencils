@@ -11,6 +11,7 @@ import exastencils.globals.ir.IR_AddInternalVariables
 import exastencils.grid.ir.IR_ResolveIntegrateOnGrid
 import exastencils.optimization.ir.IR_GeneralSimplifyUntilDoneWrapper
 import exastencils.parallelization.api.cuda._
+import exastencils.parallelization.api.mpi.MPI_AddGlobals
 import exastencils.scheduling._
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.gpu._
@@ -25,6 +26,14 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
   override def schedule() : Unit = {
     IR_DefaultLayerHandler.schedule()
     scheduler.queue ++= IR_DefaultLayerHandler.scheduler.queue
+
+    /* remove unnecessary entries from default IR layer handler for waLBerla coupling */
+
+    // already done by waLBerla & interfacing routines
+    if (Knowledge.mpi_enabled)
+      scheduler.removeFirst(MPI_AddGlobals)
+    if (Knowledge.cuda_enabled)
+      scheduler.removeFirst(CUDA_AddGlobals)
 
     /* extend schedule of default IR layer handler */
 

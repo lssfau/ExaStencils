@@ -148,6 +148,25 @@ case class Scheduler() extends StrategyScheduler {
     appendToQueue(getLastIndexInQueue(toFind), convertItemListToSchedulerEntries(items))
   }
 
+  def removeFirst(toFind: SingleSchedulable): Unit = {
+    val idx = indexWhereEntry(toFind)
+    if (idx == -1) {
+      Logger.error("Trying to remove non-existing item from scheduler queue: " + toFind)
+    } else {
+      queue.remove(idx)
+    }
+  }
+
+  def removeAll(toFind: SingleSchedulable): Unit = {
+    val originalSize = queue.size
+
+    queue = queue.filterNot(e => matches(toFind)(e.toSchedule))
+
+    if (queue.size == originalSize) {
+      Logger.error("Trying to remove non-existing item from scheduler queue: " + toFind)
+    }
+  }
+
   override def register(strat : Schedulable) : Unit = {
     queue ++= convertToSchedulerEntriesWrapper(strat)
   }
