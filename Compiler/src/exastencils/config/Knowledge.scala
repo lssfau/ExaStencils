@@ -538,10 +538,6 @@ object Knowledge {
   var waLBerla_useGridPartFromExa : Boolean = true
 
   // [true|false]: optimization.
-  // cache field pointers as members in interface
-  var waLBerla_cacheFieldPointers : Boolean = true
-
-  // [true|false]: optimization.
   // use fixed layout sizes for waLBerla fields, required for optimizations
   var waLBerla_useFixedLayoutsFromExa : Boolean = false
 
@@ -1060,8 +1056,6 @@ object Knowledge {
     Constraints.condEnsureValue(refinement_enabled, true, waLBerla_useRefinement, "Flag 'refinement_enabled' must be enabled when 'waLBerla_useRefinement' is true")
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
     Constraints.condError(waLBerla_useRefinement && domain_isPartitioningKnown, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
-
-    Constraints.condError(!waLBerla_cacheFieldPointers && experimental_cuda_useStreams, "CUDA streams can only be combined with waLBerla when 'waLBerla_cacheFieldPointers = true'.")
 
     // refinement
     Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")
