@@ -39,7 +39,7 @@ abstract class IR_AbstractPrintAllTimers extends IR_TimerFunction {
   override def prettyprint_decl() : String = prettyprint
 
   protected val timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
-  protected val precisionVar = IR_VariableAccess("streamPrecision", IR_SpecialDatatype("std::streamsize"))
+  protected val precisionVar = IR_VariableAccess("streamPrecision", IR_IntegerDatatype)
 
   protected def prepareOutputFormatting(): ListBuffer[IR_Statement] = {
     val body : ListBuffer[IR_Statement] = ListBuffer()
@@ -51,7 +51,7 @@ abstract class IR_AbstractPrintAllTimers extends IR_TimerFunction {
       }
     )
 
-    body += IR_VariableDeclaration(precisionVar, IR_StringLiteral("std::cout.precision()"))
+    body += IR_VariableDeclaration(precisionVar, IR_Cast(IR_IntegerDatatype, IR_StringLiteral("std::cout.precision()")))
     body
   }
 
