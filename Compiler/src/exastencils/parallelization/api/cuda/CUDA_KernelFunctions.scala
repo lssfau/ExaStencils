@@ -120,6 +120,8 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     else
       generatedRedKernels += kernelName
 
+    def blockSize = Knowledge.cuda_reductionBlockSize
+
     // kernel function
     {
       def data = IR_FunctionArgument("data", IR_PointerDatatype(reductionDt.resolveBaseDatatype))
@@ -172,6 +174,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
       fct.allowInlining = false
       fct.allowFortranInterface = false
       fct.functionQualifiers = "__global__"
+      fct.functionQualifiers += s" __launch_bounds__($blockSize)"
 
       fct.annotate("deviceOnly")
 
@@ -187,8 +190,6 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
       var functionArgs = ListBuffer(data, numElements)
       if (Knowledge.domain_numFragmentsPerBlock > 1)
         functionArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
-
-      def blockSize = Knowledge.cuda_reductionBlockSize
 
       var fctBody = ListBuffer[IR_Statement]()
 
