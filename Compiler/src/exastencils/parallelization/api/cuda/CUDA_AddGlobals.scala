@@ -25,7 +25,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
-import exastencils.util.ir.IR_RawPrint
+import exastencils.util.ir.IR_PrintOnRoot
 
 object CUDA_AddGlobals extends NoTraversalStrategy("Extend globals for CUDA") {
   override def doWork() : Unit = {
@@ -34,16 +34,13 @@ object CUDA_AddGlobals extends NoTraversalStrategy("Extend globals for CUDA") {
     val initFunc = globals.functions.find(_.name == "initGlobals").get.asInstanceOf[IR_Function]
 
     // get device count
-    initFunc.body ++= CUDA_DeviceCount.setup()
+    initFunc.body ++= CUDA_DeviceCount.initialization
 
     // print device info (name)
     if (!Knowledge.testing_enabled)
-      initFunc.body ++= CUDA_DeviceProperties.setup()
+      initFunc.body ++= CUDA_DeviceProperties.initialization
 
     // set L1 cache and shared memory configuration for this device
-    if (Knowledge.cuda_useSharedMemory)
-      initFunc.body += "cudaDeviceSetCacheConfig(cudaFuncCachePreferShared)"
-    if (Knowledge.cuda_favorL1CacheOverSharedMemory)
-      initFunc.body += "cudaDeviceSetCacheConfig(cudaFuncCachePreferL1)"
+    initFunc.body ++= CUDA_DeviceSetCacheConfig.initialization
   }
 }

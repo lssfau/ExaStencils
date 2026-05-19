@@ -75,7 +75,7 @@ case class IR_ReadParameterFile() extends IR_FuturePlainFunction {
 
     body += IR_VariableDeclaration(file)
     body += IR_MemberFunctionCall(file, "open", fileName)
-    body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
+    body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName))
 
     val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     body += IR_VariableDeclaration(iss)

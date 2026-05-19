@@ -117,7 +117,7 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
     compiledBody ++= body
 
     if (!insideBlockLoop)
-      IR_Scope(IR_WaLBerlaLoopOverLocalBlockArray(compiledBody, parallelization))
+      IR_Scope(IR_WaLBerlaLoopOverLocalBlockArray(compiledBody, Duplicate(parallelization)))
     else
       IR_Scope(compiledBody)
   }
@@ -130,6 +130,5 @@ object IR_WaLBerlaResolveLoopOverBlocks extends DefaultStrategy("Resolve waLBerl
 
   this += Transformation("Resolve", {
     case loop : IR_WaLBerlaLoopOverLocalBlocks => loop.expandSpecial(collector)
-    case loop : IR_WaLBerlaLoopOverLocalBlockArray => loop.expandSpecial()
   })
 }

@@ -23,6 +23,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -89,18 +90,27 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       val resultDt = CUDA_Util.getReductionDatatype(target)
       val strideReturnDt = resultDt.getSizeArray.product
 
+      val upper : Array[IR_Expression] = if (Knowledge.data_genVariableFieldSizes)
+        kernel.upperBounds.toArray
+      else
+        kernel.maxIndices.map(IR_IntegerConstant)
+      val lower : Array[IR_Expression] = if (Knowledge.data_genVariableFieldSizes)
+        kernel.lowerBounds.toArray
+      else
+        kernel.minIndices.map(IR_IntegerConstant)
+
       // update assignments according to reduction clauses
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
         strideReturnDt * IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + dim, IR_IntegerDatatype)
-          - IR_IntegerConstant(kernel.minIndices(dim)) : IR_Expression).toArray)
+          - lower(dim) : IR_Expression).toArray)
 
-      val size = IR_IntegerConstant(1)
+      var size : IR_Expression = IR_IntegerConstant(1)
       val l : Int = kernel.maxIndices.length
       val stride = IR_ExpressionIndex(new Array[IR_Expression](l))
       for (i <- 0 until l) {
-        val s = kernel.maxIndices(i) - kernel.minIndices(i)
-        size.v *= s
-        stride(i) = IR_IntegerConstant(s)
+        val s = upper(i) - lower(i)
+        size *= s
+        stride(i) = s
       }
 
       // update local target
@@ -109,7 +119,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
 
       // set element in global reduction buffer to local result
-      val dst = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(size, resultDt), index, stride)
+      val dst = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(Duplicate(size), resultDt), Duplicate(index), Duplicate(stride))
       val setReductionBuffer = resultDt match {
         case _ : IR_ScalarDatatype   =>
           IR_Assignment(dst, localTarget)

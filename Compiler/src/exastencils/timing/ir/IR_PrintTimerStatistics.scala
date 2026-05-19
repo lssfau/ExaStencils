@@ -96,7 +96,7 @@ case class IR_PrintTimerStatistics() extends IR_TimerFunction with IR_TimerGathe
     )
 
     val precisionVar = IR_VariableAccess("streamPrecision", IR_IntegerDatatype)
-    body += IR_VariableDeclaration(precisionVar, IR_StringLiteral("std::cout.precision()"))
+    body += IR_VariableDeclaration(precisionVar, IR_Cast(IR_IntegerDatatype, IR_StringLiteral("std::cout.precision()")))
 
     val firstColumnWidth = IR_StringLiteral(s"std::setw(${Math.max(firstColumnText.length, maxNameLength + 1)})")
     val columnWidthBaseValue = 6 + 8 // width of largest column 'Average', which is the largest + 8 for exponent and integer part of number

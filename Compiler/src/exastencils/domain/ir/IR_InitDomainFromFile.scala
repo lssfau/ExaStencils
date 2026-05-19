@@ -683,7 +683,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       IR_StringConstant(".block")))
     body += IR_MemberFunctionCall(file, "open", fileName)
 
-    body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
+    body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName))
 
     val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     val strBuf = IR_VariableAccess("strBuf", IR_SpecialDatatype("std::string"))
@@ -732,8 +732,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
 
     if (Knowledge.mpi_enabled)
       body += IR_Assert(IR_EqEq(MPI_IV_MpiSize, Knowledge.domain_numBlocks),
-        ListBuffer("\"Invalid number of MPI processes (\"", MPI_IV_MpiSize, "\") should be \"", Knowledge.mpi_numThreads),
-        IR_FunctionCall("exit", 1))
+        ListBuffer("\"Invalid number of MPI processes (\"", MPI_IV_MpiSize, "\") should be \"", Knowledge.mpi_numThreads))
 
     body += readGrid(Knowledge.maxLevel, true)
 
@@ -750,8 +749,7 @@ case class IR_InitDomainFromFile() extends IR_FuturePlainFunction {
       // Remove this stuff.... ///////
       body += IR_Comment("Restriction is not implemented yet!!!")
       body += IR_Assert(IR_EqEq(Knowledge.maxLevel, Knowledge.minLevel),
-        ListBuffer("\"Cannot handle different levels internally yet.\""),
-        IR_FunctionCall("exit", 1))
+        ListBuffer("\"Cannot handle different levels internally yet.\""))
       ///////////////////////////////
 
     }

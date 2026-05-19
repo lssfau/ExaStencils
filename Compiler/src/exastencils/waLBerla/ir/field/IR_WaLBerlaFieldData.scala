@@ -80,10 +80,7 @@ case class IR_IV_WaLBerlaGetField(
 
   // init function sets up field instances for all levels and slots
   override def getCtor() : Option[IR_Statement] = {
-    if (!Knowledge.waLBerla_cacheFieldPointers)
-      None
-    else
-      Some(IR_FunctionCall(IR_WaLBerlaInitFieldInstances(onGPU, field).name))
+    Some(IR_FunctionCall(IR_WaLBerlaInitFieldInstances(onGPU, field).name))
   }
 
   def name : String = field.name + (if (onGPU) "_onGPU" else "")
@@ -103,10 +100,7 @@ case class IR_IV_WaLBerlaGetFieldData(
 
   // init function sets up field data pointers for all levels and slots
   override def getCtor() : Option[IR_Statement] = {
-    if (!Knowledge.waLBerla_cacheFieldPointers)
-      None
-    else
-      Some(IR_FunctionCall(IR_WaLBerlaInitFieldDataPtrs(onGPU, field).name))
+    Some(IR_FunctionCall(IR_WaLBerlaInitFieldDataPtrs(onGPU, field).name))
   }
 
   def name : String = field.name + "dataPtr" + (if (onGPU) "_onGPU" else "")
@@ -151,12 +145,6 @@ case class IR_IV_WaLBerlaFieldData(
     }
 
     var body : ListBuffer[IR_Statement] = ListBuffer()
-
-    // if not already cached in interface: fetch field instances and data pointers in loop
-    if (!Knowledge.waLBerla_cacheFieldPointers) {
-      body += IR_WaLBerlaInitFieldInstances.initRoutine(onGPU, field)
-      body += IR_WaLBerlaInitFieldDataPtrs.initRoutine(onGPU, field)
-    }
 
     if (field.numSlots > 1)
       body ++= (0 until field.numSlots).map(s => IR_Assignment(IR_ArrayAccess(acc, s), getFieldDataPtr(s)) : IR_Statement)

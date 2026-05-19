@@ -24,7 +24,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.field.ir.IR_IV_IndexFromField
+import exastencils.field.ir.IR_HasVariableFieldSize
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
@@ -80,7 +80,28 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
         } catch {
           case e : EvaluationException =>
             Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${ e.msg }'""")
-            if (lower.isInstanceOf[IR_IV_IndexFromField] || upper.isInstanceOf[IR_IV_IndexFromField]) {
+
+            object FindVariableFieldSize extends QuietDefaultStrategy("Find IR_HasVariableFieldSize nodes in expression") {
+              var found = false
+
+              override def applyStandalone(node : Node) : Unit = {
+                found = false
+                super.applyStandalone(node)
+              }
+
+              this += Transformation("..", {
+                case vfs : IR_HasVariableFieldSize =>
+                  found = true
+                  vfs
+              })
+            }
+
+            def containsVariableFieldSize(expr : IR_Expression) = {
+              FindVariableFieldSize.applyStandalone(IR_ExpressionStatement(expr))
+              FindVariableFieldSize.found
+            }
+
+            if (containsVariableFieldSize(lower) || containsVariableFieldSize(upper)) {
               innerLoop.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, CUDA_Util.CUDA_BAND_PART)
               calculateLoopsInBand(extremaMap, innerLoop)
             } else {
@@ -151,11 +172,7 @@ object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for 
       } else {
         condWrapper.value = IR_BooleanConstant(true) // no CUDA version -> enforce host
         IR_Assert(IR_BooleanConstant(false),
-          ListBuffer(IR_StringConstant("missing CUDA code: loop is sequential")),
-          IR_ExpressionStatement(if (Knowledge.mpi_enabled)
-            IR_FunctionCall("MPI_Abort", MPI_IV_MpiComm, IR_IntegerConstant(1))
-          else
-            IR_FunctionCall("exit", IR_IntegerConstant(1))))
+          ListBuffer(IR_StringConstant("missing CUDA code: loop is sequential")))
       }
     case scope : IR_Scope if scope.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       scope.removeAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION)

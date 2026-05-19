@@ -11,6 +11,7 @@ import exastencils.globals.ir.IR_AddInternalVariables
 import exastencils.grid.ir.IR_ResolveIntegrateOnGrid
 import exastencils.optimization.ir.IR_GeneralSimplifyUntilDoneWrapper
 import exastencils.parallelization.api.cuda._
+import exastencils.parallelization.api.mpi.MPI_AddGlobals
 import exastencils.scheduling._
 import exastencils.waLBerla.ir.blockforest._
 import exastencils.waLBerla.ir.gpu._
@@ -25,6 +26,14 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
   override def schedule() : Unit = {
     IR_DefaultLayerHandler.schedule()
     scheduler.queue ++= IR_DefaultLayerHandler.scheduler.queue
+
+    /* remove unnecessary entries from default IR layer handler for waLBerla coupling */
+
+    // already done by waLBerla & interfacing routines
+    if (Knowledge.mpi_enabled)
+      scheduler.removeFirst(MPI_AddGlobals)
+    if (Knowledge.cuda_enabled)
+      scheduler.removeFirst(CUDA_AddGlobals)
 
     /* extend schedule of default IR layer handler */
 
@@ -49,21 +58,19 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // use walberla functions for GPU field memory operations
     scheduler.appendToFirstFound(CUDA_PrepareMPICode,
       ConditionedStrategyContainerWrapper(
-        Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa,
+        Knowledge.cuda_enabled,
         GPU_WaLBerlaReplaceGPUIVs,
         GPU_WaLBerlaHandleGPUMemory))
 
     // adapt cuda kernels for walberla support
     if (Knowledge.cuda_enabled) {
       scheduler.appendToFirstFound(CUDA_FunctionConversionWrapper,
-        ConditionedStrategyContainerWrapper(
-          Knowledge.cuda_enabled && Knowledge.waLBerla_useFixedLayoutsFromExa,
-          GPU_WaLBerlaReplaceGPUIVs,
-          GPU_WaLBerlaAdaptKernels,
-          GPU_WaLBerlaHandleGPUMemory))
+        GPU_WaLBerlaReplaceGPUIVs,
+        GPU_WaLBerlaAdaptKernels,
+        GPU_WaLBerlaHandleGPUMemory)
 
       scheduler.prependToFirstFound(CUDA_HandleFragmentLoops,
-        GPU_ReplaceReductionIVs)
+        GPU_WaLBerlaReplaceReductionIVs)
 
       scheduler.appendToFirstFound(CUDA_HandleFragmentLoops,
         GPU_WaLBerlaReplaceGPUIVs,
@@ -75,12 +82,14 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaReplaceFragmentLoops,
       IR_WaLBerlaReplaceCommIVs,
       ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaResolveLoopOverBlocks)
+      IR_WaLBerlaResolveLoopOverBlocks
+    )
 
     // resolve block loops before fieldlike accesses are resolved
     scheduler.prependToFirstFound(IR_ResolveFieldLikeAccess,
       IR_WaLBerlaReplaceCommIVs,
-      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs))
+      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
+      IR_WaLBerlaResolveLoopOverBlocks)
 
     // also add walberla IVs ...
     scheduler.prependToFirstFound(IR_AddInternalVariables,
@@ -94,15 +103,20 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaReplaceFragmentLoops,
       IR_WaLBerlaReplaceAllocateData)
 
+    scheduler.prependToLastFound(IR_ResolveLoopOverFragments,
+      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
+      ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
+      IR_WaLBerlaReplaceFragmentLoops,
+      IR_WaLBerlaResolveLoopOverBlocks,
+      IR_WaLBerlaResolveLoopOverLocalBlockArray,
+    )
+
     // generate interface at last
     scheduler.appendToFirstFound(IR_HACK_TypeAliases,
       IR_ResolveWaLBerlaLoopOverBlockNeighborhoodSection,
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
       IR_ExpandWrapper,
-      IR_WaLBerlaReplaceFragmentLoops,
-      ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
-      IR_WaLBerlaResolveLoopOverBlocks,
       ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,

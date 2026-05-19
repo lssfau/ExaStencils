@@ -25,7 +25,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config.Knowledge
 import exastencils.parallelization.ir.IR_PotentiallyCritical
-import exastencils.util.ir.IR_RawPrint
+import exastencils.util.ir.IR_PrintOnRoot
 
 /// MPI_WaitForRequest
 
@@ -51,7 +51,7 @@ case object MPI_WaitForRequest extends IR_FuturePlainFunction {
       IR_VariableDeclaration(len),
       IR_FunctionCall(MPI_FunctionReference("MPI_Error_string", IR_IntegerDatatype),
         IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressOf(len)),
-      IR_RawPrint("\"MPI Error encountered (\"", msg, "\")\"")))
+      IR_PrintOnRoot("\"MPI Error encountered (\"", msg, "\")\"")))
   }
 
   override def generateFct() = {

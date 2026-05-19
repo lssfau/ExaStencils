@@ -43,7 +43,7 @@ object IR_ResolvePrintWithReducedPrec extends DefaultStrategy("ResolvePrintWithR
           ListBuffer[IR_Statement](
             IR_Native(s"std::streamsize oldPrec = std::cout.precision()"),
             IR_Native(s"std::cout.precision($prec)"),
-            IR_RawPrint(toPrint),
+            IR_PrintOnRoot(toPrint),
             IR_Native(s"std::cout.precision(oldPrec)"))
         }
 
@@ -66,7 +66,7 @@ object IR_ResolvePrintWithReducedPrec extends DefaultStrategy("ResolvePrintWithR
         }
 
         body = IR_IfCondition(toPrint <= threshold,
-          IR_RawPrint(IR_StringConstant("EFFECTIVELY ZERO")),
+          IR_PrintOnRoot(IR_StringConstant("EFFECTIVELY ZERO")),
           body
         )
 

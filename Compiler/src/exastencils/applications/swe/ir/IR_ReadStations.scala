@@ -77,7 +77,7 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
 
     body += IR_VariableDeclaration(file)
     body += IR_MemberFunctionCall(file, "open", fileName)
-    body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName), IR_FunctionCall("exit", 1))
+    body += IR_Assert(IR_MemberFunctionCall(file, "is_open"), ListBuffer("\"Unable to open file \"", fileName))
 
     val iss = IR_VariableAccess("iss", IR_SpecialDatatype("std::istringstream"))
     body += IR_VariableDeclaration(iss)
@@ -208,14 +208,14 @@ case class IR_ReadStations() extends IR_FuturePlainFunction {
     body += IR_IfCondition(IR_EqEq(MPI_IV_MpiRank, 0), IR_ForLoop(IR_VariableDeclaration(iter, 0), IR_Lower(iter, Knowledge.swe_stationsMax), IR_PreIncrement(iter), ListBuffer[IR_Statement](
       IR_IfCondition(IR_EqEq(IR_IV_Stations(iter, 0), IR_IV_Stations(0, 0).resolveDefValue().get), IR_Break()),
       IR_IfCondition(IR_EqEq(IR_ArrayAccess(globalStationCheck, iter), 0), ListBuffer[IR_Statement](
-        IR_RawPrint(ListBuffer[IR_Expression](
+        IR_PrintOnRoot(ListBuffer[IR_Expression](
           IR_StringConstant("Station with id"), iter,
           IR_StringConstant("at position x ="), IR_IV_Stations(iter, 0), IR_StringConstant(", y ="), IR_IV_Stations(iter, 1),
           IR_StringConstant("not found in domain. Station will be ignored.")
         ))
       )),
       IR_IfCondition(IR_Greater(IR_ArrayAccess(globalStationCheck, iter), 1), ListBuffer[IR_Statement](
-        IR_RawPrint(ListBuffer[IR_Expression](
+        IR_PrintOnRoot(ListBuffer[IR_Expression](
           IR_StringConstant("Station with id"), iter,
           IR_StringConstant("at position x ="), IR_IV_Stations(iter, 0), IR_StringConstant(", y ="), IR_IV_Stations(iter, 1),
           IR_StringConstant("was found several times! Output might be unusable!")

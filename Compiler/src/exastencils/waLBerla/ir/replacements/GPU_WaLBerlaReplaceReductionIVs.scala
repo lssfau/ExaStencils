@@ -7,9 +7,9 @@ import exastencils.parallelization.api.cuda._
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.gpu._
 
-/// GPU_ReplaceReductionIVs
+/// GPU_WaLBerlaReplaceReductionIVs
 
-object GPU_ReplaceReductionIVs extends IR_WaLBerlaReplacementStrategy("Replace GPU reduction IVs with waLBerla counterparts") {
+object GPU_WaLBerlaReplaceReductionIVs extends IR_WaLBerlaReplacementStrategy("Replace GPU reduction IVs with waLBerla counterparts") {
 
   object ReplaceReductionTmps extends QuietDefaultStrategy("Replace reduction tmps for GPU") {
     this += Transformation("..", {

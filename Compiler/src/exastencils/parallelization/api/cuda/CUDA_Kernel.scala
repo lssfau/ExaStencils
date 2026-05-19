@@ -674,6 +674,11 @@ case class CUDA_Kernel(
     fct.allowInlining = false
     fct.allowFortranInterface = false
     fct.functionQualifiers = "__global__"
+    if (executionConfiguration.nonEmpty) {
+      val nt = executionConfiguration.get.evaluateMaxBlockSize
+      if (nt.nonEmpty)
+        fct.functionQualifiers += s" __launch_bounds__(${nt.get})"
+    }
 
     fct.annotate("deviceOnly")
 

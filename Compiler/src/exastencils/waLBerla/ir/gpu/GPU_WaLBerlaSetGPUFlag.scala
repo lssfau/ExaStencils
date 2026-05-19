@@ -4,10 +4,10 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.parallelization.api.cuda.CUDA_DirtyFlagCase
 import exastencils.waLBerla.ir.blockforest.IR_WaLBerlaLoopOverLocalBlocks
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.interfacing._
-import exastencils.waLBerla.ir.util.IR_WaLBerlaDatatypes.WB_BlockDataID
 
 case class GPU_WaLBerlaSetGPUFlag(field : IR_WaLBerlaField) extends IR_WaLBerlaWrapperFunction {
   override def generateWaLBerlaFct() : IR_WaLBerlaPlainFunction = {
@@ -22,8 +22,14 @@ case class GPU_WaLBerlaSetGPUFlag(field : IR_WaLBerlaField) extends IR_WaLBerlaW
 
     body += IR_WaLBerlaLoopOverLocalBlocks(
       IR_IfCondition(onDevice.access,
-        IR_Assignment(deviceUpdated, true),
-        IR_Assignment(hostUpdated, true)))
+        ListBuffer[IR_Statement](
+          IR_Assignment(deviceUpdated, CUDA_DirtyFlagCase.DIRTY.id),
+          IR_Assignment(hostUpdated, CUDA_DirtyFlagCase.CLEAR.id)
+        ),
+        ListBuffer[IR_Statement](
+          IR_Assignment(hostUpdated, CUDA_DirtyFlagCase.DIRTY.id),
+          IR_Assignment(deviceUpdated, CUDA_DirtyFlagCase.CLEAR.id)
+        )))
 
     IR_WaLBerlaPlainFunction(name, IR_UnitDatatype, ListBuffer(lvl, slot, onDevice), body)
   }

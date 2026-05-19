@@ -68,9 +68,17 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   this += new Transformation("Collecting buffer sizes", {
     case buf : CUDA_BufferDeviceDataLike =>
       val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      val size = IR_SimplifyExpression.evalIntegral(buf.size)
+      val totalSize : IR_Expression = buf.size
+      if (Knowledge.data_genVariableFieldSizes) {
+        if (deviceBufferSizes.contains(id))
+          deviceBufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(totalSize)
+        else
+          deviceBufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(totalSize))))
+      } else {
+        val size = IR_SimplifyExpression.evalIntegral(totalSize)
 
-      deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
+        deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
+      }
 
       buf
 

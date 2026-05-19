@@ -6,6 +6,7 @@ import exastencils.baseExt.ir.IR_ProcessLocalBlockLoopVariable
 import exastencils.datastructures.Node
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
+import exastencils.waLBerla.ir.field.IR_WaLBerlaFieldShapeInfo
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaAABB
 import exastencils.waLBerla.ir.grid.IR_WaLBerlaCellWidthBlockPerDim
 import exastencils.waLBerla.ir.refinement.IR_WaLBerlaRefinementLevel
@@ -20,7 +21,8 @@ object IR_WaLBerlaBlockLoopVariable {
     case _ : IR_WaLBerlaCellWidthBlockPerDim     => 3
     case _ : IR_WaLBerlaNeighborHoodSectionIndex => 4
     case _ : IR_WaLBerlaNeighborHoodSectionSize  => 5
-    case _                                       => 6
+    case _ : IR_WaLBerlaFieldShapeInfo           => 6
+    case _                                       => 7
   }
   // order by name
   val byNameOrd : Ordering[IR_WaLBerlaBlockLoopVariable] = Ordering.by { member : IR_WaLBerlaBlockLoopVariable => member.resolveName() }

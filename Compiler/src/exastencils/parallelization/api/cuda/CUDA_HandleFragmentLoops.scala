@@ -304,6 +304,7 @@ case class CUDA_HandleFragmentLoops(
 
     val loopTuple = fragLoop match {
       case loop : IR_LoopOverFragments                                                               => Some((loop, loop.body))
+      case loop : IR_LoopOverProcessLocalBlocks                                                      => Some((loop, loop.body))
       case loop @ IR_ForLoop(IR_VariableDeclaration(_, name, _, _), _, _, _, _) if name == iter.name => Some((loop, loop.body))
       case _                                                                                         => None
     }

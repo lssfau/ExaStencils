@@ -538,11 +538,7 @@ object Knowledge {
   var waLBerla_useGridPartFromExa : Boolean = true
 
   // [true|false]: optimization.
-  // cache field pointers as members in interface
-  var waLBerla_cacheFieldPointers : Boolean = true
-
-  // [true|false]: optimization.
-  // use fixed layout sizes for waLBerla fields, required for optimizations and CUDA parallelization
+  // use fixed layout sizes for waLBerla fields, required for optimizations
   var waLBerla_useFixedLayoutsFromExa : Boolean = false
 
   // --- Parallel I/O ---
@@ -1054,15 +1050,12 @@ object Knowledge {
 
     // waLBerla
     Constraints.condError(waLBerla_generateInterface && dimensionality < 2, "waLBerla coupling is only supported for 2D/3D simulations.")
-    Constraints.condEnsureValue(waLBerla_useFixedLayoutsFromExa, true, cuda_enabled && waLBerla_generateInterface, "CUDA support for waLBerla codegen is only applicable with fixed field layouts (waLBerla_useFixedLayoutsFromExa = true).")
     Constraints.condEnsureValue(data_genVariableFieldSizes, true, !waLBerla_useFixedLayoutsFromExa && waLBerla_generateInterface, "Enable 'data_genVariableFieldSizes' when waLberla fields without fixed layouts are used.")
     Constraints.condError(!domain_isPartitioningKnown && waLBerla_createCartComm, "Knowledge flag 'waLBerla_createCartComm' is only available with Exa grid partitioning (waLBerla_useGridPartFromExa = true).")
 
     Constraints.condEnsureValue(refinement_enabled, true, waLBerla_useRefinement, "Flag 'refinement_enabled' must be enabled when 'waLBerla_useRefinement' is true")
     Constraints.condEnsureValue(waLBerla_useRefinement, true, waLBerla_refinementLevels > 0, "Flag 'waLBerla_useRefinement' must be enabled when 'waLBerla_refinementLevels' > 0")
     Constraints.condError(waLBerla_useRefinement && domain_isPartitioningKnown, "Flags 'waLBerla_useRefinement' and 'waLBerla_useGridFromExa' are mutually exclusive.")
-
-    Constraints.condError(!waLBerla_cacheFieldPointers && experimental_cuda_useStreams, "CUDA streams can only be combined with waLBerla when 'waLBerla_cacheFieldPointers = true'.")
 
     // refinement
     Constraints.condError(refinement_enabled && !comm_onlyAxisNeighbors, "Mesh refinement currently only supports communication with axis neighbors.")

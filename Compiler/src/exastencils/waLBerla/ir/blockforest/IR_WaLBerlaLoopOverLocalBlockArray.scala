@@ -7,6 +7,9 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.ir.IR_LoopOverProcessLocalBlocks
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
@@ -25,12 +28,12 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()
 ) extends IR_LoopOverProcessLocalBlocks {
 
+  // array of process-local blocks
+  private val blockArray = IR_WaLBerlaLocalBlocks()
+
   def expandSpecial() : Output[IR_ForLoop] = {
     // TODO: separate omp and potentiallyParallel
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
-
-    // array of process-local blocks
-    val blockArray = IR_WaLBerlaLocalBlocks()
 
     val upperBoundKnown = Knowledge.domain_isPartitioningKnown
     val upperBound : IR_Expression = if (upperBoundKnown)
@@ -53,11 +56,17 @@ case class IR_WaLBerlaLoopOverLocalBlockArray(
       IR_Lower(defIt, upperBound),
       IR_PreIncrement(defIt),
       compiledBody,
-      parallelization)
+      Duplicate(parallelization))
 
     if (upperBoundKnown)
       loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)
 
     loop
   }
+}
+
+object IR_WaLBerlaResolveLoopOverLocalBlockArray extends DefaultStrategy("Resolve waLBerla LoopOverLocalBlockArray") {
+  this += Transformation("Resolve", {
+    case loop : IR_WaLBerlaLoopOverLocalBlockArray => loop.expandSpecial()
+  })
 }

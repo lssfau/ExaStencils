@@ -81,8 +81,7 @@ case class IR_InitGeneratedDomain() extends IR_FuturePlainFunction {
     // TODO: move to main application
     if (Knowledge.mpi_enabled)
       body += IR_Assert(IR_EqEq(MPI_IV_MpiSize, Knowledge.domain_numBlocks),
-        ListBuffer("\"Invalid number of MPI processes (\"", MPI_IV_MpiSize, "\") should be \"", Knowledge.mpi_numThreads),
-        IR_FunctionCall("exit", 1))
+        ListBuffer("\"Invalid number of MPI processes (\"", MPI_IV_MpiSize, "\") should be \"", Knowledge.mpi_numThreads))
 
     // compose fragment loop setting basic fragment information
     var fragStatements = ListBuffer[IR_Statement]()

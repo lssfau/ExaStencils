@@ -10,9 +10,8 @@ import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
 import exastencils.domain.ir._
 import exastencils.logger.Logger
-import exastencils.parallelization.api.mpi.MPI_IV_MpiComm
-import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
-import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
+import exastencils.parallelization.api.cuda._
+import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_Print
 import exastencils.util.ir.IR_Read
@@ -47,6 +46,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
   def blockID = IR_WaLBerlaBlockID("blockID", block)
   def defIt = IR_WaLBerlaLoopOverLocalBlockArray.defIt
   def getBlockAABB = IR_WaLBerlaBlockAABB(block)
+  def localBlocks = IR_WaLBerlaLocalBlocks()
 
   // flags signaling potential neighbors
   def canHaveLocalNeighs = !Knowledge.domain_isPartitioningKnown || Knowledge.domain_canHaveLocalNeighs
@@ -83,6 +83,8 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     begin ++ end
   }
 
+  def checkError(cond : IR_Expression, msg : String) = IR_Assert(cond, ListBuffer(IR_StringConstant(msg)))
+
   override def isInterfaceFunction : Boolean = true
   override def inlineIncludeImplementation : Boolean = true
 
@@ -95,8 +97,6 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
     /* error checks to ensure consistency */
 
     if (Knowledge.domain_isPartitioningKnown) {
-      def checkError(cond : IR_Expression, msg : String) = IR_Assert(cond, ListBuffer(IR_StringConstant(msg)), IR_FunctionCall("exit", 1))
-
       // check if number of fragments, blocks and processes coincide
       checks += checkError(blockForest.getNumberOfAllLocalBlocks() EqEq Knowledge.domain_numFragmentsPerBlock,
         "Number of local waLBerla blocks does not match with number of fragments.")
@@ -132,6 +132,26 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "rank", MPI_IV_MpiRank.datatype))
       init += IR_Assignment(MPI_IV_MpiSize,
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "numProcesses", MPI_IV_MpiSize.datatype))
+    }
+
+    if (Knowledge.cuda_enabled) {
+      // get device count
+      init ++= CUDA_DeviceCount.initialization
+
+      // print device info (name)
+      if (!Knowledge.testing_enabled)
+        init ++= CUDA_DeviceProperties.initialization
+
+      // set L1 cache and shared memory configuration for this device
+      init ++= CUDA_DeviceSetCacheConfig.initialization
+
+      val device = IR_VariableAccess("device", IR_IntegerDatatype)
+
+      init += IR_VariableDeclaration(device)
+      init += IR_FunctionCall("cudaGetDevice", IR_AddressOf(device))
+      init += checkError((device >= 0) AndAnd (device EqEq Knowledge.cuda_deviceId),
+        s"Device selection in generated ExaStencils code ${Knowledge.cuda_deviceId} does not coincide with the one from waLBerla."
+      )
     }
 
     init += IR_WaLBerlaLoopOverLocalBlockArray(fragStatements, IR_ParallelizationInfo(potentiallyParallel = true))
@@ -205,11 +225,11 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
         def findLocalNeighborBlockIndex() = {
           val findEntry = IR_FunctionCall("std::find_if",
-            IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "begin"), IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "end"),
+            IR_MemberFunctionCall(localBlocks, "begin"), IR_MemberFunctionCall(localBlocks, "end"),
             compareBlockIDs)
 
-          IR_TernaryCondition(findEntry Neq IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "end"),
-            IR_FunctionCall("std::distance", IR_MemberFunctionCall(IR_WaLBerlaLocalBlocks(), "begin"), findEntry),
+          IR_TernaryCondition(findEntry Neq IR_MemberFunctionCall(localBlocks, "end"),
+            IR_FunctionCall("std::distance", IR_MemberFunctionCall(localBlocks, "begin"), findEntry),
             invalidIndex)
         }
 

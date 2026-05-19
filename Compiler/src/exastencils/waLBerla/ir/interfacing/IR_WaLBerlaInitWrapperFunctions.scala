@@ -16,17 +16,15 @@ object IR_WaLBerlaInitWrapperFunctions {
   for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name)) {
     val leveledFields = field._2.groupBy(_.level).map(_._2.head).to[ListBuffer]
 
-    if (Knowledge.waLBerla_cacheFieldPointers) {
-      // init field instance pointers
-      functions += IR_WaLBerlaInitFieldInstances(onGPU = false, leveledFields : _*)
-      if (Knowledge.cuda_enabled)
-        functions += IR_WaLBerlaInitFieldInstances(onGPU = true, leveledFields : _*)
+    // init field instance pointers
+    functions += IR_WaLBerlaInitFieldInstances(onGPU = false, leveledFields : _*)
+    if (Knowledge.cuda_enabled)
+      functions += IR_WaLBerlaInitFieldInstances(onGPU = true, leveledFields : _*)
 
-      // store and init pointers to internal waLBerla field data
-      functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = false, leveledFields : _*)
-      if (Knowledge.cuda_enabled)
-        functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = true, leveledFields : _*)
-    }
+    // store and init pointers to internal waLBerla field data
+    functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = false, leveledFields : _*)
+    if (Knowledge.cuda_enabled)
+      functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = true, leveledFields : _*)
 
     // init comm scheme objects
     if (Knowledge.waLBerla_generateCommSchemes) {

@@ -29,7 +29,7 @@ import exastencils.parallelization.api.mpi.MPI_AllReduce
 import exastencils.parallelization.api.mpi.MPI_IV_MpiSize
 import exastencils.parallelization.api.mpi.MPI_IsRootProc
 import exastencils.util.ir.IR_Print
-import exastencils.util.ir.IR_RawPrint
+import exastencils.util.ir.IR_PrintOnRoot
 
 /// IR_PrintAllTimers
 
@@ -39,7 +39,7 @@ abstract class IR_AbstractPrintAllTimers extends IR_TimerFunction {
   override def prettyprint_decl() : String = prettyprint
 
   protected val timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
-  protected val precisionVar = IR_VariableAccess("streamPrecision", IR_SpecialDatatype("std::streamsize"))
+  protected val precisionVar = IR_VariableAccess("streamPrecision", IR_IntegerDatatype)
 
   protected def prepareOutputFormatting(): ListBuffer[IR_Statement] = {
     val body : ListBuffer[IR_Statement] = ListBuffer()
@@ -51,7 +51,7 @@ abstract class IR_AbstractPrintAllTimers extends IR_TimerFunction {
       }
     )
 
-    body += IR_VariableDeclaration(precisionVar, IR_StringLiteral("std::cout.precision()"))
+    body += IR_VariableDeclaration(precisionVar, IR_Cast(IR_IntegerDatatype, IR_StringLiteral("std::cout.precision()")))
     body
   }
 
@@ -107,7 +107,7 @@ case class IR_PrintAllTimers() extends IR_AbstractPrintAllTimers {
     val body : ListBuffer[IR_Statement] = ListBuffer()
     if (timers.nonEmpty) {
       body ++= prepareOutputFormatting()
-      body += IR_RawPrint(IR_StringConstant("--------- Timer Values ---------"))
+      body += IR_PrintOnRoot(IR_StringConstant("--------- Timer Values ---------"))
       val lengthOfLongestName = timers.keys.map(_._1).maxBy(_.length).length
       body ++= timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2, lengthOfLongestName)).to[ListBuffer]
 
@@ -152,11 +152,11 @@ case class IR_PrintAllTimersIncludingAutomatic() extends IR_AbstractPrintAllTime
       body ++= sortedAccumulators.map { case (_, vAcc) => IR_VariableDeclaration(vAcc, 0.0) }
 
       // print out mean total timers for automatic function timers
-      body += IR_RawPrint(IR_StringConstant("--------- Timer Values ---------"))
+      body += IR_PrintOnRoot(IR_StringConstant("--------- Timer Values ---------"))
       val lengthOfLongestTimerName = timers.keys.map(_._1).maxBy(_.length).length
       body ++= timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2, lengthOfLongestTimerName)).to[ListBuffer]
 
-      body += IR_RawPrint(IR_StringConstant("------- Aggregated Timer Values -------"))
+      body += IR_PrintOnRoot(IR_StringConstant("------- Aggregated Timer Values -------"))
       body += genPrintAccuCode(sortedAccumulators)
 
       body += resetOutputFormatting()

@@ -1,8 +1,5 @@
 package exastencils.waLBerla.ir.util
 
-import exastencils.config.Knowledge
-import exastencils.config.Platform
-
 object IR_WaLBerlaPreprocessorDirectives {
 
   val headerTop : String = """#ifdef __GNUC__
@@ -26,8 +23,6 @@ object IR_WaLBerlaPreprocessorDirectives {
                                 |""".stripMargin
 
   val sourceTop : String = s"""
-                              | ${if (Knowledge.cuda_enabled) "#define FUNC_PREFIX __global__" else if (Platform.targetHardware == "CPU") "#define FUNC_PREFIX"}
-                              |
                               |#if ( defined WALBERLA_CXX_COMPILER_IS_GNU ) || ( defined WALBERLA_CXX_COMPILER_IS_CLANG )
                               |#   pragma GCC diagnostic push
                               |#   pragma GCC diagnostic ignored "-Wfloat-equal"
