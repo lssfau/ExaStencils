@@ -140,35 +140,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         CUDA_GatherVariableAccesses.reductionTarget = redTarget
       CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(loop))
 
-      // declare and init local reduction target
-      if (localTarget.isDefined) {
-        var decl = IR_VariableDeclaration(localTarget.get)
-        var initLocalTarget = CUDA_Util.getReductionDatatype(redTarget.get) match {
-          case _ : IR_ScalarDatatype   =>
-            ListBuffer[IR_Statement](IR_Assignment(localTarget.get, redTarget.get))
-          case mat : IR_MatrixDatatype =>
-            redTarget.get match {
-              case vAcc : IR_VariableAccess =>
-                IR_GenerateBasicMatrixOperations.loopSetSubmatrixMatPointer(
-                  vAcc, localTarget.get, mat.sizeN, mat.sizeM, mat.sizeN, 0, 0).body
-              case expr                     =>
-                Logger.error("Cannot set submatrix for expression: " + expr)
-            }
-        }
-
-        // also detect accesses coming from the init of the local target
-        CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(decl))
-        CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(initLocalTarget))
-
-        // replace array accesses with accesses to function arguments
-        CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = None // actually allow reduction var to be replaced here
-        CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(decl))
-        CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(initLocalTarget))
-
-        kernelBody.prepend(initLocalTarget : _*)
-        kernelBody.prepend(decl)
-      }
-
       // access collections
       val accesses = CUDA_GatherVariableAccesses.evaluableAccesses.toSeq.sortBy(_._1).to[ListBuffer]
       val accessesCopiedToDevice = CUDA_GatherVariableAccesses.nonEvaluableAccesses.toSeq.sortBy(_._1).to[ListBuffer]

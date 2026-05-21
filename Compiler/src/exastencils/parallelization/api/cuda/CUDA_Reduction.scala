@@ -135,7 +135,8 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       }
 
       // assemble new body
-      kernel.body += setReductionBuffer
+      if (!resultDt.isInstanceOf[IR_ScalarDatatype] || Knowledge.cuda_useDefaultReductions) // TODO: HODT CUB reductions
+        kernel.body += setReductionBuffer
 
       kernel
   })

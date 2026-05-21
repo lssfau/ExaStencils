@@ -19,7 +19,18 @@ trait CUDA_ExecutionConfiguration extends IR_Expression {
   def stream : CUDA_Stream // associated stream
   def sharedMemPerBlock : IR_Expression // dynamically allocated shared mem in bytes, default: 0
 
-  def evaluateMaxBlockSize : Option[Long]
+  def evaluateMaxBlockSizePerDim : Option[Array[Long]] = {
+    val evalNumThreadsPerBlock = numThreadsPerBlock.map(e =>
+      try {
+        IR_SimplifyExpression.evalIntegral(e)
+      } catch {
+        case _ : EvaluationException =>
+          return None
+      }
+    )
+
+    Some(evalNumThreadsPerBlock)
+  }
 }
 
 object CUDA_ExecutionConfiguration {
@@ -144,19 +155,6 @@ case class CUDA_ExecutionConfigurationStatic(
 
     out << ">>>"
   }
-
-  override def evaluateMaxBlockSize : Option[Long] = {
-    val evalNumThreadsPerBlock = numThreadsPerBlock.map(e =>
-      try {
-        IR_SimplifyExpression.evalIntegral(e)
-      } catch {
-        case _ : EvaluationException =>
-          return None
-      }
-    )
-
-    Some(evalNumThreadsPerBlock.product)
-  }
 }
 
 case class CUDA_ExecutionConfigurationDynamic(
@@ -196,8 +194,6 @@ case class CUDA_ExecutionConfigurationDynamic(
 
     out << ">>>"
   }
-
-  override def evaluateMaxBlockSize : Option[Long] = None
 }
 
 object CUDA_ComputeExecutionConfigurationFunction {
