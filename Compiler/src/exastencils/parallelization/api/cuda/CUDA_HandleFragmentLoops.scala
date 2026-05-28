@@ -117,10 +117,12 @@ case class CUDA_HandleFragmentLoops(
   }
 
   def initReductionTmp(op : String, reductionDt : IR_Datatype, reductionTmp : CUDA_ManagedReductionResultPointer) = {
-    ListBuffer(
-      reductionTmp.prefetch("D2H", reductionComputeStream),
-      assignToNeutralElement(reductionTmp, reductionDt, op),
-      reductionTmp.prefetch("H2D", reductionComputeStream)
+    ListBuffer[IR_Statement](
+      IR_LoopOverFragments(
+        reductionTmp.prefetch("D2H", reductionComputeStream),
+        assignToNeutralElement(reductionTmp, reductionDt, op),
+        reductionTmp.prefetch("H2D", reductionComputeStream)
+      )
     )
   }
 

@@ -780,9 +780,8 @@ case class CUDA_Kernel(
     for (variableAccess <- passThroughArgs)
       fctParams += IR_FunctionArgument(variableAccess.name, variableAccess.datatype)
 
-    val reductionDt = CUDA_Util.getReductionDatatype(localReductionTarget.get)
-    if (reductionPtr.isDefined && Knowledge.cuda_cub_reductions_supported(reductionDt))
-      fctParams += reductionPtr.get
+    if (reductionPtr.isDefined && Knowledge.cuda_cub_reductions_supported(CUDA_Util.getReductionDatatype(localReductionTarget.get)))
+        fctParams += reductionPtr.get
 
     val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */ getKernelFctName, IR_UnitDatatype, fctParams, compileKernelBody)
 
