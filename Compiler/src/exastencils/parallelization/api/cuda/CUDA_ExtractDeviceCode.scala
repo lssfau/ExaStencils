@@ -214,7 +214,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       kernelFunctions.addKernel(Duplicate(kernel))
 
       // copy array variables from host to device if necessary
-      // TODO: temporary solution until the reductions are optimized
       if (deviceArrayCopies.nonEmpty) {
         deviceArrayCopies foreach { case (k, dstArr) =>
           val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
@@ -234,7 +233,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       if (reduction.isDefined) {
         // tmp buffer for reduction result (host). already set up in CUDA_HandleFragmentLoops
         val reductionTmp = if (enclosingFragLoop.isDefined) {
-          val tmpBuf = enclosingFragLoop.get.popAnnotationAs[Option[CUDA_ReductionResultBuffer]](CUDA_Util.CUDA_REDUCTION_RESULT_BUF)
+          val tmpBuf = enclosingFragLoop.get.popAnnotationAs[Option[CUDA_ManagedReductionResultPointer]](CUDA_Util.CUDA_REDUCTION_RESULT_BUF)
           if(tmpBuf.isEmpty)
             Logger.error("Temporary reduction result buffer has not been set up.")
 

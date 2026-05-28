@@ -210,9 +210,9 @@ case class CUDA_MatrixDeviceCopy(
   override def prettyprint(out : PpStream) : Unit = out << getAccess()
 }
 
-/// CUDA_ReductionResultBufferLike
+/// CUDA_ManagedReductionResultPointerLike
 
-trait CUDA_ReductionResultBufferLike extends IR_InternalVariableLike with IR_Expression {
+trait CUDA_ManagedReductionResultPointerLike extends IR_InternalVariableLike with IR_Expression {
   def name : String
   def baseDt : IR_Datatype
   def size : IR_Expression
@@ -221,54 +221,30 @@ trait CUDA_ReductionResultBufferLike extends IR_InternalVariableLike with IR_Exp
   def getAccess() = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
   def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
 
-  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(IR_ArrayAllocation(getAccess(), baseDt, size)))
+  override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(CUDA_AllocateManaged(getAccess(), size, baseDt)))
   override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(
     IR_IfCondition(getAccess(),
       ListBuffer[IR_Statement](
-        IR_ArrayFree(getAccess()),
+        CUDA_Free(getAccess()),
         IR_Assignment(getAccess(), 0)))))
 }
 
-/// CUDA_ReductionResultBuffer
+/// CUDA_ManagedReductionResultPointer
 
-// TODO: temporary solution until the reductions are optimized
-case class CUDA_ReductionResultBuffer(
+case class CUDA_ManagedReductionResultPointer(
     var name : String,
     var baseDt : IR_Datatype,
     var size : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
-) extends IR_InternalVariable(true, false, false, false, false) with CUDA_ReductionResultBufferLike {
+) extends IR_InternalVariable(true, false, false, false, false) with CUDA_ManagedReductionResultPointerLike {
 
   def resolveName() : String = name
   override def prettyprint(out : PpStream) : Unit = out << getAccess()
-}
 
-/// CUDA_ReductionFragmentCopyLike
+  private def getNumBytes() : IR_Expression = IR_SizeOf(baseDt) * size
 
-trait CUDA_ReductionFragmentCopyLike extends IR_InternalVariableLike with IR_Expression {
-  def name : String
-  def baseDt : IR_Datatype
-  def fragmentIdx : IR_Expression
-
-  def getAccess() = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
-  def resolveDatatype() : IR_Datatype = baseDt match {
-    case mat : IR_MatrixDatatype =>
-      IR_ArrayDatatype(mat.resolveBaseDatatype, mat.sizeN * mat.sizeM)
-    case dt : IR_Datatype        =>
-      dt
-  }
-}
-
-/// CUDA_ReductionFragmentCopy
-
-case class CUDA_ReductionFragmentCopy(
-    var name : String,
-    var baseDt : IR_Datatype,
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
-) extends IR_InternalVariable(true, false, false, false, false) with CUDA_ReductionFragmentCopyLike {
-
-  def resolveName() : String = name
-  override def prettyprint(out : PpStream) : Unit = out << getAccess()
+  def prefetch(dir : String, stream : CUDA_Stream) : IR_Statement =
+    CUDA_TransferUtil.genAsyncPrefetchForManagedMemory(getAccess(), getNumBytes(), dir, stream)
 }
 
 /// CUDA_AdaptDeviceAccessesForMM

@@ -534,13 +534,13 @@ case class CUDA_Kernel(
     val afterStatementsLocalReduction = ListBuffer[IR_Statement]()
     if (localReductionTarget.isDefined && reduction.isDefined) {
       val redTarget = reduction.get.target
-      val resultDt  = CUDA_Util.getReductionDatatype(redTarget)
-      val baseDt    = resultDt.resolveBaseDatatype
+      val reductionDt = CUDA_Util.getReductionDatatype(redTarget)
+      val baseDt = reductionDt.resolveBaseDatatype
 
       val localRedTarget = localReductionTarget.get
       val declLocalRedTarget = IR_VariableDeclaration(localRedTarget)
 
-      val initLocalRedTarget = resultDt match {
+      val initLocalRedTarget = reductionDt match {
         case _ : IR_ScalarDatatype   =>
           ListBuffer[IR_Statement](IR_Assignment(localReductionTarget.get, redTarget))
         case mat : IR_MatrixDatatype =>
@@ -566,7 +566,7 @@ case class CUDA_Kernel(
       beforeStatementsLocalReduction ++= initLocalRedTarget
 
       // perform CUB reduction after kernel body
-      if (resultDt.isInstanceOf[IR_ScalarDatatype] && !Knowledge.cuda_useDefaultReductions) { // TODO: HODT CUB reductions
+      if (Knowledge.cuda_cub_reductions_supported(reductionDt)) { // TODO: HODT CUB reductions
         val cubOp = reduction.get.op match {
           case "+"   => "cub::Sum()"
           case "min" => "cub::Min()"
@@ -591,11 +591,11 @@ case class CUDA_Kernel(
           cubTempName, None)
 
         // compute block-level aggregate
-        val blockResultName = "block_result_"
-        afterStatementsLocalReduction += IR_VariableDeclaration(baseDt, blockResultName,
-          Some(IR_FunctionCall(
+        val blockResult = IR_VariableAccess("block_result_", baseDt)
+        afterStatementsLocalReduction += IR_VariableDeclaration(blockResult,
+          IR_FunctionCall(
             s"$cubReduceType($cubTempName).Reduce",
-            ListBuffer[IR_Expression](localRedTarget, IR_VariableAccess(cubOp, baseDt)))))
+            ListBuffer[IR_Expression](localRedTarget, IR_VariableAccess(cubOp, baseDt))))
 
         val firstThreadInBlock = (0 until executionDim).map(dim =>
           IR_EqEq(
@@ -609,14 +609,14 @@ case class CUDA_Kernel(
           case "min" => "atomicMin"
           case "max" => "atomicMax"
           case other =>
-            Logger.error(s"CUB BlockReduce: unsupported atomic op '$other', falling back to atomicAdd")
+            Logger.error(s"CUB BlockReduce: unsupported atomic op '$other'")
         }
 
-        afterStatementsLocalReduction += IR_IfCondition(firstThreadInBlock, ListBuffer[IR_Statement](
-          IR_ExpressionStatement(IR_FunctionCall(atomicOp, ListBuffer[IR_Expression](
-            reductionPtr.get.access,
-            IR_VariableAccess(blockResultName, baseDt)
-          )))
+        afterStatementsLocalReduction += IR_IfCondition(firstThreadInBlock,
+          ListBuffer[IR_Statement](
+            IR_ExpressionStatement(IR_FunctionCall(atomicOp, ListBuffer[IR_Expression](
+              reductionPtr.get.access,
+              blockResult)))
         ))
       }
     }
@@ -699,35 +699,35 @@ case class CUDA_Kernel(
 
     if (reductionPtr.isDefined) {
       val target = Duplicate(reduction.get.target)
-      val resultDt = CUDA_Util.getReductionDatatype(target)
+      val reductionDt = CUDA_Util.getReductionDatatype(target)
 
       // return value is forwarded in form of a pointer arg
       passThroughArgs += reductionPtr.get
 
-      if (!resultDt.isInstanceOf[IR_ScalarDatatype] || Knowledge.cuda_useDefaultReductions) { // TODO: HODT CUB reductions
+      if (!Knowledge.cuda_cub_reductions_supported(reductionDt)) { // TODO: HODT CUB reductions
         // reset reduction data buffer and call default reduction kernel
         val bufSize = requiredThreadsPerDim.reduce(_ * _)
-        val bufAccess = CUDA_ReductionDeviceData(bufSize, resultDt)
+        val bufAccess = CUDA_ReductionDeviceData(bufSize, reductionDt)
         var callArgsReduction = ListBuffer[IR_Expression](bufAccess, bufSize)
         if (Knowledge.domain_numFragmentsPerBlock > 1)
           callArgsReduction += IR_LoopOverFragments.defIt
 
-        body += CUDA_Memset(bufAccess, 0, bufSize, resultDt)
+        body += CUDA_Memset(bufAccess, 0, bufSize, reductionDt)
         body += CUDA_FunctionCall(getKernelFctName, callArgs, execCfg)
 
         callArgsReduction += reductionPtr.get.access
-        body += IR_FunctionCall(CUDA_KernelFunctions.get.getDefaultReductionKernelWrapperName(reduction.get.op, resultDt),
+        body += IR_FunctionCall(CUDA_KernelFunctions.get.getDefaultReductionKernelWrapperName(reduction.get.op, reductionDt),
           callArgsReduction)
 
         CUDA_KernelFunctions.get.requiredRedKernels += Tuple3(reduction.get.op, Duplicate(target), Duplicate(execCfg.stream)) // request reduction kernel and wrapper
       } else {
         // reduction result is updated within (fused) kernel
         callArgs += reductionPtr.get.access
+        body += CUDA_FunctionCall(getKernelFctName, callArgs, execCfg)
       }
+    } else {
+      body += CUDA_FunctionCall(getKernelFctName, callArgs, execCfg)
     }
-
-    // finally call kernel
-    body += CUDA_FunctionCall(getKernelFctName, callArgs, execCfg)
 
     val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */
       getWrapperFctName,
@@ -780,7 +780,8 @@ case class CUDA_Kernel(
     for (variableAccess <- passThroughArgs)
       fctParams += IR_FunctionArgument(variableAccess.name, variableAccess.datatype)
 
-    if (reductionPtr.isDefined)
+    val reductionDt = CUDA_Util.getReductionDatatype(localReductionTarget.get)
+    if (reductionPtr.isDefined && Knowledge.cuda_cub_reductions_supported(reductionDt))
       fctParams += reductionPtr.get
 
     val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */ getKernelFctName, IR_UnitDatatype, fctParams, compileKernelBody)

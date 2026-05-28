@@ -107,27 +107,14 @@ case class GPU_WaLBerlaMatrixDeviceCopy(
   override def isPrivate : Boolean = true
 }
 
-/// GPU_WaLBerlaReductionResultBuffer
+/// GPU_WaLBerlaReductionResultPointer
 
-// TODO: temporary solution until the reductions are optimized
-case class GPU_WaLBerlaReductionResultBuffer(
+case class GPU_WaLBerlaReductionResultPointer(
     var name : String,
     var baseDt : IR_Datatype,
     var size : IR_Expression,
     var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
-) extends IR_WaLBerlaInterfaceMember(true, false, false) with CUDA_ReductionResultBufferLike {
-
-  override def prettyprint(out : PpStream) : Unit = out << getAccess()
-  override def isPrivate : Boolean = true
-}
-
-/// GPU_WaLBerlaReductionFragmentCopy
-
-case class GPU_WaLBerlaReductionFragmentCopy(
-    var name : String,
-    var baseDt : IR_Datatype,
-    var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt
-) extends IR_WaLBerlaInterfaceMember(true, false, false) with CUDA_ReductionFragmentCopyLike {
+) extends IR_WaLBerlaInterfaceMember(true, false, false) with CUDA_ManagedReductionResultPointerLike {
 
   override def prettyprint(out : PpStream) : Unit = out << getAccess()
   override def isPrivate : Boolean = true

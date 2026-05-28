@@ -87,8 +87,8 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
     case kernel : CUDA_Kernel if kernel.reduction.isDefined =>
       val target = Duplicate(kernel.reduction.get.target)
       val localTarget = Duplicate(kernel.localReductionTarget.get)
-      val resultDt = CUDA_Util.getReductionDatatype(target)
-      val strideReturnDt = resultDt.getSizeArray.product
+      val reductionDt = CUDA_Util.getReductionDatatype(target)
+      val strideReturnDt = reductionDt.getSizeArray.product
 
       val upper : Array[IR_Expression] = if (Knowledge.data_genVariableFieldSizes)
         kernel.upperBounds.toArray
@@ -119,8 +119,8 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
 
       // set element in global reduction buffer to local result
-      val dst = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(Duplicate(size), resultDt), Duplicate(index), Duplicate(stride))
-      val setReductionBuffer = resultDt match {
+      val dst = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(Duplicate(size), reductionDt), Duplicate(index), Duplicate(stride))
+      val setReductionBuffer = reductionDt match {
         case _ : IR_ScalarDatatype   =>
           IR_Assignment(dst, localTarget)
         case mat : IR_MatrixDatatype =>
@@ -135,7 +135,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       }
 
       // assemble new body
-      if (!resultDt.isInstanceOf[IR_ScalarDatatype] || Knowledge.cuda_useDefaultReductions) // TODO: HODT CUB reductions
+      if (!Knowledge.cuda_cub_reductions_supported(reductionDt)) // TODO: HODT CUB reductions
         kernel.body += setReductionBuffer
 
       kernel

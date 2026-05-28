@@ -19,8 +19,9 @@
 package exastencils.config
 
 import scala.collection.mutable.ListBuffer
-import scala.math.pow
 
+import exastencils.base.ir.IR_Datatype
+import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.constraints._
 
 object Knowledge {
@@ -687,6 +688,7 @@ object Knowledge {
   // use original implementation with log2(n) kernel invocations (=true) or CUB shared-memory reductions (=false)
   // TODO: CUB reductions are not implemented for higher-order data types -> fall back to default reductions
   var cuda_useDefaultReductions : Boolean = false
+  def cuda_cub_reductions_supported(dt : IR_Datatype) : Boolean = dt.isInstanceOf[IR_ScalarDatatype] && !Knowledge.cuda_useDefaultReductions
 
   // use pinned memory to allocate host field data and buffers
   var cuda_usePinnedHostMemory : Boolean = true
