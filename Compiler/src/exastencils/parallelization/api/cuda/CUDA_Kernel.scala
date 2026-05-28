@@ -62,6 +62,7 @@ case class CUDA_Kernel(
     var upperBounds : ListBuffer[IR_Expression],
     var stepSize : ListBuffer[IR_Expression],
     var body : ListBuffer[IR_Statement],
+    var preStepsLocalReduction : ListBuffer[IR_Statement],
     var stream : CUDA_Stream,
     var reduction : Option[IR_Reduction] = None,
     var localReductionTarget : Option[IR_VariableAccess] = None,
@@ -530,40 +531,13 @@ case class CUDA_Kernel(
     body = statements
 
     // declare and init local reduction target before kernel body
-    val beforeStatementsLocalReduction = ListBuffer[IR_Statement]()
-    val afterStatementsLocalReduction = ListBuffer[IR_Statement]()
+    val postStepsLocalReduction = ListBuffer[IR_Statement]()
     if (localReductionTarget.isDefined && reduction.isDefined) {
       val redTarget = reduction.get.target
       val reductionDt = CUDA_Util.getReductionDatatype(redTarget)
       val baseDt = reductionDt.resolveBaseDatatype
 
       val localRedTarget = localReductionTarget.get
-      val declLocalRedTarget = IR_VariableDeclaration(localRedTarget)
-
-      val initLocalRedTarget = reductionDt match {
-        case _ : IR_ScalarDatatype   =>
-          ListBuffer[IR_Statement](IR_Assignment(localReductionTarget.get, redTarget))
-        case mat : IR_MatrixDatatype =>
-          redTarget match {
-            case vAcc : IR_VariableAccess =>
-              IR_GenerateBasicMatrixOperations.loopSetSubmatrixMatPointer(
-                vAcc, localReductionTarget.get, mat.sizeN, mat.sizeM, mat.sizeN, 0, 0).body
-            case expr                     =>
-              Logger.error("Cannot set submatrix for expression: " + expr)
-          }
-      }
-
-      // also detect accesses coming from the init of the local target
-      CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(declLocalRedTarget))
-      CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(initLocalRedTarget))
-
-      // replace array accesses with accesses to function arguments
-      CUDA_ReplaceNonReductionVarArrayAccesses.reductionTarget = None // actually allow reduction var to be replaced here
-      CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(declLocalRedTarget))
-      CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(initLocalRedTarget))
-
-      beforeStatementsLocalReduction += declLocalRedTarget
-      beforeStatementsLocalReduction ++= initLocalRedTarget
 
       // perform CUB reduction after kernel body
       if (Knowledge.cuda_cub_reductions_supported(reductionDt)) { // TODO: HODT CUB reductions
@@ -586,13 +560,13 @@ case class CUDA_Kernel(
         val cubReduceType = s"cub::BlockReduce< ${ baseDt.prettyprint() }, ${ blockDims.head }, " +
           s"cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, ${ blockDims(1) }, ${ blockDims(2) } >"
 
-        afterStatementsLocalReduction += IR_VariableDeclaration(
+        postStepsLocalReduction += IR_VariableDeclaration(
           IR_SpecialDatatype(s"__shared__ $cubReduceType::TempStorage"),
           cubTempName, None)
 
         // compute block-level aggregate
         val blockResult = IR_VariableAccess("block_result_", baseDt)
-        afterStatementsLocalReduction += IR_VariableDeclaration(blockResult,
+        postStepsLocalReduction += IR_VariableDeclaration(blockResult,
           IR_FunctionCall(
             s"$cubReduceType($cubTempName).Reduce",
             ListBuffer[IR_Expression](localRedTarget, IR_VariableAccess(cubOp, baseDt))))
@@ -612,7 +586,7 @@ case class CUDA_Kernel(
             Logger.error(s"CUB BlockReduce: unsupported atomic op '$other'")
         }
 
-        afterStatementsLocalReduction += IR_IfCondition(firstThreadInBlock,
+        postStepsLocalReduction += IR_IfCondition(firstThreadInBlock,
           ListBuffer[IR_Statement](
             IR_ExpressionStatement(IR_FunctionCall(atomicOp, ListBuffer[IR_Expression](
               reductionPtr.get.access,
@@ -645,7 +619,7 @@ case class CUDA_Kernel(
     CUDA_ReplaceLoopVariables.loopVariables = loopVariables.drop(nrInnerSeqDims)
     CUDA_ReplaceLoopVariables.applyStandalone(IR_Scope(body))
 
-    beforeStatementsLocalReduction ++ body ++ afterStatementsLocalReduction
+    preStepsLocalReduction ++ body ++ postStepsLocalReduction
   }
 
   def compileWrapperFunction : IR_Function = {
