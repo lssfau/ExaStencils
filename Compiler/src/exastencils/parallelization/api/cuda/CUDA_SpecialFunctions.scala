@@ -52,7 +52,14 @@ object CUDA_ReplaceStdFunctionCalls extends DefaultStrategy("Replace calls to st
 /// CUDA_StdFunctionReplacements
 
 object CUDA_StdFunctionReplacements {
-  val stdFunctions = HashMap[String, String]("std::fill" -> "cuda_std_fill", "std::copy" -> "cuda_std_copy", "std::swap" -> "cuda_std_swap")
+  val stdFunctions = HashMap[String, String](
+    "std::fill" -> "cuda_std_fill",
+    "std::copy" -> "cuda_std_copy",
+    "std::swap" -> "cuda_std_swap",
+    "atomicMax" -> "atomicMaxCAS",
+    "atomicMin" -> "atomicMinCAS",
+  )
+  val atomicFunctions = HashSet[(String, String, IR_Datatype)]()
 
   def addFct(fct : IR_Function) {
     fct.allowInlining = false
@@ -63,6 +70,19 @@ object CUDA_StdFunctionReplacements {
     fct.annotate("deviceOnly")
 
     CUDA_KernelFunctions.get.functions += fct
+  }
+
+  def addAtomicMinMax(name : String, op : String, dt : IR_Datatype, castFrom : String, castTo : String, cmpType : String) : Unit = {
+    if (!atomicFunctions.contains((name, op, dt))) {
+      addFct(IR_PlainFunction(name, dt, ListBuffer(IR_FunctionArgument("address", IR_PointerDatatype(dt)), IR_FunctionArgument("val", dt)),
+        IR_Native(s"""
+                     | $cmpType ret = $castFrom(*address);
+                     | while(val $op $castTo(ret)) { $cmpType old = ret; if((ret = atomicCAS(($cmpType *)address, old, $castFrom(val))) == old) break; }
+                     | return $castTo(ret)""".stripMargin)
+      ))
+
+      atomicFunctions += Tuple3(name, op, dt)
+    }
   }
 
   def addReplacement(name : String) {
@@ -106,6 +126,16 @@ object CUDA_StdFunctionReplacements {
               IR_Assignment(left, right),
               IR_Assignment(right, nju))))
         }
+
+      // add specialized atomics for min/max reductions (used in CUB reductions)
+      // cf. https://stackoverflow.com/questions/17399119/how-do-i-use-atomicmax-on-floating-point-values-in-cuda
+      case "atomicMinCAS" =>
+        addAtomicMinMax("atomicMinCAS", "<", IR_FloatDatatype,  "__float_as_int",       "__int_as_float",       "int")
+        addAtomicMinMax("atomicMinCAS", "<", IR_DoubleDatatype, "__double_as_longlong", "__longlong_as_double", "unsigned long long")
+
+      case "atomicMaxCAS" =>
+        addAtomicMinMax("atomicMaxCAS", ">", IR_FloatDatatype,  "__float_as_int",       "__int_as_float",        "int")
+        addAtomicMinMax("atomicMaxCAS", ">", IR_DoubleDatatype, "__double_as_longlong", "__longlong_as_double",  "unsigned long long")
     }
   }
 }

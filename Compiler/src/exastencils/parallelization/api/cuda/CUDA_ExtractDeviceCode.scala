@@ -141,6 +141,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       CUDA_GatherVariableAccesses.applyStandalone(IR_Scope(loop))
 
       // declare and init local reduction target
+      var preStepsLocalReduction = ListBuffer[IR_Statement]()
       if (localTarget.isDefined) {
         var decl = IR_VariableDeclaration(localTarget.get)
         var initLocalTarget = CUDA_Util.getReductionDatatype(redTarget.get) match {
@@ -165,8 +166,8 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(decl))
         CUDA_ReplaceNonReductionVarArrayAccesses.applyStandalone(IR_Scope(initLocalTarget))
 
-        kernelBody.prepend(initLocalTarget : _*)
-        kernelBody.prepend(decl)
+        preStepsLocalReduction += decl
+        preStepsLocalReduction ++= initLocalTarget
       }
 
       // access collections
@@ -235,6 +236,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
         Duplicate(upperBounds),
         Duplicate(stepSize),
         Duplicate(scope.body),
+        Duplicate(preStepsLocalReduction),
         Duplicate(stream),
         Duplicate(reduction),
         Duplicate(localTarget),
@@ -243,7 +245,6 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       kernelFunctions.addKernel(Duplicate(kernel))
 
       // copy array variables from host to device if necessary
-      // TODO: temporary solution until the reductions are optimized
       if (deviceArrayCopies.nonEmpty) {
         deviceArrayCopies foreach { case (k, dstArr) =>
           val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
@@ -263,7 +264,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       if (reduction.isDefined) {
         // tmp buffer for reduction result (host). already set up in CUDA_HandleFragmentLoops
         val reductionTmp = if (enclosingFragLoop.isDefined) {
-          val tmpBuf = enclosingFragLoop.get.popAnnotationAs[Option[CUDA_ReductionResultBuffer]](CUDA_Util.CUDA_REDUCTION_RESULT_BUF)
+          val tmpBuf = enclosingFragLoop.get.popAnnotationAs[Option[CUDA_ManagedReductionResultPointer]](CUDA_Util.CUDA_REDUCTION_RESULT_BUF)
           if(tmpBuf.isEmpty)
             Logger.error("Temporary reduction result buffer has not been set up.")
 

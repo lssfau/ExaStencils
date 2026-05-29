@@ -51,8 +51,18 @@ abstract class IR_FunctionCollection(var baseName : String,
 
     val externC = Knowledge.generateFortranInterface || Knowledge.generateCInterface
 
+    // device + header only functions wrapped arount CUDACC guard
+    val headerFuncsDeviceOnly = functions.collect { case f if f.isHeaderOnly && f.hasAnnotation("deviceOnly") => f }
+    if (headerFuncsDeviceOnly.nonEmpty)
+      writer <<< "#ifdef __CUDACC__"
+    for (func <- headerFuncsDeviceOnly.distinct) {
+      writer <<< func.prettyprint
+    }
+    if (headerFuncsDeviceOnly.nonEmpty)
+      writer <<< "#endif\n"
+
     // header only functions
-    for (func <- functions)
+    for (func <- functions diff headerFuncsDeviceOnly)
       if (func.isHeaderOnly)
         writer <<< func.prettyprint
 
@@ -60,7 +70,7 @@ abstract class IR_FunctionCollection(var baseName : String,
       writer <<< "extern \"C\" {"
 
     // functions with separate definition
-    for (func <- functions)
+    for (func <- functions diff headerFuncsDeviceOnly)
       if (!func.isHeaderOnly && !func.hasAnnotation("deviceOnly"))
         writer << func.prettyprint_decl
 

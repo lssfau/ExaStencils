@@ -14,12 +14,10 @@ object GPU_WaLBerlaReplaceReductionIVs extends IR_WaLBerlaReplacementStrategy("R
   object ReplaceReductionTmps extends QuietDefaultStrategy("Replace reduction tmps for GPU") {
     this += Transformation("..", {
       // reduction tmps
-      case _ @ CUDA_MatrixDeviceCopy(name, baseDt, size, fragmentIdx)      =>
+      case _ @ CUDA_MatrixDeviceCopy(name, baseDt, size, fragmentIdx)              =>
         GPU_WaLBerlaMatrixDeviceCopy("wb_" + name, baseDt, size, fragmentIdx)
-      case _ @ CUDA_ReductionResultBuffer(name, baseDt, size, fragmentIdx) =>
-        GPU_WaLBerlaReductionResultBuffer("wb_" + name, baseDt, size, fragmentIdx)
-      case _ @ CUDA_ReductionFragmentCopy(name, baseDt, fragmentIdx)       =>
-        GPU_WaLBerlaReductionFragmentCopy("wb_" + name, baseDt, fragmentIdx)
+      case _ @ CUDA_ManagedReductionResultPointer(name, baseDt, size, fragmentIdx) =>
+        GPU_WaLBerlaReductionResultPointer("wb_" + name, baseDt, size, fragmentIdx)
     })
   }
 

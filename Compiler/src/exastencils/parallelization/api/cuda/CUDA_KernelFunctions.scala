@@ -69,11 +69,11 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
   var requiredRedKernels = mutable.HashSet[(String, IR_Expression, CUDA_Stream)]()
   var counterMap = mutable.HashMap[String, Int]()
 
-  def getRedKernelName(op : String, dt : IR_Datatype) =
+  def getDefaultReductionKernelName(op : String, dt : IR_Datatype) =
     "DefaultReductionKernel" + IR_BinaryOperators.opAsIdent(op) + (if (dt.isInstanceOf[IR_MatrixDatatype]) dt.prettyprint else "")
 
-  def getRedKernelWrapperName(op : String, dt : IR_Datatype) =
-    getRedKernelName(op, dt) + "_wrapper"
+  def getDefaultReductionKernelWrapperName(op : String, dt : IR_Datatype) =
+    getDefaultReductionKernelName(op, dt) + "_wrapper"
 
   def getIdentifier(fctName : String) : String = {
     val cnt = counterMap.getOrElse(fctName, -1) + 1
@@ -92,7 +92,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     }
     kernelCollection.clear // consume processed kernels
 
-    // take care of reductions
+    // take care of default reductions
     for ((op, target, stream) <- requiredRedKernels) addDefaultReductionKernel(op, target, stream)
     requiredRedKernels.clear // consume reduction requests
   }
@@ -103,6 +103,8 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
       if (fileName.endsWith(CUDA_Kernel.wrapperPostfix)) fileName = fileName.dropRight(CUDA_Kernel.wrapperPostfix.length)
       val writer = PrettyprintingManager.getPrinter(s"${ baseName }_$fileName.cu")
       writer.addInternalDependency(s"$baseName.h")
+      if (!Knowledge.cuda_useDefaultReductions)
+        writer.addExternalDependency("cub/cub.cuh")
 
       writer <<< f.prettyprint(PrintEnvironment.CUDA)
       writer <<< ""
@@ -111,8 +113,8 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
 
   def addDefaultReductionKernel(op : String, target : IR_Expression, stream : CUDA_Stream) : Unit = {
     val reductionDt = CUDA_Util.getReductionDatatype(target)
-    val kernelName = getRedKernelName(op, reductionDt)
-    val wrapperName = getRedKernelWrapperName(op, reductionDt)
+    val kernelName = getDefaultReductionKernelName(op, reductionDt)
+    val wrapperName = getDefaultReductionKernelWrapperName(op, reductionDt)
 
     // early exit if already generated
     if (generatedRedKernels.contains(kernelName))
@@ -213,15 +215,10 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
         IR_Assignment(halfStride, 2, "*="),
         loopBody)
 
-      // call default reduction kernel and return by copying to passed (host) pointer
-      // TODO: temporary solution until the reductions are optimized
-      val matrixReductionTmp = IR_FunctionArgument("matrixReductionTmp", data.datatype)
-      functionArgs += matrixReductionTmp
-      if (Knowledge.cuda_useManagedMemory) {
-        // D-D copy to reduction buffer
-        fctBody += CUDA_Memcpy(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToDevice")
-      }
-      fctBody += CUDA_TransferUtil.genTransfer(matrixReductionTmp.access, data.access, IR_SizeOf(reductionDt), "D2H", stream)
+      // call reduction kernel and return result by copying to passed (host) pointer
+      val reductionTmp = IR_FunctionArgument("reductionTmp", data.datatype)
+      functionArgs += reductionTmp
+      fctBody += CUDA_Memcpy(reductionTmp.access, data.access, IR_SizeOf(reductionDt), "cudaMemcpyDeviceToDevice") // D-D copy to reduction tmp
 
       // compile final wrapper function
       val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */

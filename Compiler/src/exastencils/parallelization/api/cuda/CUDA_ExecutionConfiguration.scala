@@ -19,7 +19,18 @@ trait CUDA_ExecutionConfiguration extends IR_Expression {
   def stream : CUDA_Stream // associated stream
   def sharedMemPerBlock : IR_Expression // dynamically allocated shared mem in bytes, default: 0
 
-  def evaluateMaxBlockSize : Option[Long]
+  def evaluateMaxBlockSizePerDim : Option[Array[Long]] = {
+    val evalNumThreadsPerBlock = numThreadsPerBlock.map(e =>
+      try {
+        IR_SimplifyExpression.evalIntegral(e)
+      } catch {
+        case _ : EvaluationException =>
+          return None
+      }
+    )
+
+    Some(evalNumThreadsPerBlock)
+  }
 }
 
 object CUDA_ExecutionConfiguration {
@@ -144,19 +155,6 @@ case class CUDA_ExecutionConfigurationStatic(
 
     out << ">>>"
   }
-
-  override def evaluateMaxBlockSize : Option[Long] = {
-    val evalNumThreadsPerBlock = numThreadsPerBlock.map(e =>
-      try {
-        IR_SimplifyExpression.evalIntegral(e)
-      } catch {
-        case _ : EvaluationException =>
-          return None
-      }
-    )
-
-    Some(evalNumThreadsPerBlock.product)
-  }
 }
 
 case class CUDA_ExecutionConfigurationDynamic(
@@ -170,7 +168,6 @@ case class CUDA_ExecutionConfigurationDynamic(
   override def datatype : IR_Datatype = IR_UnknownDatatype
 
   val getBlocksFunc = CUDA_ComputeExecutionConfigurationFunction.getGridDimConfig(executionDim, stepSize)
-  val getThreadsFunc = CUDA_ComputeExecutionConfigurationFunction.getBlockDimConfig(executionDim)
 
   def getNumBlocks = {
     val requiredThreads = Duplicate(requiredThreadsPerDim)
@@ -180,13 +177,15 @@ case class CUDA_ExecutionConfigurationDynamic(
 
     IR_FunctionCall(getBlocksFunc.name, requiredThreads.take(executionDim) : _*)
   }
-  def getNumThreads = IR_FunctionCall(getThreadsFunc.name) //, (lowerBounds, upperBounds).zipped.map((a, b) => b - a).take(executionDim) : _*)
 
   override def numBlocksPerDim : Array[IR_Expression] = (0 until executionDim).toArray.map(d => IR_ArrayAccess(getNumBlocks, d))
-  override def numThreadsPerBlock : Array[IR_Expression] = (0 until executionDim).toArray.map(d => IR_ArrayAccess(getNumThreads, d))
+  override def numThreadsPerBlock : Array[IR_Expression] = CUDA_ComputeExecutionConfigurationFunction.getNumberOfThreads(executionDim).map(IR_IntegerConstant)
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "<<<" << getNumBlocks << ", " << getNumThreads
+    val numDims = numThreadsPerBlock.length
+    if (numDims > 3) Logger.warn(s"${ numDims }D kernel found; this is currently unsupported by CUDA")
+
+    out << "<<<" << getNumBlocks << ", " << s"dim3(" <<< (numThreadsPerBlock.take(numDims), ",") << ")"
 
     if (sharedMemPerBlock != CUDA_ExecutionConfiguration.defaultSharedMemPerBlock || stream.useNonDefaultStreams)
       out << ", " << sharedMemPerBlock
@@ -196,8 +195,6 @@ case class CUDA_ExecutionConfigurationDynamic(
 
     out << ">>>"
   }
-
-  override def evaluateMaxBlockSize : Option[Long] = None
 }
 
 object CUDA_ComputeExecutionConfigurationFunction {

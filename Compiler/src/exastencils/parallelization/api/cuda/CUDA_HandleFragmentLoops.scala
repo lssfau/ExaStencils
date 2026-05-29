@@ -62,18 +62,17 @@ case class CUDA_HandleFragmentLoops(
   def fasterHostExecEstimation = accessedElements.estimatedHostTime <= accessedElements.estimatedDeviceTime
 
   val iter = IR_LoopOverFragments.defIt
-  def reductionDt(redTarget : IR_Expression) = CUDA_Util.getReductionDatatype(redTarget)
 
   // tmp buffer for reduction result (host)
   var reductionTmp = if (fragLoop.parallelization.reduction.isDefined) {
     val red = Duplicate(fragLoop.parallelization.reduction.get)
     val redTarget = Duplicate(red.target)
 
-    val ret = reductionDt(redTarget) match {
+    val ret = CUDA_Util.getReductionDatatype(redTarget) match {
       case mat : IR_MatrixDatatype    =>
-        CUDA_ReductionResultBuffer(s"${ red.targetName }_${ getReductionCounter(red.targetName) }_reductionTmpMatrix", mat.resolveBaseDatatype, mat.sizeN * mat.sizeM)
+        CUDA_ManagedReductionResultPointer(s"${ red.targetName }_${ getReductionCounter(red.targetName) }_reductionTmpMatrix", mat.resolveBaseDatatype, mat.sizeN * mat.sizeM)
       case scalar : IR_ScalarDatatype =>
-        CUDA_ReductionResultBuffer(s"${ red.targetName }_${ getReductionCounter(red.targetName) }_reductionTmp", scalar.resolveBaseDatatype, 1)
+        CUDA_ManagedReductionResultPointer(s"${ red.targetName }_${ getReductionCounter(red.targetName) }_reductionTmp", scalar.resolveBaseDatatype, 1)
     }
 
     Some(ret)
@@ -81,6 +80,8 @@ case class CUDA_HandleFragmentLoops(
     None
   }
   fragLoop.annotate(CUDA_Util.CUDA_REDUCTION_RESULT_BUF, reductionTmp)
+
+  private val reductionComputeStream = CUDA_ComputeStream()
 
   // replace occurrences of reduction target with its copy
   private object CUDA_ReplaceReductionAccesses extends QuietDefaultStrategy("Replace accesses to reduction targets") {
@@ -96,64 +97,61 @@ case class CUDA_HandleFragmentLoops(
     IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionReference(stdFunc, IR_UnitDatatype),
       ListBuffer[IR_Expression](Duplicate(dst), Duplicate(dst) + IR_IntegerConstant(size), src)))
 
-  def copyReductionTarget(redTarget : IR_Expression, op : String, copy : CUDA_ReductionFragmentCopy) = {
-    val tpe = redTarget.datatype.resolveBaseDatatype.prettyprint()
-    val initVal : IR_Expression = op match {
-      case "+" | "-" => 0
-      case "*" => 1
-      case "max" => IR_FunctionCall(s"std::numeric_limits<$tpe>::min")
-      case "min" => IR_FunctionCall(s"std::numeric_limits<$tpe>::max")
-    }
+  def getNeutralElement(baseDt : IR_Datatype, op : String) : IR_Expression = op match {
+    case "+" | "-" => 0
+    case "*" => 1
+    case "max" => IR_FunctionCall(s"std::numeric_limits<${baseDt.prettyprint()}>::min")
+    case "min" => IR_FunctionCall(s"std::numeric_limits<${baseDt.prettyprint()}::max")
+    case _ => Logger.error(s"Cannot get neutral reduction element for op $op")
+  }
 
-    reductionDt(redTarget) match {
+  def assignToNeutralElement(dstPtr : IR_Expression, reductionDt : IR_Datatype, op : String) = {
+    val initVal = getNeutralElement(reductionDt.resolveBaseDatatype, op)
+
+    reductionDt match {
       case _ : IR_ScalarDatatype               =>
-        IR_Assignment(copy, initVal)
+        IR_Assignment(IR_ArrayAccess(dstPtr, 0), initVal)
       case hodt : IR_HigherDimensionalDatatype =>
-        matrixAssignment("std::fill", copy, initVal, hodt.getSizeArray.product)
+        matrixAssignment("std::fill", dstPtr, initVal, hodt.getSizeArray.product)
     }
   }
 
-  def initCopies(redTarget : IR_Expression, op : String, copy : CUDA_ReductionFragmentCopy) = {
-    ListBuffer(IR_LoopOverFragments(copyReductionTarget(redTarget, op, copy)))
+  def initReductionTmp(op : String, reductionDt : IR_Datatype, reductionTmp : CUDA_ManagedReductionResultPointer) = {
+    ListBuffer[IR_Statement](
+      IR_LoopOverFragments(
+        reductionTmp.prefetch("D2H", reductionComputeStream),
+        assignToNeutralElement(reductionTmp, reductionDt, op),
+        reductionTmp.prefetch("H2D", reductionComputeStream)
+      )
+    )
   }
 
   // finalize reduction
-  def updateReductionTarget(op : String, redTarget : IR_Expression, reductionTmp : CUDA_ReductionResultBuffer, copy : CUDA_ReductionFragmentCopy) : (ListBuffer[IR_Statement], ListBuffer[IR_Statement]) = {
+  def updateReductionTarget(op : String, redTarget : IR_Expression, reductionTmp : CUDA_ManagedReductionResultPointer) : ListBuffer[IR_Statement] = {
 
-    // update reduction target
-    def getAssign(reductionResult : IR_Expression) = reductionDt(redTarget) match {
+    // accumulate fragment tmps into reduction variable
+    ListBuffer[IR_Statement](
+      reductionTmp.prefetch("D2H", reductionComputeStream),
+      CUDA_Util.getReductionDatatype(redTarget) match {
       case mat : IR_MatrixDatatype => // array returned
 
         val i = IR_VariableAccess("_i", IR_IntegerDatatype)
         val j = IR_VariableAccess("_j", IR_IntegerDatatype)
         val idx = i * mat.sizeN + j
         val dst = IR_ArrayAccess(redTarget, idx)
-        val src = IR_ArrayAccess(reductionResult, idx)
+        val src = IR_ArrayAccess(reductionTmp, idx)
         IR_ForLoop(IR_VariableDeclaration(i, IR_IntegerConstant(0)), IR_Lower(i, mat.sizeM), IR_PreIncrement(i), ListBuffer[IR_Statement](
           IR_ForLoop(IR_VariableDeclaration(j, 0), IR_Lower(j, mat.sizeN), IR_PreIncrement(j), ListBuffer[IR_Statement](
             IR_Assignment(dst, IR_BinaryOperators.createExpression(op, dst, src))))))
 
       case _ : IR_ScalarDatatype => // single value returned
         val dst = redTarget
-        val src = if (reductionResult.datatype.isInstanceOf[IR_PointerDatatype])
-          IR_ArrayAccess(reductionResult, 0)
+        val src = if (reductionTmp.datatype.isInstanceOf[IR_PointerDatatype])
+          IR_ArrayAccess(reductionTmp, 0)
         else
-          reductionResult
+          reductionTmp
         IR_Assignment(redTarget, IR_BinaryOperators.createExpression(op, dst, src))
-    }
-
-    // accumulate fragment copies into reduction variable
-    val host = ListBuffer(getAssign(copy))
-    val device = ListBuffer(getAssign(reductionTmp))
-
-    (host, device)
-  }
-
-  def replaceAccesses(redTarget : IR_Expression, copy : CUDA_ReductionFragmentCopy, body : ListBuffer[IR_Statement]) : Unit = {
-    // replace redTarget accesses with accesses to frag copy
-    CUDA_ReplaceReductionAccesses.redTarget = Duplicate(redTarget)
-    CUDA_ReplaceReductionAccesses.replacement = Duplicate(copy)
-    CUDA_ReplaceReductionAccesses.applyStandalone(IR_Scope(body))
+    })
   }
 
   // branching with cond wrapper not required as they are already resolved
@@ -340,15 +338,12 @@ case class CUDA_HandleFragmentLoops(
           syncAfterFragLoop.body += CUDA_Stream.genCompSync()
       }
 
-      val counter = CUDA_HandleFragmentLoops.getReductionCounter(red.targetName)
-      val copies = CUDA_ReductionFragmentCopy(red.targetName + "_fragCpy" + counter, reductionDt(redTarget))
+      // init reduction tmps with neutral elements
+      val reductionDt = CUDA_Util.getReductionDatatype(redTarget)
+      stmts ++= initReductionTmp(red.op, reductionDt, reductionTmp.get) // init fragment tmps
 
-      stmts ++= initCopies(redTarget, red.op, copies) // init frag copies
-      replaceAccesses(redTarget, copies, body) // replace accesses to frag copies
-
-      // assign orig reduction target to result in cpu/gpu fragment copy
-      val (assignToHostBuffer, assignToDeviceBuffer) = updateReductionTarget(red.op, redTarget, reductionTmp.get, copies) // accumulate frag copies at end
-      syncAfterFragLoop.body ++= branchingWrapper(assignToHostBuffer, assignToDeviceBuffer)
+      // accumulate frag tmps into reduction target after kernel launches
+      syncAfterFragLoop.body ++= updateReductionTarget(red.op, redTarget, reductionTmp.get)
     }
 
     // get syncs for updated buffers on device/host
