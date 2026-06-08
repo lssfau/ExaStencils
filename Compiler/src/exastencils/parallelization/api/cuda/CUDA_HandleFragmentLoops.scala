@@ -342,6 +342,11 @@ case class CUDA_HandleFragmentLoops(
       stmts ++= initReductionTmp(red.op, reductionDt, reductionTmp.get) // init fragment tmps
 
       // accumulate frag tmps into reduction target after kernel launches
+      if (Knowledge.cuda_cub_reductions_supported(reductionDt)) {
+        syncAfterFragLoop.body += IR_IfCondition(IR_LoopOverFragments.defIt EqEq 0,
+          CUDA_DeviceSynchronize() // does not use blocking memcpy compared to default reductions -> sync needed
+        )
+      }
       syncAfterFragLoop.body ++= updateReductionTarget(red.op, redTarget, reductionTmp.get)
     }
 
