@@ -36,7 +36,7 @@ import exastencils.domain.ir.IR_IV_IsValidForDomain
 
 object CUDA_TransferUtil {
 
-  def genAsyncPrefetchForManagedMemory(managedData : IR_Expression, sizeInBytes : IR_Expression, direction : String, stream : CUDA_Stream) = {
+  def genAsyncPrefetchForManagedMemory(managedData : IR_Expression, sizeInBytes : IR_Expression, direction : String, stream : CUDA_Stream) : CUDA_MemPrefetch = {
     CUDA_MemPrefetch(managedData, sizeInBytes,
       direction match {
         case "H2D" => Knowledge.cuda_deviceId

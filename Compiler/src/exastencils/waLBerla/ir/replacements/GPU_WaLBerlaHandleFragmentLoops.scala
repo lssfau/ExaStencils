@@ -7,17 +7,17 @@ import exastencils.parallelization.api.cuda._
 import exastencils.waLBerla.ir.field.IR_WaLBerlaField
 import exastencils.waLBerla.ir.gpu._
 
-/// GPU_WaLBerlaReplaceReductionIVs
+/// GPU_WaLBerlaHandleFragmentLoops
 
-object GPU_WaLBerlaReplaceReductionIVs extends IR_WaLBerlaReplacementStrategy("Replace GPU reduction IVs with waLBerla counterparts") {
+object GPU_WaLBerlaHandleFragmentLoops extends IR_WaLBerlaReplacementStrategy("Perform handling of fragment loops and replace GPU reduction IVs") {
 
-  object ReplaceReductionTmps extends QuietDefaultStrategy("Replace reduction tmps for GPU") {
+  object ReplaceReductionTmps extends QuietDefaultStrategy("Replace GPU reduction IVs to wb counterparts") {
     this += Transformation("..", {
       // reduction tmps
       case _ @ CUDA_MatrixDeviceCopy(name, baseDt, size, fragmentIdx)              =>
         GPU_WaLBerlaMatrixDeviceCopy("wb_" + name, baseDt, size, fragmentIdx)
       case _ @ CUDA_ManagedReductionResultPointer(name, baseDt, size, fragmentIdx) =>
-        GPU_WaLBerlaReductionResultPointer("wb_" + name, baseDt, size, fragmentIdx)
+        GPU_WaLBerlaManagedReductionResultPointer("wb_" + name, baseDt, size, fragmentIdx)
     })
   }
 

@@ -221,6 +221,11 @@ trait CUDA_ManagedReductionResultPointerLike extends IR_InternalVariableLike wit
   def getAccess() = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
   def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
 
+  private def getNumBytes() : IR_Expression = IR_SizeOf(baseDt) * size
+
+  def prefetch(dir : String, stream : CUDA_Stream) : IR_Statement =
+    CUDA_TransferUtil.genAsyncPrefetchForManagedMemory(this, getNumBytes(), dir, stream)
+
   override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(CUDA_AllocateManaged(getAccess(), size, baseDt)))
   override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(
     IR_IfCondition(getAccess(),
@@ -240,11 +245,6 @@ case class CUDA_ManagedReductionResultPointer(
 
   def resolveName() : String = name
   override def prettyprint(out : PpStream) : Unit = out << getAccess()
-
-  private def getNumBytes() : IR_Expression = IR_SizeOf(baseDt) * size
-
-  def prefetch(dir : String, stream : CUDA_Stream) : IR_Statement =
-    CUDA_TransferUtil.genAsyncPrefetchForManagedMemory(getAccess(), getNumBytes(), dir, stream)
 }
 
 /// CUDA_AdaptDeviceAccessesForMM

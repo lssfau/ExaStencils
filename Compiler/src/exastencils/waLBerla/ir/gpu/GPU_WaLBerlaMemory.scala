@@ -107,9 +107,9 @@ case class GPU_WaLBerlaMatrixDeviceCopy(
   override def isPrivate : Boolean = true
 }
 
-/// GPU_WaLBerlaReductionResultPointer
+/// GPU_WaLBerlaManagedReductionResultPointer
 
-case class GPU_WaLBerlaReductionResultPointer(
+case class GPU_WaLBerlaManagedReductionResultPointer(
     var name : String,
     var baseDt : IR_Datatype,
     var size : IR_Expression,

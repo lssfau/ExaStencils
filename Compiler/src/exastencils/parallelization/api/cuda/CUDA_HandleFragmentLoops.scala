@@ -64,7 +64,7 @@ case class CUDA_HandleFragmentLoops(
   val iter = IR_LoopOverFragments.defIt
 
   // tmp buffer for reduction result (host)
-  var reductionTmp = if (fragLoop.parallelization.reduction.isDefined) {
+  var reductionTmp : Option[CUDA_ManagedReductionResultPointer] = if (fragLoop.parallelization.reduction.isDefined) {
     val red = Duplicate(fragLoop.parallelization.reduction.get)
     val redTarget = Duplicate(red.target)
 
@@ -311,9 +311,8 @@ case class CUDA_HandleFragmentLoops(
     if (loopTuple.isEmpty)
       return ListBuffer(fragLoop)
 
-    // fetch (resolved) frag loop (=> scoped stmt with ParallelizationInfo) and its body
+    // fetch (resolved) frag loop (=> scoped stmt with ParallelizationInfo)
     val loop = loopTuple.get._1
-    val body = loopTuple.get._2
 
     // handle reductions
     if (loop.parallelization.reduction.isDefined) {
