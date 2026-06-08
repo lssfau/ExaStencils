@@ -31,3 +31,4 @@ omp_parallelizeLoopOverDimensions	= false
 
 cuda_enabled			= true
 cuda_preferredExecution = "Device"
+cuda_omitSyncDeviceAfterKernelCalls = true

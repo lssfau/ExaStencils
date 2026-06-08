@@ -65,3 +65,4 @@ experimental_trimBoundsForReductionLoops = true
 
 cuda_enabled			= true
 cuda_preferredExecution = "Device"
+cuda_omitSyncDeviceAfterKernelCalls = true
