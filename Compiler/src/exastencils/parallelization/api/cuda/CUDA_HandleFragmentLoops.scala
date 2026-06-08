@@ -101,7 +101,7 @@ case class CUDA_HandleFragmentLoops(
     case "+" | "-" => 0
     case "*" => 1
     case "max" => IR_FunctionCall(s"std::numeric_limits<${baseDt.prettyprint()}>::min")
-    case "min" => IR_FunctionCall(s"std::numeric_limits<${baseDt.prettyprint()}::max")
+    case "min" => IR_FunctionCall(s"std::numeric_limits<${baseDt.prettyprint()}>::max")
     case _ => Logger.error(s"Cannot get neutral reduction element for op $op")
   }
 
