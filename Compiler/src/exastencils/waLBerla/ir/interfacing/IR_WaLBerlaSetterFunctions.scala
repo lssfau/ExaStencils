@@ -10,7 +10,7 @@ import exastencils.waLBerla.ir.gpu.GPU_WaLBerlaSetGPUFlag
 object IR_WaLBerlaSetterFunctionCollection {
   var functions : ListBuffer[IR_FunctionLike] = ListBuffer()
 
-  if (Knowledge.cuda_enabled) {
+  if (Knowledge.gpu_enabled) {
     for (field <- IR_WaLBerlaFieldCollection.objects.groupBy(_.name).map(_._2.head)) {
       functions += GPU_WaLBerlaSetGPUFlag(field)
     }

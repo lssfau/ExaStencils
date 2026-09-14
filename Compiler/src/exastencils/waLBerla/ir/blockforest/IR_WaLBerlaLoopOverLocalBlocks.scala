@@ -84,7 +84,7 @@ case class IR_WaLBerlaLoopOverLocalBlocks(
 
         // declare field data pointer
         stmts += fieldPointer.getDeclaration()
-        if (Knowledge.cuda_enabled) {
+        if (Knowledge.gpu_enabled) {
           // check if it is possibly faster to execute kernel (with LoopOverDims) on CPU
           val estimatedFasterHostExec = if (optLoopOverDims.isDefined)
             getTimeEstimation(optLoopOverDims.get, host = true) <= getTimeEstimation(optLoopOverDims.get, host = false)

@@ -9,7 +9,7 @@ from config_from_knowledge import *
 
 @deprecated("""
 Python utilities for running ExaStencils CodeGen have been moved to
-exastencils_runner module https://i10git.cs.fau.de/exastencils/exastencils_runner
+exastencils_runner module https://gitos.rrze.fau.de/cs10/exastencils/exastencils_runner
 """)
 class RunContext:
     def __init__(self, args):
@@ -72,7 +72,8 @@ class RunContext:
                                                         self.output_path, self.target_code_path,
                                                         self.build_file_generator, self.build_target_name,
                                                         self.build_standalone, self.overwrite_settings,
-                                                        self.config.use_cuda, self.use_likwid, self.use_likwid_perfctr)
+                                                        self.config.use_cuda, self.config.use_hip,
+                                                        self.use_likwid, self.use_likwid_perfctr)
         else:
             # settings file specified by user
             self.settings_path = get_file_in_problem_path(self.exa_problem_path, self.settings_file)

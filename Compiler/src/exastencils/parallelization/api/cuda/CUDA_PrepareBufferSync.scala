@@ -8,7 +8,7 @@ import exastencils.config.Knowledge
 trait CUDA_PrepareBufferSync {
   def syncBeforeHost(access : String, others : Iterable[String]) = {
     var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncHostForWrites)
+    if (access.startsWith("write") && !Knowledge.gpu_syncHostForWrites)
       sync = false // skip write accesses if demanded
     if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
       sync = false // skip write access for read/write accesses
@@ -21,7 +21,7 @@ trait CUDA_PrepareBufferSync {
 
   def syncBeforeDevice(access : String, others : Iterable[String]) = {
     var sync = true
-    if (access.startsWith("write") && !Knowledge.cuda_syncDeviceForWrites)
+    if (access.startsWith("write") && !Knowledge.gpu_syncDeviceForWrites)
       sync = false // skip write accesses if demanded
     if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
       sync = false // skip write access for read/write accesses

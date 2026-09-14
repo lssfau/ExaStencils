@@ -315,9 +315,9 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
           func.body += genericAlloc._2
 
       for (deviceAlloc <- deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
-        if ("Condition" == Knowledge.cuda_preferredExecution) {
+        if ("Condition" == Knowledge.gpu_preferredExecution) {
           val loop = deviceAlloc._2.asInstanceOf[IR_LoopOverFragments]
-          loop.body = ListBuffer(IR_IfCondition(IR_Negation(Knowledge.cuda_executionCondition), loop.body))
+          loop.body = ListBuffer(IR_IfCondition(IR_Negation(Knowledge.gpu_executionCondition), loop.body))
           func.body += loop
         } else if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += IR_Scope(deviceAlloc._2)

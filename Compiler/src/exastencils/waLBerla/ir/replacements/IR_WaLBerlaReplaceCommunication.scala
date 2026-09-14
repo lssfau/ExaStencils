@@ -49,15 +49,15 @@ object IR_WaLBerlaReplaceCommunication extends DefaultStrategy("Communication ha
       val commSchemeGPU = GPU_WaLBerlaGPUCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot)
       val commSchemeCPU = IR_WaLBerlaCPUCommScheme(IR_WaLBerlaFieldCollection.getByIdentifier(field.name, field.level).get, comm.slot)
 
-      val cond : IR_Expression = Knowledge.cuda_preferredExecution match {
+      val cond : IR_Expression = Knowledge.gpu_preferredExecution match {
         case "Host"        => IR_BooleanConstant(true) // CPU by default
         case "Device"      => IR_BooleanConstant(false) // GPU by default
         case "Performance" => IR_BooleanConstant(true) // no estimates available -> CPU default
-        case "Condition"   => Knowledge.cuda_executionCondition
+        case "Condition"   => Knowledge.gpu_executionCondition
       }
 
       val body = ListBuffer[IR_Statement]()
-      if (Knowledge.cuda_enabled) {
+      if (Knowledge.gpu_enabled) {
         body += IR_IfCondition(cond,
           commSchemeCPU.communicate(),
           commSchemeGPU.communicate())

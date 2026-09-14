@@ -39,15 +39,15 @@ object CUDA_TransferUtil {
   def genAsyncPrefetchForManagedMemory(managedData : IR_Expression, sizeInBytes : IR_Expression, direction : String, stream : CUDA_Stream) : CUDA_MemPrefetch = {
     CUDA_MemPrefetch(managedData, sizeInBytes,
       direction match {
-        case "H2D" => Knowledge.cuda_deviceId
+        case "H2D" => Knowledge.gpu_deviceId
         case "D2H" => "cudaCpuDeviceId"
       },
       if (stream.useNonDefaultStreams) Some(stream) else None)
   }
 
   def genTransfer(hostData : IR_Expression, deviceData : IR_Expression, sizeInBytes : IR_Expression, direction : String, stream : CUDA_Stream) : IR_Statement = {
-    if (Knowledge.cuda_useManagedMemory) {
-      if (Knowledge.cuda_genAsyncPrefetch)
+    if (Knowledge.gpu_useManagedMemory) {
+      if (Knowledge.gpu_genAsyncPrefetch)
         genAsyncPrefetchForManagedMemory(hostData, sizeInBytes, direction, stream)
       else
         IR_NullStatement
@@ -93,7 +93,7 @@ case class CUDA_UpdateHostData(var fieldData : IR_IV_AbstractFieldLikeData, stre
     val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
-    if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
+    if (Knowledge.gpu_useZeroCopy || List("both", "device_to_host").contains(Knowledge.gpu_eliminate_memory_transfers))
       return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isValid AndAnd isDirty,
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
@@ -129,7 +129,7 @@ case class CUDA_UpdateDeviceData(var fieldData : IR_IV_AbstractFieldLikeData, st
     val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
-    if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
+    if (Knowledge.gpu_useZeroCopy || List("both", "host_to_device").contains(Knowledge.gpu_eliminate_memory_transfers))
       return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isValid AndAnd isDirty,
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
@@ -160,7 +160,7 @@ case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBufferLike, stream :
     val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
-    if (Knowledge.cuda_useZeroCopy || List("both", "device_to_host").contains(Knowledge.cuda_eliminate_memory_transfers))
+    if (Knowledge.gpu_useZeroCopy || List("both", "device_to_host").contains(Knowledge.gpu_eliminate_memory_transfers))
       return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isDirty AndAnd isValid,
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),
@@ -190,7 +190,7 @@ case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBufferLike, stream
     val isDirty = flag EqEq CUDA_DirtyFlagCase.DIRTY.id
     val isValid = CUDA_DirtyFlagHelper.fragmentIdxIsValid(fragIdx, domainIdx)
 
-    if (Knowledge.cuda_useZeroCopy || List("both", "host_to_device").contains(Knowledge.cuda_eliminate_memory_transfers))
+    if (Knowledge.gpu_useZeroCopy || List("both", "host_to_device").contains(Knowledge.gpu_eliminate_memory_transfers))
       return IR_IfCondition(IR_Negation(CUDA_IssuedSyncForEliminatedTransfer()) AndAnd isDirty AndAnd isValid,
         ListBuffer[IR_Statement](
           CUDA_DeviceSynchronize(),

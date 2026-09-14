@@ -28,7 +28,7 @@ import exastencils.prettyprinting._
 /// CUDA_SharedArray
 
 case class CUDA_SharedArray(name : String, arrayType : IR_Datatype, var size : Array[Long]) extends CUDA_HostStatement {
-  size = if (Knowledge.cuda_linearizeSharedMemoryAccess) Array(size.product) else size
+  size = if (Knowledge.gpu_linearizeSharedMemoryAccess) Array(size.product) else size
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "__shared__ " << arrayType << " " << name
@@ -53,7 +53,7 @@ case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_
   override def datatype = base.datatype
   override def prettyprint(out : PpStream) : Unit = {
     out << base
-    if (Knowledge.cuda_linearizeSharedMemoryAccess) {
+    if (Knowledge.gpu_linearizeSharedMemoryAccess) {
       out << "[" << linearizeAccess() << "]"
     } else {
       indices.foreach(i => out << "[" << i << "]")

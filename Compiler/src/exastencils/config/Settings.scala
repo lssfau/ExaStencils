@@ -20,9 +20,16 @@ package exastencils.config
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.LegacyParameters
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
-object Settings {
+object Settings extends LegacyParameters {
+  // === Legacy Parameters ===
+
+  override val legacyParameters : Map[String, String] = Map(
+    "makefile_additionalCudaFlags" -> "makefile_additionalGpuFlags")
+
   // allows triggering user-specific code
   var user : String = "guest"
 
@@ -149,7 +156,7 @@ object Settings {
   var makefile_additionalCFlags : ListBuffer[String] = ListBuffer()
   var makefile_additionalLDFlags : ListBuffer[String] = ListBuffer()
   // Additional flags for CUDA compiler
-  var makefile_additionalCudaFlags : ListBuffer[String] = ListBuffer()
+  var makefile_additionalGpuFlags : ListBuffer[String] = ListBuffer()
   var makefile_additionalObjFiles : ListBuffer[String] = ListBuffer()
 
   var cmake_buildStandalone : Boolean = true
@@ -237,20 +244,29 @@ object Settings {
     if (Knowledge.mpi_enabled)
       if (!cmake_additionalPackages.contains("MPI")) cmake_additionalPackages += "MPI"
 
-    // handle CUDA
-    if (Knowledge.cuda_enabled) {
-      Platform.targetOS match {
-        case "Windows"         =>
-          if (!additionalLibs.contains("cuda.lib")) additionalLibs += "cuda.lib"
-          if (!additionalLibs.contains("cudart.lib")) additionalLibs += "cudart.lib"
-          if (!pathsInc.contains("$(CUDA_INC_PATH)")) pathsInc += "$(CUDA_INC_PATH)"
-          if (!pathsLib.contains("$(CUDA_LIB_PATH)")) pathsLib += "$(CUDA_LIB_PATH)"
-        case "Linux" | "macOS" =>
-          if (!additionalLibs.contains("cuda")) additionalLibs += "cuda"
-          if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
+    // handle CUDA / HIP
+    if (Knowledge.gpu_enabled) {
+      if (Knowledge.hip_enabled) {
+        if (Platform.targetOS != "Linux") Logger.error("The HIP backend is only supported on Linux")
+        if (!additionalLibs.contains("amdhip64")) additionalLibs += "amdhip64"
+        // required when hip/hip_runtime.h is pulled in by the host compiler
+        if (!additionalDefines.contains("__HIP_PLATFORM_AMD__")) additionalDefines += "__HIP_PLATFORM_AMD__"
+        if (!cmake_additionalPackages.contains("hip")) cmake_additionalPackages += "hip"
+        if (!cmake_languages.contains("HIP")) cmake_languages += "HIP"
+      } else {
+        Platform.targetOS match {
+          case "Windows"         =>
+            if (!additionalLibs.contains("cuda.lib")) additionalLibs += "cuda.lib"
+            if (!additionalLibs.contains("cudart.lib")) additionalLibs += "cudart.lib"
+            if (!pathsInc.contains("$(CUDA_INC_PATH)")) pathsInc += "$(CUDA_INC_PATH)"
+            if (!pathsLib.contains("$(CUDA_LIB_PATH)")) pathsLib += "$(CUDA_LIB_PATH)"
+          case "Linux" | "macOS" =>
+            if (!additionalLibs.contains("cuda")) additionalLibs += "cuda"
+            if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
+        }
+        if (!cmake_additionalPackages.contains("CUDAToolkit")) cmake_additionalPackages += "CUDAToolkit"
+        if (!cmake_languages.contains("CUDA")) cmake_languages += "CUDA"
       }
-      if (!cmake_additionalPackages.contains("CUDAToolkit")) cmake_additionalPackages += "CUDAToolkit"
-      if (!cmake_languages.contains("CUDA")) cmake_languages += "CUDA"
     }
 
     // handle benchmark tools

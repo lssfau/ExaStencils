@@ -19,9 +19,21 @@
 package exastencils.config
 
 import exastencils.constraints._
+import exastencils.core.LegacyParameters
 import exastencils.logger._
 
-object Platform {
+object Platform extends LegacyParameters {
+  // === Legacy Parameters ===
+
+  /// hardware parameters that were named *cuda* before backends other than CUDA were supported
+  private val legacyGpuParameters = List(
+    "sharedMemory", "cacheMemory", "warpSize", "maxNumThreads",
+    "maxBlockSize_x", "maxBlockSize_y", "maxBlockSize_z")
+
+  override val legacyParameters : Map[String, String] =
+    legacyGpuParameters.map(p => s"hw_cuda_$p" -> s"hw_gpu_$p").toMap +
+      ("targetCudaCompiler" -> "targetGpuCompiler")
+
   /// target environment
 
   // name of the target system; e.g. name of the cluster
@@ -45,8 +57,23 @@ object Platform {
   // target hw platform; may be "CPU" or "ARM"
   var targetHardware : String = "CPU"
 
-  // target cuda compiler
-  var targetCudaCompiler : String = "NVCC"
+  // device compiler used for the selected GPU backend; "NVCC" for CUDA, "HIPCC" for HIP
+  var targetGpuCompiler : String = "NVCC"
+
+  // selected GPU backend; "CUDA" or "HIP" - see Knowledge.cuda_enabled / Knowledge.hip_enabled
+  def gpuBackend : String = if (Knowledge.hip_enabled) "HIP" else "CUDA"
+
+  // architecture the device code is compiled for
+  // offloadArch for HIP (AMD), compute capability for CUDA (NVIDIA)
+  def gpuArchitecture : String =
+    if (Knowledge.hip_enabled) hw_hip_offloadArch
+    else s"$hw_cuda_capability$hw_cuda_capabilityMinor"
+
+  // file extension of the generated device code files; recognized by both the device compilers and CMake
+  def gpuFileExtension : String = if (Knowledge.hip_enabled) "hip" else "cu"
+
+  // guard for code which may only be seen by the device compiler of the selected GPU backend
+  def gpuDeviceCompilerGuard : String = "#if defined(__CUDACC__) || defined(__HIPCC__)"
 
   // indicates if the compiler supports initializer lists (e.g. for std::min)
   def supports_initializerList = {
@@ -208,23 +235,31 @@ object Platform {
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
   // amount of shared memory in byte
-  var hw_cuda_sharedMemory : Int = 49152
+  var hw_gpu_sharedMemory : Int = 49152
   // cache size in byte
-  var hw_cuda_cacheMemory : Int = 16384
+  var hw_gpu_cacheMemory : Int = 16384
   // default warp size (32)
-  var hw_cuda_warpSize : Long = 32
+  var hw_gpu_warpSize : Long = 32
   // max number of threads
-  var hw_cuda_maxNumThreads : Long = 1024
+  var hw_gpu_maxNumThreads : Long = 1024
   // max block size per dim
-  var hw_cuda_maxBlockSize_x : Long = 1024
-  var hw_cuda_maxBlockSize_y : Long = 1024
-  var hw_cuda_maxBlockSize_z : Long = 64
-  def hw_cuda_maxBlockSizes : Array[Long] = Array(hw_cuda_maxBlockSize_x, hw_cuda_maxBlockSize_y, hw_cuda_maxBlockSize_z)
+  var hw_gpu_maxBlockSize_x : Long = 1024
+  var hw_gpu_maxBlockSize_y : Long = 1024
+  var hw_gpu_maxBlockSize_z : Long = 64
+  def hw_gpu_maxBlockSizes : Array[Long] = Array(hw_gpu_maxBlockSize_x, hw_gpu_maxBlockSize_y, hw_gpu_maxBlockSize_z)
 
   // 3 seems to be max; checked for versions up to 5.3
-  def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3
+  def hw_gpu_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3
+
+  /// legacy names of the derived hardware parameters above
+  def hw_cuda_maxBlockSizes : Array[Long] = hw_gpu_maxBlockSizes
+  def hw_cuda_maxNumDimsBlock : Int = hw_gpu_maxNumDimsBlock
 
   /// software options
+
+  // offload architecture used for AMD devices, e.g. "gfx90a" (MI200) or "gfx942" (MI300)
+  // NVIDIA devices use hw_cuda_capability instead
+  var hw_hip_offloadArch : String = "gfx90a"
 
   var sw_cuda_version : Int = 7
   var sw_cuda_versionMinor : Int = 5
@@ -281,25 +316,33 @@ object Platform {
     }
   }
 
-  def resolveCudaCompiler = {
-    targetCudaCompiler match {
-      case "NVCC" => "nvcc"
+  def resolveGpuCompiler = {
+    targetGpuCompiler match {
+      case "NVCC"  => "nvcc"
+      case "HIPCC" => "hipcc"
+      case other   => Logger.error(s"Unsupported GPU compiler $other")
     }
   }
 
-  def resolveCudaFlags = {
+  def resolveGpuFlags = {
     var flags : String = ""
 
-    targetCudaCompiler match {
+    targetGpuCompiler match {
       case "NVCC" =>
-        flags += s" -std=c++${Settings.cxx_standard} -O3 -DNDEBUG -lineinfo -arch=sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }"
+        flags += s" -std=c++${Settings.cxx_standard} -O3 -DNDEBUG -lineinfo -arch=sm_$gpuArchitecture"
 
-        // cannot find mpi.h from Globals/Globals.h when compiling with nvcc otherwise
-        if (Knowledge.mpi_enabled) {
-          val mpiWrapperFlags = s"$$(shell $resolveCompiler --showme:compile | sed 's/-pthread//g')"
-          if (!Settings.makefile_additionalCudaFlags.contains(mpiWrapperFlags))
-            Settings.makefile_additionalCudaFlags += mpiWrapperFlags
-        }
+      case "HIPCC" =>
+        // hipcc does not generate position independent code by default, unlike the (default PIE) host compilers linking it
+        flags += s" -std=c++${Settings.cxx_standard} -O3 -DNDEBUG --offload-arch=$gpuArchitecture -fPIE"
+
+      case other => Logger.error(s"Unsupported GPU compiler $other")
+    }
+
+    // cannot find mpi.h from Globals/Globals.h when compiling with the device compiler otherwise
+    if (Knowledge.mpi_enabled) {
+      val mpiWrapperFlags = s"$$(shell $resolveCompiler --showme:compile | sed 's/-pthread//g')"
+      if (!Settings.makefile_additionalGpuFlags.contains(mpiWrapperFlags))
+        Settings.makefile_additionalGpuFlags += mpiWrapperFlags
     }
 
     flags
@@ -421,6 +464,12 @@ object Platform {
   }
 
   def update() : Unit = {
+    // keep the device compiler consistent with the GPU backend selected via Knowledge
+    Constraints.condEnsureValue(targetGpuCompiler, "HIPCC", Knowledge.hip_enabled && "NVCC" == targetGpuCompiler, "the HIP backend requires a HIP capable device compiler")
+    Constraints.condEnsureValue(targetGpuCompiler, "NVCC", Knowledge.cuda_enabled && "HIPCC" == targetGpuCompiler, "the CUDA backend requires a CUDA capable device compiler")
+
+    Constraints.condEnsureValue(Settings.cxx_standard, 14, Knowledge.hip_enabled && !Knowledge.gpu_useDefaultReductions && Settings.cxx_standard < 14, "hipCUB reductions require C++14 (rocPRIM)")
+
     Constraints.condEnsureValue(hw_cpu_numHWThreads, hw_cpu_numCoresPerCPU, hw_cpu_numHWThreads < hw_cpu_numCoresPerCPU, "The number of hardware threads has at least to be equal to the number of physical cores")
     Constraints.condEnsureValue(simd_mathLibrary, "none", simd_mathLibrary == "svml" && !(simd_instructionSet.startsWith("SSE") || simd_instructionSet.startsWith("AVX")), "intel svml only supports SSE* and AVX* instruction sets")
   }

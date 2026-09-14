@@ -6,9 +6,9 @@ Please only submit your contributions to the official GitLab repository in the f
 In order to get an account, please sign and submit the [contributor license agreement](#contributor-license-agreement)
 Contributions to the GitHub repository, which is a mirror of the official GitLab repository,
 will not be considered. Please do not use GitHub pull requests and do not
-send patches per E-mail. As soon as you get access to our GitLab, please refer to our [Git guidelines](https://i10git.cs.fau.de/exastencils/exastencils/-/blob/devel/git_guidelines/GIT_GUIDELINES.md).
+send patches per E-mail. As soon as you get access to our GitLab, please refer to our [Git guidelines](https://gitos.rrze.fau.de/cs10/exastencils/exastencils/-/blob/devel/git_guidelines/GIT_GUIDELINES.md).
 
-ExaStencils is an open-source code generation framework and is licensed under [GPLv3](https://i10git.cs.fau.de/exastencils/exastencils/blob/master/COPYING.txt). 
+ExaStencils is an open-source code generation framework and is licensed under [GPLv3](https://gitos.rrze.fau.de/cs10/exastencils/exastencils/-/blob/master/COPYING.txt). 
 We consider the act of contributing to the code by submitting a Merge Request as the agreement to the GPL3 license.
 
 ## Contributor License Agreement
@@ -32,6 +32,6 @@ Germany
 ```
 
 After we have received your agreement, we will create a GitLab account on
-https://i10git.cs.fau.de/ for you.
+https://gitos.rrze.fau.de/ for you.
 
 Thank you for contributing!

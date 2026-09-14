@@ -28,7 +28,7 @@ case class IR_WaLBerlaCellWidthAsVec(
 case class IR_WaLBerlaCellWidthBlockPerDim(dim : Int, refinementLevel : Option[IR_Expression] = None) extends IR_WaLBerlaBlockLoopVariable {
   override def resolveName() : String = s"d${ ('x' + dim).toChar.toString }_"
 
-  override def resolveDatatype() : IR_Datatype = if (Knowledge.cuda_enabled) IR_RealDatatype else WB_RealType
+  override def resolveDatatype() : IR_Datatype = if (Knowledge.gpu_enabled) IR_RealDatatype else WB_RealType
 
   override def getDeclaration() : IR_VariableDeclaration = IR_VariableDeclaration(resolveDatatype(), resolveName(), IR_WaLBerlaBlockForest().getStepSize(dim, refinementLevel))
 }

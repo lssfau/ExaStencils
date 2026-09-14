@@ -22,11 +22,17 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
 import exastencils.config._
+import exastencils.core.LegacyParameters
 import exastencils.datastructures._
 import exastencils.logger.Logger
 
 object L4_ResolveKnowledgeParameterAccess extends DefaultStrategy("Resolve accesses to knowledge, settings and platform parameters") {
-  def resolveParameterToConstant(obj : AnyRef, ident : String) : L4_Expression = {
+  def resolveParameterToConstant(obj : AnyRef, identIn : String) : L4_Expression = {
+    val ident = obj match {
+      case legacy : LegacyParameters => legacy.resolveLegacyParameter(identIn)
+      case _                         => identIn
+    }
+
     obj.getClass.getMethod(ident).invoke(obj) match {
       case value : java.lang.Integer => L4_IntegerConstant(value.toInt)
       case value : java.lang.Float   => L4_RealConstant(value.toFloat)

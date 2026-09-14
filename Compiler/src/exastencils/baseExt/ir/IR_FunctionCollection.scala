@@ -22,6 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.prettyprinting._
 
 /// IR_FunctionCollection
@@ -51,10 +52,10 @@ abstract class IR_FunctionCollection(var baseName : String,
 
     val externC = Knowledge.generateFortranInterface || Knowledge.generateCInterface
 
-    // device + header only functions wrapped arount CUDACC guard
+    // device + header only functions wrapped around the device compiler guard
     val headerFuncsDeviceOnly = functions.collect { case f if f.isHeaderOnly && f.hasAnnotation("deviceOnly") => f }
     if (headerFuncsDeviceOnly.nonEmpty)
-      writer <<< "#ifdef __CUDACC__"
+      writer <<< Platform.gpuDeviceCompilerGuard
     for (func <- headerFuncsDeviceOnly.distinct) {
       writer <<< func.prettyprint
     }

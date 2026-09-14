@@ -97,7 +97,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
     // add globals - init mpi before cuda since cuda might need mpiRank to choose device
     scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.mpi_enabled, MPI_AddGlobals))
-    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, CUDA_AddGlobals))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.gpu_enabled, CUDA_AddGlobals))
 
     scheduler.register(IR_SetupDefaultNeighborsWrapper)
     scheduler.register(IR_SetupAllocateDataFunctionWrapper)
@@ -182,7 +182,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
-    scheduler.register(ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, CUDA_PrepareHostCode, CUDA_PrepareMPICode))
+    scheduler.register(ConditionedStrategyContainerWrapper(Knowledge.gpu_enabled, CUDA_PrepareHostCode, CUDA_PrepareMPICode))
 
     scheduler.register(IR_ResolveContractingLoop)
 
@@ -218,7 +218,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(IR_LinearizeLoopCarriedCSBufferAccess)
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
-    scheduler.register(ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled,
+    scheduler.register(ConditionedStrategyContainerWrapper(Knowledge.gpu_enabled,
       CUDA_AnnotateLoop,
       CUDA_ExtractHostAndDeviceCode,
       CUDA_AdaptKernelDimensionality,
@@ -256,7 +256,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.data_genVariableFieldSizes, IR_GenerateIndexManipFcts))
 
     // adapt accesses to device data in case of managed memory
-    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled && Knowledge.cuda_useManagedMemory, CUDA_AdaptDeviceAccessesForMM))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.gpu_enabled && Knowledge.gpu_useManagedMemory, CUDA_AdaptDeviceAccessesForMM))
 
     scheduler.register(IR_AddInternalVariables)
 
@@ -264,7 +264,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     scheduler.register(IR_ResolveConstIVs)
 
     // adapt allocations and de-allocations before expanding
-    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, CUDA_AdaptAllocations))
+    scheduler.register(ConditionedSingleStrategyWrapper(Knowledge.gpu_enabled, CUDA_AdaptAllocations))
 
     scheduler.register(IR_ExpandWrapper)
 
@@ -307,7 +307,9 @@ object IR_AddRemainingNodesWrapper extends NoStrategyWrapper {
       CImg() // TODO: only if required
     )
 
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.gpu_enabled) {
+      ExaRootNode.ir_root.nodes += CUDA_Compat()
       ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()
+    }
   }
 }

@@ -95,7 +95,7 @@ object JobScriptGenerator {
         printer <<< ""
 
         // rank reordering for multiple mpi ranks; don't apply when condition is enabled since it usually uses the mpi rank to branch
-        if (numMPI > 1 && Knowledge.cuda_preferredExecution.toLowerCase != "condition") {
+        if (numMPI > 1 && Knowledge.gpu_preferredExecution.toLowerCase != "condition") {
           val grid = Knowledge.domain_rect_numBlocksAsVec.take(Knowledge.dimensionality)
           val cores = Array.fill(Knowledge.dimensionality)(1)
           var numCores = tasksPerNode
@@ -128,7 +128,7 @@ object JobScriptGenerator {
         if (debug) printer << "-v "
         printer << s"--wait 180 --bcast=/tmp/${ Settings.configName } "
         printer << s"-n $numMPI --ntasks-per-node=$tasksPerNode "
-        if ("Condition" == Knowledge.cuda_preferredExecution && Platform.omp_pinning.nonEmpty)
+        if ("Condition" == Knowledge.gpu_preferredExecution && Platform.omp_pinning.nonEmpty)
           printer << s"--cpu_bind=${ Platform.omp_pinning } "
         printer <<< s"./${ Settings.binary }"
 

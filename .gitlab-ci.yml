@@ -12,7 +12,7 @@ stages:
 #######################################
 
 .test_template:
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+    image: $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11
     dependencies:
         - build:generator
         - build:test-runner
@@ -48,7 +48,7 @@ stages:
     extends: .test_template
     tags:
         - docker
-        - cuda11
+        - cuda
         - cudaComputeCapability6.1
     before_script:
         - java -version
@@ -65,9 +65,24 @@ stages:
         - cmake --version
         - cd Testing
 
+.test_template_HIP_AMD:
+    extends: .test_template
+    image: $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11-hip-amd
+    before_script:
+        - java -version
+        - python3 --version
+        - mpirun --version
+        - hipcc --version
+        - hipconfig --path
+        # must report "amd", otherwise hipcc would compile for NVIDIA devices
+        - hipconfig --platform
+        - source .venv/bin/activate
+        - cmake --version
+        - cd Testing
+
 .test_template_IO:
     extends: .test_template
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
+    image: $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11-par-io
     artifacts:
         when: on_failure
         paths:
@@ -91,7 +106,7 @@ stages:
     dependencies:
         - build:generator
         - build:test-runner
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+    image: $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11
     tags:
         - docker-benchmark
     artifacts:
@@ -122,9 +137,9 @@ generate-docker-image-base:
         - docker-docker
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11 || true
-        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
-        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+        - docker pull $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11 || true
+        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11.Dockerfile -t $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11
+        - docker push $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11
 
 generate-docker-image-pario:
     stage: .pre
@@ -134,9 +149,21 @@ generate-docker-image-pario:
         - docker-docker
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker pull i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io || true
-        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11-par-io.Dockerfile -t i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
-        - docker push i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11-par-io
+        - docker pull $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11-par-io || true
+        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11-par-io.Dockerfile --build-arg BASE_IMAGE=$CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11 -t $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11-par-io
+        - docker push $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11-par-io
+
+generate-docker-image-hip-amd:
+    stage: .pre
+    when: manual
+    image: docker:latest
+    tags:
+        - docker-docker
+    script:
+        - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+        - docker pull $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11-hip-amd || true
+        - docker build --pull . -f  dockerfiles/ubuntu-24.04-openjdk-11-hip-amd.Dockerfile --build-arg BASE_IMAGE=$CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11 -t $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11-hip-amd
+        - docker push $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11-hip-amd
 
 #######################################
 ##                                   ##
@@ -146,7 +173,7 @@ generate-docker-image-pario:
 
 build:generator:
     stage: build
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+    image: $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -164,7 +191,7 @@ build:generator:
 
 build:test-runner:
     stage: build
-    image: i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+    image: $CI_REGISTRY_IMAGE/ubuntu-24.04-openjdk-11
     tags:
         - docker
     artifacts:
@@ -173,7 +200,7 @@ build:test-runner:
         expire_in: 1 weeks
     script:
         - python3 -m venv .venv
-        - .venv/bin/pip install git+https://i10git.cs.fau.de/exastencils/exastencils_runner.git
+        - .venv/bin/pip install git+https://gitos.rrze.fau.de/cs10/exastencils/exastencils_runner.git
         - .venv/bin/pip install cmake==3.31.6
 
 #######################################
@@ -798,6 +825,44 @@ test:CUDA:
         # CUDA_ExaFluids_Bingham (variable field size version skipped since it uses too many registers)
         - run-exastencils-test CUDA_ExaFluids_Bingham CUDA 3D_ExaFluids_NN_CUDA.knowledge "3D_ExaFluids_NN_CUDA.exa4" 3D_ExaFluids_NN_CUDA.results Platform/i10swarm-gpu.platform output
         #- run-exastencils-test CUDA_ExaFluids_Bingham_VarFieldSize CUDA 3D_ExaFluids_NN_CUDA_VarFieldSize.knowledge "3D_ExaFluids_NN_CUDA.exa4" 3D_ExaFluids_NN_CUDA.results Platform/i10swarm-gpu.platform output
+
+###############################################
+# HIP TESTS                                   #
+###############################################
+
+# the HIP knowledge files import their CUDA counterparts and only swap the GPU backend -> the ExaSlang sources are shared with the CUDA tests
+# no AMD devices are available in CI -> only generate and compile the HIP code for AMD, i.e. skip execution
+# TODO: once AMD GPU runners are available, run and validate these tests via run-exastencils-test against the expected results shared with the CUDA tests
+test:HIP_AMD_Compile:
+    extends: .test_template_HIP_AMD
+    script:
+        # HIP_AMD_SISC_2D_ConstCoeff (& variable field size version)
+        - run-exastencils HIP_AMD_SISC_2D_ConstCoeff HIP "../CUDA/2D_ConstCoeff.exa4" 2D_ConstCoeff.knowledge Platform/amd-gpu.platform output --generate --compile
+        - run-exastencils HIP_AMD_SISC_2D_ConstCoeff_VarFieldSize HIP "../CUDA/2D_ConstCoeff.exa4" 2D_ConstCoeff_VarFieldSize.knowledge Platform/amd-gpu.platform output --generate --compile
+        # HIP_AMD_SISC_2D_VarCoeff (& variable field size version)
+        - run-exastencils HIP_AMD_SISC_2D_VarCoeff HIP "../CUDA/2D_VarCoeff.exa4" 2D_VarCoeff.knowledge Platform/amd-gpu.platform output --generate --compile
+        - run-exastencils HIP_AMD_SISC_2D_VarCoeff_VarFieldSize HIP "../CUDA/2D_VarCoeff.exa4" 2D_VarCoeff_VarFieldSize.knowledge Platform/amd-gpu.platform output --generate --compile
+        # HIP_AMD_SISC_3D_ConstCoeff (& variable field size version)
+        - run-exastencils HIP_AMD_SISC_3D_ConstCoeff HIP "../CUDA/3D_ConstCoeff.exa4" 3D_ConstCoeff.knowledge Platform/amd-gpu.platform output --generate --compile
+        - run-exastencils HIP_AMD_SISC_3D_ConstCoeff_VarFieldSize HIP "../CUDA/3D_ConstCoeff.exa4" 3D_ConstCoeff_VarFieldSize.knowledge Platform/amd-gpu.platform output --generate --compile
+        # HIP_AMD_SISC_3D_VarCoeff (& variable field size version)
+        - run-exastencils HIP_AMD_SISC_3D_VarCoeff HIP "../CUDA/3D_VarCoeff.exa4" 3D_VarCoeff.knowledge Platform/amd-gpu.platform output --generate --compile
+        - run-exastencils HIP_AMD_SISC_3D_VarCoeff_VarFieldSize HIP "../CUDA/3D_VarCoeff.exa4" 3D_VarCoeff_VarFieldSize.knowledge Platform/amd-gpu.platform output --generate --compile
+        # HIP_AMD_ExaFluids_Bingham
+        - run-exastencils HIP_AMD_ExaFluids_Bingham HIP "../CUDA/3D_ExaFluids_NN_CUDA.exa4" 3D_ExaFluids_NN.knowledge Platform/amd-gpu.platform output --generate --compile
+        # HIP_AMD_2D_MatrixReduction: memory variants exercise different parts of the CUDA -> HIP mapping
+        - run-exastencils HIP_AMD_2D_MatrixReduction HIP "../CUDA/2D_MatrixReduction.exa4" 2D_MatrixReduction.knowledge Platform/amd-gpu.platform output --generate --compile
+        - cp HIP/2D_MatrixReduction.knowledge HIP/2D_MatrixReduction_AMD_MM.knowledge
+        - echo -e "\ngpu_useManagedMemory = true" >> HIP/2D_MatrixReduction_AMD_MM.knowledge
+        - echo -e "\ngpu_usePinnedHostMemory = false" >> HIP/2D_MatrixReduction_AMD_MM.knowledge
+        - run-exastencils HIP_AMD_2D_MatrixReduction_MM HIP "../CUDA/2D_MatrixReduction.exa4" 2D_MatrixReduction_AMD_MM.knowledge Platform/amd-gpu.platform output --generate --compile
+        - cp HIP/2D_MatrixReduction.knowledge HIP/2D_MatrixReduction_AMD_ZC.knowledge
+        - echo -e "\ngpu_useZeroCopy = true" >> HIP/2D_MatrixReduction_AMD_ZC.knowledge
+        - echo -e "\ngpu_usePinnedHostMemory = false" >> HIP/2D_MatrixReduction_AMD_ZC.knowledge
+        - run-exastencils HIP_AMD_2D_MatrixReduction_ZC HIP "../CUDA/2D_MatrixReduction.exa4" 2D_MatrixReduction_AMD_ZC.knowledge Platform/amd-gpu.platform output --generate --compile
+        - cp HIP/2D_MatrixReduction.knowledge HIP/2D_MatrixReduction_AMD_NoStream.knowledge
+        - echo -e "\nexperimental_gpu_useStreams = false" >> HIP/2D_MatrixReduction_AMD_NoStream.knowledge
+        - run-exastencils HIP_AMD_2D_MatrixReduction_NoStream HIP "../CUDA/2D_MatrixReduction.exa4" 2D_MatrixReduction_AMD_NoStream.knowledge Platform/amd-gpu.platform output --generate --compile
 
 test:CUDA_2D_MatrixReduction:
     extends: .test_template_CUDA

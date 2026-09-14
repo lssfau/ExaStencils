@@ -134,7 +134,7 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
         IR_MemberFunctionCallArrowWithDt(IR_VariableAccess("MPIManager::instance()", IR_UnknownDatatype), "numProcesses", MPI_IV_MpiSize.datatype))
     }
 
-    if (Knowledge.cuda_enabled) {
+    if (Knowledge.gpu_enabled) {
       // get device count
       init ++= CUDA_DeviceCount.initialization
 
@@ -149,8 +149,8 @@ case class IR_WaLBerlaInitStaticRectDomain() extends IR_WaLBerlaWrapperFunction 
 
       init += IR_VariableDeclaration(device)
       init += IR_FunctionCall("cudaGetDevice", IR_AddressOf(device))
-      init += checkError((device >= 0) AndAnd (device EqEq Knowledge.cuda_deviceId),
-        s"Device selection in generated ExaStencils code ${Knowledge.cuda_deviceId} does not coincide with the one from waLBerla."
+      init += checkError((device >= 0) AndAnd (device EqEq Knowledge.gpu_deviceId),
+        s"Device selection in generated ExaStencils code ${Knowledge.gpu_deviceId} does not coincide with the one from waLBerla."
       )
     }
 

@@ -24,9 +24,9 @@ case object CUDA_DeviceCount extends CUDA_IV {
 
     ListBuffer[IR_Statement](
       IR_FunctionCall(IR_ExternalFunctionReference("cudaGetDeviceCount"), IR_AddressOf(deviceCount)),
-      IR_Assert(IR_Lower(Knowledge.cuda_deviceId, CUDA_DeviceCount),
-        ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", deviceCount, "\")\"")),
-      s"cudaSetDevice(${ Knowledge.cuda_deviceId })"
+      IR_Assert(IR_Lower(Knowledge.gpu_deviceId, CUDA_DeviceCount),
+        ListBuffer("\"Invalid device id (\"", Knowledge.gpu_deviceId, "\") must be smaller than the number of devices (\"", deviceCount, "\")\"")),
+      s"cudaSetDevice(${ Knowledge.gpu_deviceId })"
     )
   }
 }
@@ -40,8 +40,8 @@ case object CUDA_DeviceProperties extends CUDA_IV {
     val acc = IR_VariableAccess(deviceProp.resolveName(), deviceProp.resolveDatatype())
 
     ListBuffer[IR_Statement](
-      IR_FunctionCall(IR_ExternalFunctionReference("cudaGetDeviceProperties"), IR_AddressOf(deviceProp), s"${ Knowledge.cuda_deviceId }"),
-      IR_PrintOnRoot("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", IR_MemberAccess(acc, "name"), "std::endl"))
+      IR_FunctionCall(IR_ExternalFunctionReference("cudaGetDeviceProperties"), IR_AddressOf(deviceProp), s"${ Knowledge.gpu_deviceId }"),
+      IR_PrintOnRoot("\"Using CUDA device \"", Knowledge.gpu_deviceId, "\": \"", IR_MemberAccess(acc, "name"), "std::endl"))
   }
 }
 
@@ -50,9 +50,9 @@ object CUDA_DeviceSetCacheConfig {
     val stmts : ListBuffer[IR_Statement] = ListBuffer()
 
     // set memory config for device based on knowledge parameters
-    if (Knowledge.cuda_useSharedMemory)
+    if (Knowledge.gpu_useSharedMemory)
       stmts += "cudaDeviceSetCacheConfig(cudaFuncCachePreferShared)"
-    if (Knowledge.cuda_favorL1CacheOverSharedMemory)
+    if (Knowledge.gpu_favorL1CacheOverSharedMemory)
       stmts += "cudaDeviceSetCacheConfig(cudaFuncCachePreferL1)"
 
     stmts

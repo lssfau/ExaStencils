@@ -36,7 +36,7 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
   var loopVariables = ListBuffer[String]()
   var fieldAccesses = new mutable.HashMap[String, List[IR_MultiDimFieldLikeAccess]].withDefaultValue(Nil)
   var fieldIndicesConstantPart = new mutable.HashMap[String, List[Array[Long]]].withDefaultValue(Nil)
-  var maximalFieldDim = Platform.hw_cuda_maxNumDimsBlock
+  var maximalFieldDim = Platform.hw_gpu_maxNumDimsBlock
   var writtenFields = ListBuffer[String]()
 
   def extractFieldIdentifier(access : IR_MultiDimFieldLikeAccess) = {
@@ -69,7 +69,7 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
       val identifier = extractFieldIdentifier(access)
 
       // Evaluate indices. Should be of the form "variable + offset". Ignore all other fields.
-      var suitableForSharedMemory = field.layout.numDimsData <= Platform.hw_cuda_maxNumDimsBlock
+      var suitableForSharedMemory = field.layout.numDimsData <= Platform.hw_gpu_maxNumDimsBlock
       val accessIndices = access.index.indices
       val indexConstantPart = Array.fill[Long](accessIndices.length)(0)
 

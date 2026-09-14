@@ -1,4 +1,5 @@
-FROM i10git.cs.fau.de:5005/exastencils/exastencils/ubuntu-24.04-openjdk-11
+ARG BASE_IMAGE=gitos.rrze.fau.de:5005/cs10/exastencils/exastencils/ubuntu-24.04-openjdk-11
+FROM ${BASE_IMAGE}
 
 # hdf5
 RUN wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.0/src/hdf5-1.12.0.tar.gz && \

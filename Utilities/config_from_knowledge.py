@@ -13,7 +13,7 @@ from generation_helpers import *
 
 @deprecated("""
 Python utilities for running ExaStencils CodeGen have been moved to
-exastencils_runner module https://i10git.cs.fau.de/exastencils/exastencils_runner
+exastencils_runner module https://gitos.rrze.fau.de/cs10/exastencils/exastencils_runner
 """)
 class ConfigFromKnowledge:
 
@@ -60,6 +60,8 @@ class ConfigFromKnowledge:
                 self.omp_enabled = json.loads(value.lower())
             elif key == "cuda_enabled":
                 self.use_cuda = json.loads(value.lower())
+            elif key == "hip_enabled":
+                self.use_hip = json.loads(value.lower())
 
     def parse_line_platform(self, line: str):
         if len(line.strip()) != 0:
@@ -100,6 +102,7 @@ class ConfigFromKnowledge:
         self.omp_pinning_layout = "compact"
         self.run_local = True
         self.use_cuda = False
+        self.use_hip = False
         self.mpi_enabled = False
         self.mpi_pinning_domain = "socket"
         self.mpi_num_processes = 1

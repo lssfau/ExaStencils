@@ -135,7 +135,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       }
 
       // assemble new body
-      if (!Knowledge.cuda_cub_reductions_supported(reductionDt)) // TODO: HODT CUB reductions
+      if (!Knowledge.gpu_cub_reductions_supported(reductionDt)) // TODO: HODT CUB reductions
         kernel.body += setReductionBuffer
 
       kernel

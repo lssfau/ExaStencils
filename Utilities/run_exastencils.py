@@ -72,7 +72,7 @@ def run_code(ctx: RunContext):
 
 @deprecated("""
 Python utilities for running ExaStencils CodeGen have been moved to
-exastencils_runner module https://i10git.cs.fau.de/exastencils/exastencils_runner
+exastencils_runner module https://gitos.rrze.fau.de/cs10/exastencils/exastencils_runner
 """)
 def main():
     # parse args

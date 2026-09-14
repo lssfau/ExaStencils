@@ -25,6 +25,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config._
 import exastencils.core._
+import exastencils.parallelization.api.cuda.CUDA_Compat
 import exastencils.prettyprinting._
 import exastencils.timing.ir.IR_Stopwatch
 
@@ -59,10 +60,9 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.cuda_enabled) {
+  if (Knowledge.gpu_enabled) {
     externalDependencies += "iostream" // required for error messages
-    externalDependencies += "cuda.h"
-    externalDependencies += "cuda_runtime.h"
+    internalDependencies += CUDA_Compat.defHeader
   }
   if (Knowledge.data_alignFieldPointers || Knowledge.data_alignTmpBufferPointers)
     externalDependencies += "cstddef" // type ptrdiff_t (used when aligning pointer) is defined in stddef.h/cstddef

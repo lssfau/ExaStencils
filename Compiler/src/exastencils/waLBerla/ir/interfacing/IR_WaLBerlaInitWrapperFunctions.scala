@@ -18,18 +18,18 @@ object IR_WaLBerlaInitWrapperFunctions {
 
     // init field instance pointers
     functions += IR_WaLBerlaInitFieldInstances(onGPU = false, leveledFields : _*)
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.gpu_enabled)
       functions += IR_WaLBerlaInitFieldInstances(onGPU = true, leveledFields : _*)
 
     // store and init pointers to internal waLBerla field data
     functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = false, leveledFields : _*)
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.gpu_enabled)
       functions += IR_WaLBerlaInitFieldDataPtrs(onGPU = true, leveledFields : _*)
 
     // init comm scheme objects
     if (Knowledge.waLBerla_generateCommSchemes) {
       functions += IR_WaLBerlaInitCommSchemes(onGPU = false, leveledFields : _*)
-      if (Knowledge.cuda_enabled)
+      if (Knowledge.gpu_enabled)
         functions += IR_WaLBerlaInitCommSchemes(onGPU = true, leveledFields : _*)
     }
   }
