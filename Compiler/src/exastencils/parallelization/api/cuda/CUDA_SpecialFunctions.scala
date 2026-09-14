@@ -144,7 +144,7 @@ object CUDA_StdFunctionReplacements {
 
 object CUDA_ReplaceStdFunctionCallsWrapper extends NoStrategyWrapper {
   override def callback : () => Unit = () => {
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.gpu_enabled)
       CUDA_ReplaceStdFunctionCalls.apply(Some(CUDA_KernelFunctions.get))
   }
 }

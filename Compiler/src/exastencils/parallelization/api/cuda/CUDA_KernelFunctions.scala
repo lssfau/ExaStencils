@@ -25,6 +25,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.core._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.prettyprinting._
@@ -59,10 +60,8 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.cuda_enabled) {
-    externalDependencies += "cuda.h"
-    externalDependencies += "cuda_runtime.h"
-  }
+  if (Knowledge.gpu_enabled)
+    internalDependencies += CUDA_Compat.defHeader
 
   var kernelCollection = ListBuffer[CUDA_Kernel]()
   var generatedRedKernels = mutable.HashSet[String]()
@@ -101,10 +100,10 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     for (f <- functions if !f.isHeaderOnly) {
       var fileName = f.asInstanceOf[IR_Function].name
       if (fileName.endsWith(CUDA_Kernel.wrapperPostfix)) fileName = fileName.dropRight(CUDA_Kernel.wrapperPostfix.length)
-      val writer = PrettyprintingManager.getPrinter(s"${ baseName }_$fileName.cu")
+      val writer = PrettyprintingManager.getPrinter(s"${ baseName }_$fileName.${ Platform.gpuFileExtension }")
       writer.addInternalDependency(s"$baseName.h")
-      if (!Knowledge.cuda_useDefaultReductions)
-        writer.addExternalDependency("cub/cub.cuh")
+      if (!Knowledge.gpu_useDefaultReductions)
+        writer.addInternalDependency(CUDA_Compat.defCubHeader)
 
       writer <<< f.prettyprint(PrintEnvironment.CUDA)
       writer <<< ""
@@ -122,7 +121,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
     else
       generatedRedKernels += kernelName
 
-    def blockSize = Knowledge.cuda_reductionBlockSize
+    def blockSize = Knowledge.gpu_reductionBlockSize
 
     // kernel function
     {
@@ -240,7 +239,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection(CUDA_KernelFunct
 
 object CUDA_FunctionConversionWrapper extends NoStrategyWrapper {
   override def callback : () => Unit = () => {
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.gpu_enabled)
       CUDA_KernelFunctions.get.convertToFunctions()
   }
 }

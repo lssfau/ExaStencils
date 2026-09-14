@@ -32,9 +32,9 @@ object CMakeGenerator extends BuildfileGenerator {
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
     val headers = filesToConsider.filter(_.endsWith(".h")).toList.sorted
     val cppFiles = filesToConsider.filter(_.endsWith(".cpp")).toList.sorted
-    val cuFiles  = filesToConsider.filter(_.endsWith(".cu")).toList.sorted
+    val gpuFiles = filesToConsider.filter(_.endsWith(s".${ Platform.gpuFileExtension }")).toList.sorted
 
-    val allSources = if (Knowledge.cuda_enabled) cppFiles ++ cuFiles else cppFiles
+    val allSources = if (Knowledge.gpu_enabled) cppFiles ++ gpuFiles else cppFiles
 
     val target = Settings.binary
 
@@ -45,9 +45,11 @@ object CMakeGenerator extends BuildfileGenerator {
       printer <<< s"project($target LANGUAGES ${Settings.cmake_languages.mkString(" ")})"
     printer <<< ""
 
-    val cudaFlags = if (Knowledge.cuda_enabled) Platform.resolveCudaFlags else ""
+    val gpuFlags = if (Knowledge.gpu_enabled) Platform.resolveGpuFlags else ""
 
-    val cudaArch = s"${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }"
+    // language and architecture of the generated device code files
+    val gpuLang = Platform.gpuBackend
+    val gpuArch = Platform.gpuArchitecture
 
     /* find packages */
 
@@ -83,11 +85,10 @@ object CMakeGenerator extends BuildfileGenerator {
     printer <<< s"target_sources($target PUBLIC $${HEADERS})"
     printer <<< ""
 
-
     /* includes */
 
     printer <<< s"target_include_directories($target PRIVATE"
-    (Settings.pathsInc :: List(".")).foreach(d => printer <<< s"  $d")
+    (Settings.pathsInc :+ ".").foreach(d => printer <<< s"  $d")
     printer <<< ")"
     printer <<< ""
 
@@ -104,9 +105,10 @@ object CMakeGenerator extends BuildfileGenerator {
 
     printer <<< s"target_compile_features($target PRIVATE cxx_std_${Settings.cxx_standard})"
 
-    /* set CUDA architecture */
+    /* set GPU architecture */
 
-    printer <<< s"set_target_properties($target PROPERTIES CUDA_ARCHITECTURES $cudaArch)\n"
+    if (Knowledge.gpu_enabled)
+      printer <<< s"set_target_properties($target PROPERTIES ${ gpuLang }_ARCHITECTURES $gpuArch)\n"
 
     /* set compile flags */
 
@@ -119,12 +121,12 @@ object CMakeGenerator extends BuildfileGenerator {
       printer <<< ""
     }
 
-    if (Knowledge.cuda_enabled) {
-      // omit duplicate handling for CXX standard and CUDA arch
-      val filteredCudaFlags = filterFlags(cudaFlags, remove = Seq("arch", "std=c++"))
-      if (filteredCudaFlags.nonEmpty) {
+    if (Knowledge.gpu_enabled) {
+      // omit duplicate handling for CXX standard and device architecture
+      val filteredGpuFlags = filterFlags(gpuFlags, remove = Seq("arch", "std=c++"))
+      if (filteredGpuFlags.nonEmpty) {
         printer <<< s"target_compile_options($target PRIVATE"
-        printer <<< s"""  $$<$$<COMPILE_LANGUAGE:CUDA>:${filteredCudaFlags}>"""
+        printer <<< s"""  $$<$$<COMPILE_LANGUAGE:$gpuLang>:${filteredGpuFlags}>"""
         printer <<< ")"
         printer <<< ""
       }
@@ -150,9 +152,10 @@ object CMakeGenerator extends BuildfileGenerator {
     // replace parallelization libs with modern CMake targets
     libs -= "-lcuda"
     libs -= "-lcudart"
+    libs -= "-lamdhip64"
     libs -= "-lmpi"
-    if (Knowledge.cuda_enabled)
-      libs += "CUDA::cudart"
+    if (Knowledge.gpu_enabled)
+      libs += (if (Knowledge.hip_enabled) "hip::device" else "CUDA::cudart")
     if (Knowledge.mpi_enabled)
       libs += "MPI::MPI_CXX"
     if (Knowledge.omp_enabled)

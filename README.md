@@ -19,7 +19,7 @@ This repository holds the current version of ExaStencils.
 
 Project information and documentation are available via the official homepage: https://www.exastencils.fau.de/. 
 
-The source code is accessible from GitLab (https://i10git.cs.fau.de/exastencils/release/) and GitHub (https://github.com/lssfau/ExaStencils/).
+The source code is accessible from GitLab (https://gitos.rrze.fau.de/cs10/exastencils/release/) and GitHub (https://github.com/lssfau/ExaStencils/).
 
 ## Setup
 

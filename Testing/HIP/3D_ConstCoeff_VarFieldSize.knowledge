@@ -1,0 +1,3 @@
+import "3D_ConstCoeff.knowledge"
+
+data_genVariableFieldSizes = true

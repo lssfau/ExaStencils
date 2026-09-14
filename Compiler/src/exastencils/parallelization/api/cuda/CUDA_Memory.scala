@@ -47,7 +47,7 @@ case class CUDA_Allocate(var pointer : IR_Expression, var numElements : IR_Expre
 
 case class CUDA_AllocateHost(var pointer : IR_Expression, var numElements : IR_Expression, var datatype : IR_Datatype) extends CUDA_HostStatement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
-    if (Knowledge.cuda_useZeroCopy) {
+    if (Knowledge.gpu_useZeroCopy) {
       CUDA_CheckError(
         IR_FunctionCall(IR_ExternalFunctionReference("cudaHostAlloc"),
           IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressOf(pointer)),
@@ -182,7 +182,7 @@ trait CUDA_MatrixDeviceCopyLike extends IR_InternalVariableLike with IR_Expressi
   def resolveDatatype() : IR_Datatype = IR_PointerDatatype(baseDt)
 
   override def getCtor() : Option[IR_Statement] = Some(wrapInLoops(
-    if (Knowledge.cuda_useManagedMemory)
+    if (Knowledge.gpu_useManagedMemory)
       IR_ArrayAllocation(getAccess(), baseDt, size)
     else
       CUDA_Allocate(getAccess(), size, baseDt)))
@@ -190,7 +190,7 @@ trait CUDA_MatrixDeviceCopyLike extends IR_InternalVariableLike with IR_Expressi
   override def getDtor() : Option[IR_Statement] = Some(wrapInLoops(
     IR_IfCondition(getAccess(),
       ListBuffer[IR_Statement](
-        if (Knowledge.cuda_useManagedMemory)
+        if (Knowledge.gpu_useManagedMemory)
           IR_ArrayFree(getAccess())
         else
           CUDA_Free(getAccess()),
@@ -251,10 +251,10 @@ case class CUDA_ManagedReductionResultPointer(
 
 object CUDA_AdaptDeviceAccessesForMM extends DefaultStrategy("Adapt allocations and de-allocations on host and device") {
   this += new Transformation("Adapting", {
-    case cudaVariant : CUDA_FieldDeviceData if Knowledge.cuda_useManagedMemory =>
+    case cudaVariant : CUDA_FieldDeviceData if Knowledge.gpu_useManagedMemory =>
       IR_IV_AbstractFieldLikeData(cudaVariant.field, cudaVariant.slot, cudaVariant.fragmentIdx)
 
-    case cudaVariant : CUDA_BufferDeviceData if Knowledge.cuda_useManagedMemory =>
+    case cudaVariant : CUDA_BufferDeviceData if Knowledge.gpu_useManagedMemory =>
       IR_IV_CommBuffer(cudaVariant.field, cudaVariant.send, cudaVariant.size, cudaVariant.neighIdx,
         cudaVariant.concurrencyId, cudaVariant.indexOfRefinedNeighbor, cudaVariant.fragmentIdx)
   })
@@ -281,34 +281,34 @@ object CUDA_AdaptAllocations extends DefaultStrategy("Adapt allocations and de-a
   })
 
   this += new Transformation("Adapting", {
-    case alloc @ CUDA_Allocate(fieldData : CUDA_FieldDeviceData, _, _) if Knowledge.cuda_useZeroCopy && fieldHostAllocations.contains(fieldData.field) =>
+    case alloc @ CUDA_Allocate(fieldData : CUDA_FieldDeviceData, _, _) if Knowledge.gpu_useZeroCopy && fieldHostAllocations.contains(fieldData.field) =>
       CUDA_GetDevPointer(alloc.pointer, IR_IV_AbstractFieldLikeData(fieldData.field, fieldData.slot, fieldData.fragmentIdx))
 
-    case alloc @ CUDA_Allocate(bufferData : CUDA_BufferDeviceData, _, _) if Knowledge.cuda_useZeroCopy && bufferHostAllocations.contains(bufferData.field) =>
+    case alloc @ CUDA_Allocate(bufferData : CUDA_BufferDeviceData, _, _) if Knowledge.gpu_useZeroCopy && bufferHostAllocations.contains(bufferData.field) =>
       CUDA_GetDevPointer(alloc.pointer,
         IR_IV_CommBuffer(bufferData.field, bufferData.send, bufferData.size, bufferData.neighIdx,
           bufferData.concurrencyId, bufferData.indexOfRefinedNeighbor, bufferData.fragmentIdx))
 
-    case CUDA_Free(fieldData : CUDA_FieldDeviceData) if Knowledge.cuda_useZeroCopy && fieldHostAllocations.contains(fieldData.field) =>
+    case CUDA_Free(fieldData : CUDA_FieldDeviceData) if Knowledge.gpu_useZeroCopy && fieldHostAllocations.contains(fieldData.field) =>
       IR_NullStatement
 
-    case CUDA_Free(bufferData : CUDA_BufferDeviceData) if Knowledge.cuda_useZeroCopy && bufferHostAllocations.contains(bufferData.field) =>
+    case CUDA_Free(bufferData : CUDA_BufferDeviceData) if Knowledge.gpu_useZeroCopy && bufferHostAllocations.contains(bufferData.field) =>
       IR_NullStatement
   })
 
   this += new Transformation("Adapting", {
     case alloc @ IR_ArrayAllocation(pointer, datatype, size) =>
-      if (Knowledge.cuda_usePinnedHostMemory)
+      if (Knowledge.gpu_usePinnedHostMemory)
         CUDA_AllocateHost(pointer, size, datatype)
-      else if (Knowledge.cuda_useManagedMemory)
+      else if (Knowledge.gpu_useManagedMemory)
         CUDA_AllocateManaged(pointer, size, datatype)
       else
         alloc
 
     case free @ IR_ArrayFree(pointer) =>
-      if (Knowledge.cuda_usePinnedHostMemory)
+      if (Knowledge.gpu_usePinnedHostMemory)
         CUDA_FreeHost(pointer)
-      else if (Knowledge.cuda_useManagedMemory)
+      else if (Knowledge.gpu_useManagedMemory)
         CUDA_Free(pointer)
       else
         free

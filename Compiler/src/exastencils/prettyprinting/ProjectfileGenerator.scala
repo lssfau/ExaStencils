@@ -28,7 +28,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
     val hFileNames = filesToConsider.filter(file => file.endsWith(".h")).toList.sorted
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
-    val cuFileNames = filesToConsider.filter(file => file.endsWith(".cu")).toList.sorted
+    val cuFileNames = filesToConsider.filter(file => file.endsWith(s".${ Platform.gpuFileExtension }")).toList.sorted
 
     /// project file
 
@@ -65,7 +65,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
 
     // extensions
     projectPrinter <<< "\t<ImportGroup Label=\"ExtensionSettings\">"
-    if (Knowledge.cuda_enabled) {
+    if (Knowledge.gpu_enabled) {
       val cudaString = s"CUDA ${ Platform.sw_cuda_version }.${ Platform.sw_cuda_versionMinor }"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".props\" />"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".targets\" />"
@@ -108,7 +108,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t\t</ClCompile>"
 
     // cuda compile step
-    if (Knowledge.cuda_enabled) {
+    if (Knowledge.gpu_enabled) {
       projectPrinter <<< "\t\t<CudaCompile>"
       projectPrinter <<< "\t\t\t<TargetMachinePlatform>64</TargetMachinePlatform>"
       projectPrinter <<< s"\t\t\t<CodeGeneration>compute_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor },sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }</CodeGeneration>"
@@ -124,7 +124,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
 
     // post build step
 
-    if (Knowledge.cuda_enabled) {
+    if (Knowledge.gpu_enabled) {
       projectPrinter <<< "\t\t<PostBuildEvent>"
       projectPrinter <<< "\t\t\t<Command>echo copy \"$(CudaToolkitBinDir)\\cudart*.dll\" \"$(OutDir)\""
       projectPrinter <<< "\t\t\t\tcopy \"$(CudaToolkitBinDir)\\cudart*.dll\" \"$(OutDir)\"</Command>"
@@ -146,7 +146,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t</ItemGroup>"
 
     // cuda kernels
-    if (Knowledge.cuda_enabled) {
+    if (Knowledge.gpu_enabled) {
       projectPrinter <<< "\t<ItemGroup>"
       for (filename <- cuFileNames)
         projectPrinter <<< s"""\t\t<CudaCompile Include=\"${ filename.replace('/', '\\') }\" />"""

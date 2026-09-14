@@ -30,16 +30,17 @@ object MakefileGenerator extends BuildfileGenerator {
 
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
-    val cuFileNames = filesToConsider.filter(file => file.endsWith(".cu")).toList.sorted
+    val gpuFileExt = Platform.gpuFileExtension
+    val gpuFileNames = filesToConsider.filter(file => file.endsWith(s".$gpuFileExt")).toList.sorted
     val cppObjectFiles = cppFileNames.map(fn => fn.replace(".cpp", ".o"))
-    val cuObjectFiles = cuFileNames.map(fn => fn.replace(".cu", ".o"))
+    val gpuObjectFiles = gpuFileNames.map(fn => fn.replace(s".$gpuFileExt", ".o"))
     val allObjectFiles =
-      if (Knowledge.cuda_enabled) cppObjectFiles ++ cuObjectFiles
+      if (Knowledge.gpu_enabled) cppObjectFiles ++ gpuObjectFiles
       else cppObjectFiles
 
     printer <<< "CXX = " + Platform.resolveCompiler
-    if (Knowledge.cuda_enabled)
-      printer <<< "NVCC = " + Platform.resolveCudaCompiler
+    if (Knowledge.gpu_enabled)
+      printer <<< "GPUCC = " + Platform.resolveGpuCompiler
     printer <<< ""
 
     printer <<< mkStringTrimFlat(
@@ -50,11 +51,11 @@ object MakefileGenerator extends BuildfileGenerator {
       Settings.additionalDefines.map(path => s"-D$path"),
       "-I."
     )
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.gpu_enabled)
       printer <<< mkStringTrimFlat(  // TODO: TPDL
-        "CUDAFLAGS =",
-        Platform.resolveCudaFlags,
-        Settings.makefile_additionalCudaFlags.mkString(" "),
+        "GPUFLAGS =",
+        Platform.resolveGpuFlags,
+        Settings.makefile_additionalGpuFlags.mkString(" "),
         Settings.pathsInc.map(path => s"-I$path"),
         "-I."
       )
@@ -79,10 +80,10 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< "BINARY = " + Settings.binary
     printer <<< ""
 
-    if (Knowledge.cuda_enabled) {
-      printer <<< "# define implicit rule for CUDA targets"
-      printer <<< "%.o : %.cu"
-      printer <<< "\t${NVCC} ${CUDAFLAGS} -c -o $@ $<"
+    if (Knowledge.gpu_enabled) {
+      printer <<< s"# define implicit rule for ${ Platform.gpuBackend } targets"
+      printer <<< s"%.o : %.$gpuFileExt"
+      printer <<< "\t${GPUCC} ${GPUFLAGS} -c -o $@ $<"
       printer <<< ""
     }
 
@@ -132,17 +133,17 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< "# end: additionalFiles targets"
     printer <<< ""
 
-    if (Knowledge.cuda_enabled) {
-      printer <<< "# begin: CUDA targets"
-      val cudaPrettyPrinters = PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cu"))
+    if (Knowledge.gpu_enabled) {
+      printer <<< s"# begin: ${ Platform.gpuBackend } targets"
+      val gpuPrettyPrinters = PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(s".$gpuFileExt"))
         .toList.sortBy(f => f.filename)
-      cudaPrettyPrinters.foreach(pp => {
+      gpuPrettyPrinters.foreach(pp => {
         printer <<< mkStringTrimFlat(
-          pp.filename.replace(".cu", ".o"), ":", pp.filename,
+          pp.filename.replace(s".$gpuFileExt", ".o"), ":", pp.filename,
           PrettyprintingManager.Prettyprinter.gatherDependencies(pp)
         )
       })
-      printer <<< "# end: CUDA targets"
+      printer <<< s"# end: ${ Platform.gpuBackend } targets"
       printer <<< ""
     }
 

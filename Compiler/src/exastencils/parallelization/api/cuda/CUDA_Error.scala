@@ -51,7 +51,7 @@ case class CUDA_CheckError(var exp : IR_Expression) extends CUDA_HostStatement w
 
     def printAndExit : ListBuffer[IR_Statement] = ListBuffer(print, IR_FunctionCall(IR_ExternalFunctionReference("exit"), 1))
 
-    if (Knowledge.cuda_omitErrorChecks) {
+    if (Knowledge.gpu_omitErrorChecks) {
       ListBuffer[IR_Statement](exp)
     } else {
       ListBuffer(

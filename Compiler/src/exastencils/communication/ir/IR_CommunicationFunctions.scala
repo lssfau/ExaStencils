@@ -55,7 +55,7 @@ case class IR_CommunicationFunctions() extends IR_FunctionCollection(IR_Communic
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
 
-  if (Knowledge.cuda_enabled)
+  if (Knowledge.gpu_enabled)
     internalDependencies += CUDA_KernelFunctions.defHeader
 
   if (Knowledge.opt_vectorize)

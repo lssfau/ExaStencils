@@ -60,9 +60,9 @@ case class CUDA_ExecutionConfigurationStatic(
       blockSizes.zipWithIndex.map { case (blockSize, idx) => scala.math.min(blockSize, requiredThreadsPerDim(idx)) }
 
     // use user-defined block sizes as initial config and intersect iteration space with cuda block sizes
-    var blockSizes = getIntersectionWithIterationSpace(Knowledge.cuda_blockSizeAsVec.take(executionDim))
+    var blockSizes = getIntersectionWithIterationSpace(Knowledge.gpu_blockSizeAsVec.take(executionDim))
     var done = false
-    if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
+    if (blockSizes.product >= Knowledge.gpu_minimalBlockSize) {
       // case 1: greater than min block size -> use intersection
       numThreads = blockSizes.map(identity)
       done = true
@@ -84,17 +84,17 @@ case class CUDA_ExecutionConfigurationStatic(
           blockSizes(d) *= 2
 
           // optional: trim innermost dim to multiples of warp size
-          if (d == 0 && blockSizes(d) > Platform.hw_cuda_warpSize && blockSizes(d) % Platform.hw_cuda_warpSize != 0)
-            blockSizes(d) = blockSizes(d) - (blockSizes(d) % Platform.hw_cuda_warpSize) // subtract remainder
+          if (d == 0 && blockSizes(d) > Platform.hw_gpu_warpSize && blockSizes(d) % Platform.hw_gpu_warpSize != 0)
+            blockSizes(d) = blockSizes(d) - (blockSizes(d) % Platform.hw_gpu_warpSize) // subtract remainder
 
           // check if block sizes are within hardware capabilities
-          blockSizes(d) = math.min(blockSizes(d), Platform.hw_cuda_maxBlockSizes(d))
+          blockSizes(d) = math.min(blockSizes(d), Platform.hw_gpu_maxBlockSizes(d))
 
           // intersect again
           blockSizes = getIntersectionWithIterationSpace(blockSizes.map(identity))
 
           // case 3: intersected block is large enough
-          if (blockSizes.product >= Knowledge.cuda_minimalBlockSize) {
+          if (blockSizes.product >= Knowledge.gpu_minimalBlockSize) {
             numThreads = blockSizes.map(identity)
             done = true
           }
@@ -103,7 +103,7 @@ case class CUDA_ExecutionConfigurationStatic(
     }
 
     // shrink if max number of threads is exceeded
-    while (blockSizes.product >= Platform.hw_cuda_maxNumThreads) {
+    while (blockSizes.product >= Platform.hw_gpu_maxNumThreads) {
       var shrink = true
       var d = 0
       while (shrink && d < resizeOrder.length) {
@@ -111,7 +111,7 @@ case class CUDA_ExecutionConfigurationStatic(
         blockSizes(idx) /= 2
         blockSizes(idx) = math.max(1, blockSizes(idx))
 
-        if (blockSizes.product < Platform.hw_cuda_maxNumThreads)
+        if (blockSizes.product < Platform.hw_gpu_maxNumThreads)
           shrink = false
 
         d = d + 1
@@ -119,9 +119,9 @@ case class CUDA_ExecutionConfigurationStatic(
     }
 
     // adapt thread count for reduced dimensions
-    if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
+    if (Knowledge.gpu_foldBlockSizeForRedDimensionality)
       for (d <- executionDim until Knowledge.dimensionality)
-        numThreads(0) *= Knowledge.cuda_blockSizeAsVec(d)
+        numThreads(0) *= Knowledge.gpu_blockSizeAsVec(d)
 
     numBlocks = (0 until executionDim).map(dim => {
       val inc = stepSize(dim) match {
@@ -171,7 +171,7 @@ case class CUDA_ExecutionConfigurationDynamic(
 
   def getNumBlocks = {
     val requiredThreads = Duplicate(requiredThreadsPerDim)
-    if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
+    if (Knowledge.gpu_foldBlockSizeForRedDimensionality)
       for (d <- executionDim until Knowledge.dimensionality)
         requiredThreads(0) *= requiredThreads(d)
 
@@ -201,12 +201,12 @@ object CUDA_ComputeExecutionConfigurationFunction {
   def dt = IR_SpecialDatatype("dim3")
 
   def getNumberOfThreads(executionDim : Int) = {
-    val numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
+    val numThreadsPerBlock = Knowledge.gpu_blockSizeAsVec.take(executionDim)
 
     // adapt thread count for reduced dimensions
-    if (Knowledge.cuda_foldBlockSizeForRedDimensionality)
+    if (Knowledge.gpu_foldBlockSizeForRedDimensionality)
       for (d <- executionDim until Knowledge.dimensionality)
-        numThreadsPerBlock(0) *= Knowledge.cuda_blockSizeAsVec(d)
+        numThreadsPerBlock(0) *= Knowledge.gpu_blockSizeAsVec(d)
 
     numThreadsPerBlock
   }

@@ -32,7 +32,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // already done by waLBerla & interfacing routines
     if (Knowledge.mpi_enabled)
       scheduler.removeFirst(MPI_AddGlobals)
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.gpu_enabled)
       scheduler.removeFirst(CUDA_AddGlobals)
 
     /* extend schedule of default IR layer handler */
@@ -58,12 +58,12 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     // use walberla functions for GPU field memory operations
     scheduler.appendToFirstFound(CUDA_PrepareMPICode,
       ConditionedStrategyContainerWrapper(
-        Knowledge.cuda_enabled,
+        Knowledge.gpu_enabled,
         GPU_WaLBerlaReplaceGPUIVs,
         GPU_WaLBerlaHandleGPUMemory))
 
     // adapt cuda kernels for walberla support
-    if (Knowledge.cuda_enabled) {
+    if (Knowledge.gpu_enabled) {
       scheduler.appendToFirstFound(CUDA_FunctionConversionWrapper,
         GPU_WaLBerlaReplaceGPUIVs,
         GPU_WaLBerlaAdaptKernels,
@@ -95,7 +95,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
     scheduler.prependToFirstFound(IR_AddInternalVariables,
       IR_WaLBerlaReplaceCommIVs,
       IR_WaLBerlaReplaceFragmentLoops,
-      ConditionedSingleStrategyWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs),
+      ConditionedSingleStrategyWrapper(Knowledge.gpu_enabled, GPU_WaLBerlaReplaceGPUIVs),
       IR_WaLBerlaAddInterfaceMembers)
 
     // ... and adapt memory allocations
@@ -105,7 +105,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
 
     scheduler.prependToLastFound(IR_ResolveLoopOverFragments,
       ConditionedSingleStrategyWrapper(!Knowledge.domain_isPartitioningKnown, IR_WaLBerlaReplaceFragmentIVs),
-      ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
+      ConditionedStrategyContainerWrapper(Knowledge.gpu_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceFragmentLoops,
       IR_WaLBerlaResolveLoopOverBlocks,
       IR_WaLBerlaResolveLoopOverLocalBlockArray,
@@ -117,7 +117,7 @@ object IR_WaLBerlaLayerHandler extends IR_LayerHandler {
       IR_WaLBerlaSetupFunctions,
       IR_WaLBerlaCreateInterface,
       IR_ExpandWrapper,
-      ConditionedStrategyContainerWrapper(Knowledge.cuda_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
+      ConditionedStrategyContainerWrapper(Knowledge.gpu_enabled, GPU_WaLBerlaReplaceGPUIVs, CUDA_AdaptAllocations),
       IR_WaLBerlaReplaceVariableAccesses,
       IR_WaLBerlaReplaceAllocateData,
       IR_GeneralSimplifyUntilDoneWrapper) // one last time after block loops are expanded and replacements are done

@@ -167,7 +167,7 @@ case class CUDA_HandleFragmentLoops(
     var (hostSyncFragLoopBefore, hostSyncFragLoopAfter) = (ListBuffer[IR_Statement](syncBeforeFragLoop : _*), ListBuffer[IR_Statement](syncAfterFragLoop : _*))
     var (deviceSyncFragLoopBefore, deviceSyncFragLoopAfter) = (ListBuffer[IR_Statement](syncBeforeFragLoop : _*), ListBuffer[IR_Statement](syncAfterFragLoop : _*))
 
-    if (Knowledge.experimental_cuda_useStreams) {
+    if (Knowledge.experimental_gpu_useStreams) {
       /* - host stream sync - */
 
       // cpu execution: set stream mode to dummy value
@@ -328,12 +328,12 @@ case class CUDA_HandleFragmentLoops(
       syncAfterFragLoop.parallelization.reduction = Some(red)
 
       // force comp stream sync if comp kernels are not synced explicitly
-      if (Knowledge.experimental_cuda_useStreams) {
+      if (Knowledge.experimental_gpu_useStreams) {
         val syncsComp = issuedStreamSyncsAfter.exists {
           case streamSync : CUDA_StreamSynchronize if streamSync.stream.isInstanceOf[CUDA_ComputeStream] => true
           case _                                                                                         => false
         }
-        if (!syncsComp && Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
+        if (!syncsComp && Knowledge.gpu_omitSyncDeviceAfterKernelCalls)
           syncAfterFragLoop.body += CUDA_Stream.genCompSync()
       }
 
@@ -342,7 +342,7 @@ case class CUDA_HandleFragmentLoops(
       stmts ++= initReductionTmp(red.op, reductionDt, reductionTmp.get) // init fragment tmps
 
       // accumulate frag tmps into reduction target after kernel launches
-      if (Knowledge.cuda_cub_reductions_supported(reductionDt)) {
+      if (Knowledge.gpu_cub_reductions_supported(reductionDt)) {
         syncAfterFragLoop.body += IR_IfCondition(IR_LoopOverFragments.defIt EqEq 0,
           CUDA_DeviceSynchronize() // does not use blocking memcpy compared to default reductions -> sync needed
         )
@@ -357,7 +357,7 @@ case class CUDA_HandleFragmentLoops(
     def handleExecutionModeChange(mode : CUDA_ExecutionMode) = ListBuffer[IR_Statement](
       IR_IfCondition(CUDA_CurrentExecutionMode() Neq mode,
         ListBuffer[IR_Statement](
-          if (Knowledge.cuda_useZeroCopy || Knowledge.cuda_eliminate_memory_transfers != "none")
+          if (Knowledge.gpu_useZeroCopy || Knowledge.gpu_eliminate_memory_transfers != "none")
             IR_Assignment(CUDA_IssuedSyncForEliminatedTransfer(), false) // reset flag when switching modes
           else
             IR_NullStatement,

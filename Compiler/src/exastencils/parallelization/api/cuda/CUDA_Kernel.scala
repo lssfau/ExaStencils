@@ -71,9 +71,9 @@ case class CUDA_Kernel(
   import CUDA_Kernel._
 
   var nrInnerSeqDims = loopVariables.size - parallelDims
-  var smemCanBeUsed = Knowledge.cuda_useSharedMemory && nrInnerSeqDims == 0 && stepSize.forall(x => IR_IntegerConstant(1).equals(x))
-  var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
-  var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
+  var smemCanBeUsed = Knowledge.gpu_useSharedMemory && nrInnerSeqDims == 0 && stepSize.forall(x => IR_IntegerConstant(1).equals(x))
+  var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.gpu_spatialBlockingWithSmem && parallelDims == Platform.hw_gpu_maxNumDimsBlock
+  var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_gpu_maxNumDimsBlock, parallelDims)
 
   // properties required for shared memory analysis and shared memory allocation
   var fieldNames = ListBuffer[String]()
@@ -147,13 +147,13 @@ case class CUDA_Kernel(
     CUDA_GatherFieldAccessLike.loopVariables = loopVariables
     CUDA_GatherFieldAccessLike.fieldAccesses.clear
     CUDA_GatherFieldAccessLike.fieldIndicesConstantPart.clear
-    CUDA_GatherFieldAccessLike.maximalFieldDim = math.min(parallelDims, Platform.hw_cuda_maxNumDimsBlock)
+    CUDA_GatherFieldAccessLike.maximalFieldDim = math.min(parallelDims, Platform.hw_gpu_maxNumDimsBlock)
     CUDA_GatherFieldAccessLike.writtenFields.clear
     CUDA_GatherFieldAccessLike.applyStandalone(IR_Scope(body))
     var fieldToFieldAccesses = CUDA_GatherFieldAccessLike.fieldAccesses
     val writtenFields = CUDA_GatherFieldAccessLike.writtenFields
     val fieldIndicesConstantPart = CUDA_GatherFieldAccessLike.fieldIndicesConstantPart
-    var availableSharedMemory = if (Knowledge.cuda_favorL1CacheOverSharedMemory) Platform.hw_cuda_cacheMemory.toLong else Platform.hw_cuda_sharedMemory.toLong
+    var availableSharedMemory = if (Knowledge.gpu_favorL1CacheOverSharedMemory) Platform.hw_gpu_cacheMemory.toLong else Platform.hw_gpu_sharedMemory.toLong
 
     // 2. Perform shared memory analysis
     // the more field accesses to a field the more important it is to store this field in shared memory
@@ -186,7 +186,7 @@ case class CUDA_Kernel(
       if (spatialBlockingCanBeApplied && !isSameRadius) {
         Logger.warning("Cannot apply spatial blocking with shared memory, because the stencil is not symmetric")
         spatialBlockingCanBeApplied = false
-        executionDim = math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
+        executionDim = math.min(Platform.hw_gpu_maxNumDimsBlock, parallelDims)
         evaluatedIndexBounds = false
         executionConfiguration = None
         evalIndexBounds()
@@ -258,7 +258,7 @@ case class CUDA_Kernel(
 
     // 4. ensure correct executionDim if no appropriate field was found
     if (!foundSomeAppropriateField) {
-      executionDim = math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
+      executionDim = math.min(Platform.hw_gpu_maxNumDimsBlock, parallelDims)
       executionConfiguration = None
       evalExecutionConfiguration()
       evalThreadIds()
@@ -294,7 +294,7 @@ case class CUDA_Kernel(
       CUDA_GatherLinearizedBufferAccess.applyStandalone(IR_Scope(body))
       bufferAccesses = CUDA_GatherLinearizedBufferAccess.bufferAccesses
 
-      if (Knowledge.cuda_spatialBlockingWithROC) {
+      if (Knowledge.gpu_spatialBlockingWithROC) {
         CUDA_GatherLinearizedFieldAccessWrites.writtenFieldAccesses.clear
         CUDA_GatherLinearizedFieldAccessWrites.applyStandalone(IR_Scope(body))
         writtenFieldAccesses = CUDA_GatherLinearizedFieldAccessWrites.writtenFieldAccesses
@@ -540,7 +540,7 @@ case class CUDA_Kernel(
       val localRedTarget = localReductionTarget.get
 
       // perform CUB reduction after kernel body
-      if (Knowledge.cuda_cub_reductions_supported(reductionDt)) { // TODO: HODT CUB reductions
+      if (Knowledge.gpu_cub_reductions_supported(reductionDt)) { // TODO: HODT CUB reductions
         val cubOp = reduction.get.op match {
           case "+"   => "cub::Sum()"
           case "min" => "cub::Min()"
@@ -650,7 +650,7 @@ case class CUDA_Kernel(
     for (fieldAccess <- linearizedFieldAccesses)
       callArgs += CUDA_FieldDeviceData(fieldAccess._2.field, Duplicate(fieldAccess._2.slot), Duplicate(fieldAccess._2.fragIdx))
 
-    if (Knowledge.cuda_useSharedMemory && fieldForSharedMemory.nonEmpty) {
+    if (Knowledge.gpu_useSharedMemory && fieldForSharedMemory.nonEmpty) {
       fieldNames.foreach(field => callArgs += CUDA_FieldDeviceData(fieldForSharedMemory(field).field, Duplicate(fieldForSharedMemory(field).slot)))
     }
 
@@ -678,7 +678,7 @@ case class CUDA_Kernel(
       // return value is forwarded in form of a pointer arg
       passThroughArgs += reductionPtr.get
 
-      if (!Knowledge.cuda_cub_reductions_supported(reductionDt)) { // TODO: HODT CUB reductions
+      if (!Knowledge.gpu_cub_reductions_supported(reductionDt)) { // TODO: HODT CUB reductions
         // reset reduction data buffer and call default reduction kernel
         val bufSize = requiredThreadsPerDim.reduce(_ * _)
         val bufAccess = CUDA_ReductionDeviceData(bufSize, reductionDt)
@@ -732,7 +732,7 @@ case class CUDA_Kernel(
 
     for (fieldAccess <- linearizedFieldAccesses) {
       // add required parameter specifiers to take advantage of the read-only cache
-      if (Knowledge.cuda_spatialBlockingWithROC && !writtenFieldAccesses.contains(fieldAccess._1)) {
+      if (Knowledge.gpu_spatialBlockingWithROC && !writtenFieldAccesses.contains(fieldAccess._1)) {
         fctParams += IR_FunctionArgument(fieldAccess._1, IR_CUDAConstPointerDatatype(fieldAccess._2.field.resolveDeclType))
       } else {
         fctParams += IR_FunctionArgument(fieldAccess._1, IR_PointerDatatype(fieldAccess._2.field.resolveDeclType))
@@ -754,7 +754,7 @@ case class CUDA_Kernel(
     for (variableAccess <- passThroughArgs)
       fctParams += IR_FunctionArgument(variableAccess.name, variableAccess.datatype)
 
-    if (reductionPtr.isDefined && Knowledge.cuda_cub_reductions_supported(CUDA_Util.getReductionDatatype(localReductionTarget.get)))
+    if (reductionPtr.isDefined && Knowledge.gpu_cub_reductions_supported(CUDA_Util.getReductionDatatype(localReductionTarget.get)))
         fctParams += reductionPtr.get
 
     val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */ getKernelFctName, IR_UnitDatatype, fctParams, compileKernelBody)

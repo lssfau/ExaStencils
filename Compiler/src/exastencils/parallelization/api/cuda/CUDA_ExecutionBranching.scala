@@ -14,12 +14,12 @@ import exastencils.util.NoDuplicateWrapper
 trait CUDA_ExecutionBranching {
 
   private def getDefaultChoiceMPI() : IR_Expression = {
-    Knowledge.cuda_preferredExecution match {
+    Knowledge.gpu_preferredExecution match {
       case _ if !Platform.hw_gpu_gpuDirectAvailable => true // if GPUDirect is not available default to CPU
       case "Host"                                   => true // CPU by default
       case "Device"                                 => false // GPU by default
       case "Performance"                            => true // FIXME: Knowledge flag
-      case "Condition"                              => Knowledge.cuda_executionCondition
+      case "Condition"                              => Knowledge.gpu_executionCondition
     }
   }
 
@@ -50,11 +50,11 @@ trait CUDA_ExecutionBranching {
   }
 
   private def getDefaultChoice(estimatedFasterHostExec : Boolean) : IR_Expression = {
-    Knowledge.cuda_preferredExecution match {
+    Knowledge.gpu_preferredExecution match {
       case "Host"        => IR_BooleanConstant(true) // CPU by default
       case "Device"      => IR_BooleanConstant(false) // GPU by default
       case "Performance" => IR_BooleanConstant(estimatedFasterHostExec) // decide according to performance estimates
-      case "Condition"   => Knowledge.cuda_executionCondition
+      case "Condition"   => Knowledge.gpu_executionCondition
     }
   }
 

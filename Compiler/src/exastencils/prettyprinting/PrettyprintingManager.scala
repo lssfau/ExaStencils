@@ -80,7 +80,7 @@ object PrettyprintingManager {
       // post-process code files
       val isCodeFile = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx")
         || filename.endsWith(".c") || filename.endsWith(".cpp") || filename.endsWith(".cxx")
-        || filename.endsWith(".cuh") || filename.endsWith(".cu"))
+        || filename.endsWith(".cuh") || filename.endsWith(".cu") || filename.endsWith(".hip"))
 
       if (isCodeFile) {
         // temporary storage

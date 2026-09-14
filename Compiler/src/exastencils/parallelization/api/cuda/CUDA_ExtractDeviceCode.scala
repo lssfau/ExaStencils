@@ -248,7 +248,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       if (deviceArrayCopies.nonEmpty) {
         deviceArrayCopies foreach { case (k, dstArr) =>
           val (srcArr, srcDt) = accessesCopiedToDevice.find(_._1 == k).get._2
-          if (Knowledge.cuda_useManagedMemory) {
+          if (Knowledge.gpu_useManagedMemory) {
             // H-H copy, possibly prefetch
             deviceStatements += IR_FunctionCall(IR_ExternalFunctionReference("std::copy", IR_UnitDatatype),
               ListBuffer[IR_Expression](srcArr, srcArr + srcDt.typicalByteSize, dstArr))

@@ -1,0 +1,29 @@
+// AMD Instinct MI250X, targeted via HIP
+// -> no AMD devices are available in CI, so this platform is only used to generate and compile HIP code for AMD
+
+targetOS                   = "Linux"
+targetCompiler             = "GCC"
+targetCompilerVersion      = 8
+targetCompilerVersionMinor = 3
+targetHardware             = "CPU"
+simd_instructionSet        = "AVX2"
+
+hw_cpu_name                = "AMD EPYC 7A53"
+hw_cpu_numCoresPerCPU      = 64
+hw_cpu_numCPUs             = 1
+hw_cpu_bandwidth           = 204800000000.0 // = 204.8 GB/s
+hw_cpu_frequency           = 20000000000.0 // = 2.0 GHz
+hw_64bit                   = true
+hw_cacheLineSize           = 512 // in B
+
+hw_gpu_name                = "AMD Instinct MI250X"
+hw_gpu_numDevices          = 1
+hw_gpu_bandwidth           = 1638400000000.0 // = 1.6 TB/s
+hw_gpu_frequency           = 1700000000000.0 // = 1700 MHz
+hw_gpu_numCores            = 14080
+hw_gpu_gpuDirectAvailable  = false
+
+hw_hip_offloadArch         = "gfx90a"
+hw_gpu_warpSize            = 64 // wavefront size
+hw_gpu_sharedMemory        = 65536 // LDS per workgroup, in B
+hw_gpu_maxNumThreads       = 1024

@@ -23,8 +23,30 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_Datatype
 import exastencils.base.ir.IR_ScalarDatatype
 import exastencils.constraints._
+import exastencils.core.LegacyParameters
 
-object Knowledge {
+object Knowledge extends LegacyParameters {
+  // === Legacy Parameters ===
+
+  /// GPU parameters that were named cuda_* before backends other than CUDA were supported
+  private val legacyGpuParameters = List(
+    "deviceId", "preferredExecution", "executionCondition", "omitSyncDeviceAfterKernelCalls",
+    "syncHostForWrites", "syncDeviceForWrites", "eliminate_memory_transfers",
+    "blockSize_x", "blockSize_y", "blockSize_z", "minimalBlockSize", "reductionBlockSize",
+    "useSharedMemory", "linearizeSharedMemoryAccess", "spatialBlockingWithSmem", "favorL1CacheOverSharedMemory",
+    "spatialBlockingWithROC", "useDefaultReductions", "usePinnedHostMemory", "useManagedMemory", "useZeroCopy",
+    "genAsyncPrefetch", "foldBlockSizeForRedDimensionality", "omitErrorChecks")
+
+  /// experimental GPU parameters that were named experimental_cuda_* before backends other than CUDA were supported
+  private val legacyExperimentalGpuParameters = List(
+    "useStreams", "syncStreamsBeforeComputeKernelCalls", "syncStreamsAfterComputeKernelCalls",
+    "syncStreamsBeforeCommunicateKernelCalls", "syncStreamsAfterCommunicateKernelCalls",
+    "generateKernelForNonParallel")
+
+  override val legacyParameters : Map[String, String] =
+    legacyGpuParameters.map(p => s"cuda_$p" -> s"gpu_$p").toMap ++
+      legacyExperimentalGpuParameters.map(p => s"experimental_cuda_$p" -> s"experimental_gpu_$p").toMap
+
   // === Parser ===
 
   // adds annotations containing location information to all parsed nodes
@@ -626,85 +648,91 @@ object Knowledge {
   // [true|false] // specifies whether ParaView or VisIt files are printed. Distinction only relevant for IR_PrintXdmfUniform
   var parIO_vis_generateVisItFiles : Boolean = false
 
-  /// --- CUDA ---
+  /// --- GPU (CUDA / HIP) ---
 
-  // [true|false]
+  // [true|false] // generate GPU code for the CUDA backend
   var cuda_enabled : Boolean = false
-  // device id of the CUDA device to be used; only relevant in multi-GPU systems
-  var cuda_deviceId : String = "0"
+  // [true|false] // generate GPU code for the HIP backend
+  var hip_enabled : Boolean = false
+
+  // true if GPU code is to be generated, regardless of the selected backend;
+  // the gpu_* options below apply to both backends
+  def gpu_enabled : Boolean = cuda_enabled || hip_enabled
+  // device id of the GPU to be used; only relevant in multi-GPU systems
+  var gpu_deviceId : String = "0"
   // specifies where kernels should be executed by default; may be "Host", "Device", "Performance" or "Condition"
-  var cuda_preferredExecution : String = "Performance"
-  // specifies a condition to be used to branch for CPU (true) or GPU (false) execution; only used if cuda_preferredExecution == Condition
-  var cuda_executionCondition : String = "true"
-  // specifies if CUDA streams are used
-  var experimental_cuda_useStreams : Boolean = false
-  // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
-  var cuda_omitSyncDeviceAfterKernelCalls : Boolean = false
-  // specifies if CUDA streams are to be synchronized before each compute kernel call
-  var experimental_cuda_syncStreamsBeforeComputeKernelCalls : String = "none"
-  // specifies if CUDA streams are to be synchronized after each compute kernel call
-  var experimental_cuda_syncStreamsAfterComputeKernelCalls : String = "comp"
-  // specifies if CUDA streams are to be synchronized before each communication kernel call
-  var experimental_cuda_syncStreamsBeforeCommunicateKernelCalls : String = "none"
-  // specifies if CUDA streams are to be synchronized after each communication kernel call
-  var experimental_cuda_syncStreamsAfterCommunicateKernelCalls : String = "comm"
+  var gpu_preferredExecution : String = "Performance"
+  // specifies a condition to be used to branch for CPU (true) or GPU (false) execution; only used if gpu_preferredExecution == Condition
+  var gpu_executionCondition : String = "true"
+  // specifies if streams are used
+  var experimental_gpu_useStreams : Boolean = false
+  // specifies if devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
+  var gpu_omitSyncDeviceAfterKernelCalls : Boolean = false
+  // specifies if streams are to be synchronized before each compute kernel call
+  var experimental_gpu_syncStreamsBeforeComputeKernelCalls : String = "none"
+  // specifies if streams are to be synchronized after each compute kernel call
+  var experimental_gpu_syncStreamsAfterComputeKernelCalls : String = "comp"
+  // specifies if streams are to be synchronized before each communication kernel call
+  var experimental_gpu_syncStreamsBeforeCommunicateKernelCalls : String = "none"
+  // specifies if streams are to be synchronized after each communication kernel call
+  var experimental_gpu_syncStreamsAfterCommunicateKernelCalls : String = "comm"
   // stream synchronization options
-  val cuda_syncStreamsOptions : List[String] = List("comm", "comp", "none", "all")
+  val gpu_syncStreamsOptions : List[String] = List("comm", "comp", "none", "all")
   // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
-  var cuda_syncHostForWrites : Boolean = true
+  var gpu_syncHostForWrites : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
-  var cuda_syncDeviceForWrites : Boolean = true
+  var gpu_syncDeviceForWrites : Boolean = true
   // ["none"|"both"|"device_to_host"|"host_to_device"] eliminates host <-> device transfers.
-  var cuda_eliminate_memory_transfers = "none"
-  val cuda_memory_transfer_elimination_options : List[String] = List("none", "both", "device_to_host", "host_to_device")
+  var gpu_eliminate_memory_transfers = "none"
+  val gpu_memory_transfer_elimination_options : List[String] = List("none", "both", "device_to_host", "host_to_device")
 
   // default block size in x dimension
-  var cuda_blockSize_x : Long = if (dimensionality == 3) 32 else 128
+  var gpu_blockSize_x : Long = if (dimensionality == 3) 32 else 128
   // default block size in y dimension
-  var cuda_blockSize_y : Long = 4
+  var gpu_blockSize_y : Long = 4
   // default block size in z dimension
-  var cuda_blockSize_z : Long = 4
+  var gpu_blockSize_z : Long = 4
   // minimal block size (product), default is regular warp size (32)
-  var cuda_minimalBlockSize : Long = 32
+  var gpu_minimalBlockSize : Long = 32
 
   // the product of the block sizes per dimension, i.e. the total block size
-  def cuda_blockSizeTotal : Long = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
-  // shortcut to an array containing the values of cuda_blockSize_*
-  def cuda_blockSizeAsVec = Array(cuda_blockSize_x, cuda_blockSize_y, cuda_blockSize_z)
+  def gpu_blockSizeTotal : Long = gpu_blockSize_x * gpu_blockSize_y * gpu_blockSize_z
+  // shortcut to an array containing the values of gpu_blockSize_*
+  def gpu_blockSizeAsVec = Array(gpu_blockSize_x, gpu_blockSize_y, gpu_blockSize_z)
 
   // default (1D) block size for default reduction kernels
-  var cuda_reductionBlockSize = 1024
+  var gpu_reductionBlockSize = 1024
   // specifies if shared memory should be used within kernels
-  var cuda_useSharedMemory : Boolean = false
+  var gpu_useSharedMemory : Boolean = false
   // TODO
-  var cuda_linearizeSharedMemoryAccess : Boolean = false
+  var gpu_linearizeSharedMemoryAccess : Boolean = false
   // TODO
-  var cuda_spatialBlockingWithSmem : Boolean = false
+  var gpu_spatialBlockingWithSmem : Boolean = false
   // TODO
-  var cuda_favorL1CacheOverSharedMemory : Boolean = false
+  var gpu_favorL1CacheOverSharedMemory : Boolean = false
   // apply spatial blocking with read-only cache
-  var cuda_spatialBlockingWithROC : Boolean = false
+  var gpu_spatialBlockingWithROC : Boolean = false
 
   // use original implementation with log2(n) kernel invocations (=true) or CUB shared-memory reductions (=false)
   // TODO: CUB reductions are not implemented for higher-order data types -> fall back to default reductions
-  var cuda_useDefaultReductions : Boolean = false
-  def cuda_cub_reductions_supported(dt : IR_Datatype) : Boolean = dt.isInstanceOf[IR_ScalarDatatype] && !Knowledge.cuda_useDefaultReductions
+  var gpu_useDefaultReductions : Boolean = false
+  def gpu_cub_reductions_supported(dt : IR_Datatype) : Boolean = dt.isInstanceOf[IR_ScalarDatatype] && !Knowledge.gpu_useDefaultReductions
 
   // use pinned memory to allocate host field data and buffers
-  var cuda_usePinnedHostMemory : Boolean = true
+  var gpu_usePinnedHostMemory : Boolean = true
   // use managed memory instead of host and device variants for field data and buffers
-  var cuda_useManagedMemory : Boolean = false
+  var gpu_useManagedMemory : Boolean = false
   // replace device variants of field data and buffers with device pointers derived from host counter-parts
-  var cuda_useZeroCopy : Boolean = false
+  var gpu_useZeroCopy : Boolean = false
 
-  // only relevant if cuda_useManagedMemory == true; replace cuda memcpy with asynchronous prefetches
-  var cuda_genAsyncPrefetch : Boolean = true
+  // only relevant if gpu_useManagedMemory == true; replace cuda memcpy with asynchronous prefetches
+  var gpu_genAsyncPrefetch : Boolean = true
 
   // if true, the first dimension of the block size is enlarged if the kernel dimensionality is lower than the global dimensionality
-  var cuda_foldBlockSizeForRedDimensionality : Boolean = true
+  var gpu_foldBlockSizeForRedDimensionality : Boolean = true
 
-  // if true, error checks for cuda API calls are omitted
-  var cuda_omitErrorChecks : Boolean = false
+  // if true, error checks for GPU API calls are omitted
+  var gpu_omitErrorChecks : Boolean = false
 
   /// --- general parallelization ---
 
@@ -843,7 +871,7 @@ object Knowledge {
   var experimental_QRPivot : Boolean = false
 
   // generate cuda kernels independently of them being parallel or not
-  var experimental_cuda_generateKernelForNonParallel : Boolean = false
+  var experimental_gpu_generateKernelForNonParallel : Boolean = false
 
   // control inlining of value declarations on applicable layers
   var experimental_l1_inlineValueDeclarations : Boolean = false
@@ -942,47 +970,49 @@ object Knowledge {
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
-    Constraints.condEnsureValue(performance_addEstimation, true, cuda_enabled && "Performance" == cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
-    Constraints.condEnsureValue(cuda_deviceId, "0", cuda_enabled && cuda_deviceId.forall(_.isDigit) && cuda_deviceId.toInt >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+    Constraints.condError(cuda_enabled && hip_enabled, "cuda_enabled and hip_enabled are mutually exclusive; enable exactly one GPU backend")
 
-    Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
-    Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
-    Constraints.condError(cuda_minimalBlockSize <= 0, "cuda_minimalBlockSize must be > 0")
+    Constraints.condEnsureValue(performance_addEstimation, true, gpu_enabled && "Performance" == gpu_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
+    Constraints.condEnsureValue(gpu_deviceId, "0", gpu_enabled && gpu_deviceId.forall(_.isDigit) && gpu_deviceId.toInt >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
-    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
-    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
+    Constraints.condEnsureValue(gpu_blockSize_y, 1, gpu_enabled && domain_rect_generate && dimensionality < 2, "gpu_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(gpu_blockSize_z, 1, gpu_enabled && domain_rect_generate && dimensionality < 3, "gpu_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
+    Constraints.condError(gpu_minimalBlockSize <= 0, "gpu_minimalBlockSize must be > 0")
 
-    Constraints.condEnsureValue(experimental_cuda_syncStreamsBeforeComputeKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
-    Constraints.condEnsureValue(experimental_cuda_syncStreamsAfterComputeKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
-    Constraints.condEnsureValue(experimental_cuda_syncStreamsBeforeCommunicateKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
-    Constraints.condEnsureValue(experimental_cuda_syncStreamsAfterCommunicateKernelCalls, "none", !experimental_cuda_useStreams, "Disable stream sync when CUDA streams are disabled.")
-    Constraints.condError(cuda_enabled && !experimental_cuda_useStreams && (experimental_cuda_syncStreamsBeforeCommunicateKernelCalls != "none" || experimental_cuda_syncStreamsAfterCommunicateKernelCalls != "none"
-      || experimental_cuda_syncStreamsBeforeComputeKernelCalls != "none" || experimental_cuda_syncStreamsAfterComputeKernelCalls != "none"), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"experimental_cuda_useStreams = true\"")
-    Constraints.condError(cuda_enabled && experimental_cuda_useStreams && (!cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsBeforeCommunicateKernelCalls) || !cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsAfterCommunicateKernelCalls)
-      || !cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsBeforeComputeKernelCalls) || !cuda_syncStreamsOptions.contains(experimental_cuda_syncStreamsAfterComputeKernelCalls)), "Invalid stream sync option. Should be one of: " + cuda_syncStreamsOptions.mkString(","))
-    Constraints.condWarn(cuda_enabled && experimental_cuda_useStreams && cuda_omitSyncDeviceAfterKernelCalls, "Ignoring \"cuda_omitSyncDeviceAfterKernelCalls\" to omit cuda device sync when \"experimental_cuda_useStreams\" is enabled. For stream sync, please refer to the flags: \"cuda_syncStreamsBeforeCommunicationKernelCalls\", \"cuda_syncStreamsAfterCommunicationKernelCalls\", \"cuda_syncStreamsBeforeComputeKernelCalls\", \"cuda_syncStreamsAfterComputeKernelCalls\"")
+    Constraints.condWarn(cuda_enabled && gpu_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $gpu_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
+    Constraints.condWarn(cuda_enabled && gpu_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $gpu_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
 
-    Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
-    Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
-    Constraints.condEnsureValue(cuda_spatialBlockingWithSmem, false, !cuda_useSharedMemory)
-    Constraints.condWarn((cuda_useSharedMemory || cuda_spatialBlockingWithSmem) && cuda_spatialBlockingWithROC, "Shared memory and/or spatial blocking with shared memory cannot be used if spatial blocking with read-only cache is enabled!")
-    Constraints.condEnsureValue(cuda_useSharedMemory, false, cuda_spatialBlockingWithROC)
-    Constraints.condEnsureValue(cuda_spatialBlockingWithSmem, false, cuda_spatialBlockingWithROC)
-    Constraints.condWarn(cuda_enabled && poly_performDCE, "Polyhedral dead code elimination cannot be performed if CUDA is used!")
-    Constraints.condEnsureValue(poly_performDCE, false, cuda_enabled)
-    Constraints.condWarn(cuda_enabled && opt_loopCarriedCSE, "Loop carried CSE cannot be applied if CUDA is used!")
-    Constraints.condEnsureValue(opt_loopCarriedCSE, false, cuda_enabled)
+    Constraints.condEnsureValue(experimental_gpu_syncStreamsBeforeComputeKernelCalls, "none", !experimental_gpu_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(experimental_gpu_syncStreamsAfterComputeKernelCalls, "none", !experimental_gpu_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(experimental_gpu_syncStreamsBeforeCommunicateKernelCalls, "none", !experimental_gpu_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condEnsureValue(experimental_gpu_syncStreamsAfterCommunicateKernelCalls, "none", !experimental_gpu_useStreams, "Disable stream sync when CUDA streams are disabled.")
+    Constraints.condError(gpu_enabled && !experimental_gpu_useStreams && (experimental_gpu_syncStreamsBeforeCommunicateKernelCalls != "none" || experimental_gpu_syncStreamsAfterCommunicateKernelCalls != "none"
+      || experimental_gpu_syncStreamsBeforeComputeKernelCalls != "none" || experimental_gpu_syncStreamsAfterComputeKernelCalls != "none"), "Trying to sync cuda streams without having cuda streams enabled. Enable via \"experimental_gpu_useStreams = true\"")
+    Constraints.condError(gpu_enabled && experimental_gpu_useStreams && (!gpu_syncStreamsOptions.contains(experimental_gpu_syncStreamsBeforeCommunicateKernelCalls) || !gpu_syncStreamsOptions.contains(experimental_gpu_syncStreamsAfterCommunicateKernelCalls)
+      || !gpu_syncStreamsOptions.contains(experimental_gpu_syncStreamsBeforeComputeKernelCalls) || !gpu_syncStreamsOptions.contains(experimental_gpu_syncStreamsAfterComputeKernelCalls)), "Invalid stream sync option. Should be one of: " + gpu_syncStreamsOptions.mkString(","))
+    Constraints.condWarn(gpu_enabled && experimental_gpu_useStreams && gpu_omitSyncDeviceAfterKernelCalls, "Ignoring \"gpu_omitSyncDeviceAfterKernelCalls\" to omit device sync when \"experimental_gpu_useStreams\" is enabled. For stream sync, please refer to the flags: \"experimental_gpu_syncStreamsBeforeCommunicateKernelCalls\", \"experimental_gpu_syncStreamsAfterCommunicateKernelCalls\", \"experimental_gpu_syncStreamsBeforeComputeKernelCalls\", \"experimental_gpu_syncStreamsAfterComputeKernelCalls\"")
 
-    Constraints.condWarn(cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
-    Constraints.condEnsureValue(useDblPrecision, true, cuda_enabled && opt_conventionalCSE)
+    Constraints.condWarn(gpu_useSharedMemory && gpu_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
+    Constraints.condWarn(gpu_spatialBlockingWithSmem && !gpu_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
+    Constraints.condEnsureValue(gpu_spatialBlockingWithSmem, false, !gpu_useSharedMemory)
+    Constraints.condWarn((gpu_useSharedMemory || gpu_spatialBlockingWithSmem) && gpu_spatialBlockingWithROC, "Shared memory and/or spatial blocking with shared memory cannot be used if spatial blocking with read-only cache is enabled!")
+    Constraints.condEnsureValue(gpu_useSharedMemory, false, gpu_spatialBlockingWithROC)
+    Constraints.condEnsureValue(gpu_spatialBlockingWithSmem, false, gpu_spatialBlockingWithROC)
+    Constraints.condWarn(gpu_enabled && poly_performDCE, "Polyhedral dead code elimination cannot be performed if CUDA is used!")
+    Constraints.condEnsureValue(poly_performDCE, false, gpu_enabled)
+    Constraints.condWarn(gpu_enabled && opt_loopCarriedCSE, "Loop carried CSE cannot be applied if CUDA is used!")
+    Constraints.condEnsureValue(opt_loopCarriedCSE, false, gpu_enabled)
 
-    Constraints.condError(!cuda_memory_transfer_elimination_options.contains(cuda_eliminate_memory_transfers), "Invalid value for \"cuda_eliminate_memory_transfers\". Should be one of: " + cuda_memory_transfer_elimination_options.mkString(","))
+    Constraints.condWarn(gpu_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
+    Constraints.condEnsureValue(useDblPrecision, true, gpu_enabled && opt_conventionalCSE)
 
-    Constraints.condEnsureValue(cuda_usePinnedHostMemory, true, cuda_useZeroCopy)
-    Constraints.condError(cuda_useManagedMemory && cuda_usePinnedHostMemory, "cuda_useManagedMemory and cuda_usePinnedHostMemory are mutually exclusive")
-    Constraints.condError(cuda_useManagedMemory && cuda_useZeroCopy, "cuda_useManagedMemory and cuda_usePinnedHostMemory are mutually exclusive")
-    Constraints.condEnsureValue(data_alignFieldPointers, false, cuda_useManagedMemory || cuda_usePinnedHostMemory)
-    Constraints.condEnsureValue(data_alignTmpBufferPointers, false, cuda_useManagedMemory || cuda_usePinnedHostMemory)
+    Constraints.condError(!gpu_memory_transfer_elimination_options.contains(gpu_eliminate_memory_transfers), "Invalid value for \"gpu_eliminate_memory_transfers\". Should be one of: " + gpu_memory_transfer_elimination_options.mkString(","))
+
+    Constraints.condEnsureValue(gpu_usePinnedHostMemory, true, gpu_useZeroCopy)
+    Constraints.condError(gpu_useManagedMemory && gpu_usePinnedHostMemory, "gpu_useManagedMemory and gpu_usePinnedHostMemory are mutually exclusive")
+    Constraints.condError(gpu_useManagedMemory && gpu_useZeroCopy, "gpu_useManagedMemory and gpu_usePinnedHostMemory are mutually exclusive")
+    Constraints.condEnsureValue(data_alignFieldPointers, false, gpu_useManagedMemory || gpu_usePinnedHostMemory)
+    Constraints.condEnsureValue(data_alignTmpBufferPointers, false, gpu_useManagedMemory || gpu_usePinnedHostMemory)
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && !comm_onlyAxisNeighbors, s"Using asynchronous communication with comm_onlyAxisNeighbors leads to problems with stencils containing diagonal entries")
 
@@ -1012,7 +1042,7 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == Platform.targetCompiler, "UNIX_TIME is not supported for windows systems")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
-    Constraints.condEnsureValue(timer_syncDevice, false, !cuda_enabled, "Disabling flag \"timer_syncDevice\". Requires \"cuda_enabled\" to be enabled.")
+    Constraints.condEnsureValue(timer_syncDevice, false, !gpu_enabled, "Disabling flag \"timer_syncDevice\". Requires a GPU backend to be enabled.")
 
     Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticPackingTiming, "timer_automaticCommTiming must be enabled for timer_automaticPackingTiming.")
     Constraints.condEnsureValue(timer_automaticCommTiming, true, timer_automaticUnpackingTiming, "timer_automaticCommTiming must be enabled for timer_automaticUnpackingTiming.")

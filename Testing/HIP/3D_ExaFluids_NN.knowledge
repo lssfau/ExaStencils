@@ -1,0 +1,4 @@
+import "../CUDA/3D_ExaFluids_NN_CUDA.knowledge"
+
+cuda_enabled = false
+hip_enabled = true

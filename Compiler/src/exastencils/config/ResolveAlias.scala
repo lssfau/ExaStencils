@@ -20,13 +20,14 @@ package exastencils.config
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.LegacyParameters
 import exastencils.core.UniversalSetter
 import exastencils.logger.Logger
 
 /// ResolveAlias
 
 object ResolveAlias {
-  val configs = List(Knowledge, Settings, Platform)
+  val configs : List[LegacyParameters] = List(Knowledge, Settings, Platform)
   var changed = false
 
   def processString(toProcess : String) : String = {
@@ -40,11 +41,13 @@ object ResolveAlias {
         case '$' if !inVar => inVar = true
         case '$' if inVar  =>
           var found = false
-          for (target <- configs)
-            if (!found && target.getClass.getMethods.exists(_.getName == varName)) {
+          for (target <- configs) {
+            val name = target.resolveLegacyParameter(varName)
+            if (!found && target.getClass.getMethods.exists(_.getName == name)) {
               found = true
-              output += target.getClass.getMethods.find(_.getName == varName).get.invoke(target)
+              output += target.getClass.getMethods.find(_.getName == name).get.invoke(target)
             }
+          }
 
           if (!found) {
             output += "$" + varName + "$"

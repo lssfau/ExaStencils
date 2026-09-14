@@ -26,6 +26,7 @@ import exastencils.core._
 import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.field.ir.IR_InitFieldsWithZero
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.parallelization.api.cuda.CUDA_Compat
 import exastencils.parallelization.api.cuda.CUDA_KernelFunctions
 import exastencils.simd.SIMD_NeonDivision
 import exastencils.timing.ir.IR_TimerFunctions
@@ -58,10 +59,8 @@ case class IR_UserFunctions() extends IR_FunctionCollection(IR_UserFunctions.def
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.cuda_enabled) {
-    externalDependencies += "cuda.h"
-    externalDependencies += "cuda_runtime.h"
-
+  if (Knowledge.gpu_enabled) {
+    internalDependencies += CUDA_Compat.defHeader
     internalDependencies += CUDA_KernelFunctions.defHeader
   }
   if (Knowledge.opt_vectorize) {

@@ -1,0 +1,4 @@
+import "../CUDA/2D_VarCoeff.knowledge"
+
+cuda_enabled = false
+hip_enabled = true

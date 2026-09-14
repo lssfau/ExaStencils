@@ -20,7 +20,7 @@ case class IR_WaLBerlaSwapFieldPointers(
   override def expand() = {
     def swapPointers(onGPU : Boolean) = IR_ExpressionStatement(IR_MemberFunctionCallArrow(toWbData(src, onGPU), "swapDataPointers", toWbData(dst, onGPU)))
 
-    if (Knowledge.cuda_enabled)
+    if (Knowledge.gpu_enabled)
       ListBuffer[IR_Statement](swapPointers(true), swapPointers(false)) // simply swap both CPU & GPU pointers
     else
       ListBuffer[IR_Statement](swapPointers(false))

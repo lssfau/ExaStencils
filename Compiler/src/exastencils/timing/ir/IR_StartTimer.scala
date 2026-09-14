@@ -38,7 +38,7 @@ case class IR_StartTimer() extends IR_TimerFunction {
   override def generateFct() = {
     val statements = ListBuffer[IR_Statement](
       IR_IfCondition(IR_EqEq(0, accessMember("numEntries")), ListBuffer(
-        if (Knowledge.timer_syncDevice && Knowledge.cuda_enabled) CUDA_DeviceSynchronize() else IR_NullStatement,
+        if (Knowledge.timer_syncDevice && Knowledge.gpu_enabled) CUDA_DeviceSynchronize() else IR_NullStatement,
         if (Knowledge.timer_syncMpi && Knowledge.mpi_enabled) MPI_Barrier else IR_NullStatement,
         IR_AssignNowToTimer(accessMember("timerStarted")),
         IR_Assignment(accessMember("lastTimeMeasured"), IR_ZeroTimerValue()))),

@@ -95,7 +95,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     // device sync stmts
 
     if (isParallel) {
-      if (!Knowledge.experimental_cuda_useStreams && !Knowledge.cuda_omitSyncDeviceAfterKernelCalls)
+      if (!Knowledge.experimental_gpu_useStreams && !Knowledge.gpu_omitSyncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
 
       afterDevice ++= syncFlagsAfterDevice()

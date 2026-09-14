@@ -83,15 +83,15 @@ def get_file_in_problem_path(exa_problem_path: str, filename: str, suppress: boo
 # --- generate ".settings" file for a directory with ExaSlang files --- #
 def generate_settings_file(exa_files: List[str], exa_problem_path: str, problem_name: str, output_path: str,
                            target_code_path: str, build_file_generator: str, build_target_name: str,
-                           build_standalone: bool, overwrite: bool, use_cuda: bool, use_likwid: bool,
-                           use_likwid_perfctr: bool):
+                           build_standalone: bool, overwrite: bool, use_cuda: bool, use_hip: bool,
+                           use_likwid: bool, use_likwid_perfctr: bool):
     # ignore warning that file does not exist, because it is yet to be created
     settings_path = get_file_in_problem_path(exa_problem_path, f"{problem_name}.settings", suppress=True)
 
     if not os.path.isfile(settings_path) or overwrite:
         print_settings_file(exa_files, exa_problem_path, problem_name, settings_path, output_path,
             target_code_path, build_file_generator, build_target_name, build_standalone,
-            use_cuda, use_likwid, use_likwid_perfctr)
+            use_cuda, use_hip, use_likwid, use_likwid_perfctr)
     else:
         raise ValueError(
             f"File {settings_path} already exists. Run again with the --overwrite_settings flag to overwrite.")
@@ -101,7 +101,8 @@ def generate_settings_file(exa_files: List[str], exa_problem_path: str, problem_
 
 def print_settings_file(exa_files: List[str], exa_problem_path: str, exa_problem_name: str, settings_path: str,
                         output_path: str, target_code_path: str, build_file_generator: str, build_target_name: str,
-                        build_standalone: bool, use_cuda: bool, use_likwid: bool, use_likwid_perfctr: bool):
+                        build_standalone: bool, use_cuda: bool, use_hip: bool,
+                        use_likwid: bool, use_likwid_perfctr: bool):
     tmp = f'user\t= "Guest"\n\n'
 
     output_path_relative = os.path.relpath(output_path, exa_problem_path)
@@ -138,6 +139,10 @@ def print_settings_file(exa_files: List[str], exa_problem_path: str, exa_problem
     if use_cuda:
         tmp += f'pathsInc += "/usr/local/cuda/include"\n'
         tmp += f'pathsLib += "/usr/local/cuda/lib64"\n'
+
+    if use_hip:
+        tmp += f'pathsInc += "/opt/rocm/include"\n'
+        tmp += f'pathsLib += "/opt/rocm/lib"\n'
 
     if use_likwid:
         tmp += f'pathsLib += "$(shell dirname $(shell which likwid-perfctr))/../lib/"\n'
